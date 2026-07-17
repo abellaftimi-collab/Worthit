@@ -72,8 +72,8 @@ a{color:inherit;}
 .gold-text{background:var(--grad-gold);-webkit-background-clip:text;background-clip:text;color:transparent;}
 .center{text-align:center;margin-left:auto;margin-right:auto;}
 
-@keyframes pageIn{from{opacity:0;transform:translateY(16px) rotateX(2deg);}to{opacity:1;transform:translateY(0) rotateX(0);}}
-.page-enter{animation:pageIn .55s var(--ease) both;transform-style:preserve-3d;}
+@keyframes pageIn{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+.page-enter{animation:pageIn .5s var(--ease) both;}
 
 @keyframes spinSlow{to{transform:rotate(360deg);}}
 .spin-slow{animation:spinSlow 34s linear infinite;transform-origin:center;}
@@ -86,11 +86,11 @@ a{color:inherit;}
 .reveal.visible{opacity:1;transform:translateY(0);}
 
 /* ---- 3D hero scene ---- */
-.scene{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;perspective:1300px;overflow:hidden;}
-.scene-inner{position:relative;width:560px;height:560px;transform-style:preserve-3d;transition:transform .5s cubic-bezier(.22,1,.36,1);transform:perspective(1300px) rotateX(calc(var(--ry,0) * -8deg)) rotateY(calc(var(--rx,0) * 8deg));}
-.scene-glow{position:absolute;width:520px;height:520px;left:50%;top:50%;translate:-50% -50%;border-radius:50%;background:radial-gradient(circle,rgba(124,58,237,.24) 0%,transparent 70%);filter:blur(6px);}
+.scene{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.scene-inner{position:relative;width:560px;height:560px;}
+.scene-glow{position:absolute;width:520px;height:520px;left:50%;top:50%;translate:-50% -50%;border-radius:50%;background:radial-gradient(circle,rgba(124,58,237,.22) 0%,transparent 68%);}
 .rings-spin{position:absolute;inset:0;}
-.shard{position:absolute;left:50%;top:50%;display:flex;align-items:center;justify-content:center;width:52px;height:52px;border-radius:16px;background:var(--glass-hi);border:1px solid var(--line);backdrop-filter:blur(10px);color:var(--v1);box-shadow:0 10px 30px rgba(0,0,0,.4);transform:translate3d(calc(-50% + var(--ox)),calc(-50% + var(--oy)),var(--oz)) rotate(var(--rot,0deg));}
+.shard{position:absolute;left:50%;top:50%;display:flex;align-items:center;justify-content:center;width:52px;height:52px;border-radius:16px;background:rgba(20,12,34,.85);border:1px solid var(--line);color:var(--v1);box-shadow:0 10px 30px rgba(0,0,0,.4);transform:translate(calc(-50% + var(--ox)),calc(-50% + var(--oy))) rotate(var(--rot,0deg));}
 
 .tilt{transition:transform .35s var(--ease),box-shadow .35s ease,border-color .35s ease;transform-style:preserve-3d;will-change:transform;}
 
@@ -186,7 +186,8 @@ a{color:inherit;}
 #agent-root{position:fixed;right:20px;bottom:20px;z-index:75;}
 .agent-fab{position:relative;width:62px;height:62px;border-radius:50%;border:none;cursor:pointer;background:var(--grad);display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 8px 30px rgba(124,58,237,.45);transition:transform .35s var(--ease);}
 .agent-fab:hover{transform:scale(1.09) translateY(-2px);}
-.agent-fab::before{content:"";position:absolute;inset:-4px;border-radius:50%;background:conic-gradient(from 0deg,var(--v1),var(--gold-1),var(--v2),var(--v1));animation:fabRing 4.5s linear infinite;z-index:-1;filter:blur(1.5px);opacity:.85;}
+.agent-fab::before{content:"";position:absolute;inset:-4px;border-radius:50%;background:conic-gradient(from 0deg,var(--v1),var(--gold-1),var(--v2),var(--v1));animation:fabRing 4.5s linear infinite;z-index:-1;opacity:.85;}
+.fab-lock{position:absolute;top:-5px;left:-5px;background:var(--grad-gold);color:#1a1206;border-radius:999px;padding:3px 8px;font-size:9px;font-weight:800;display:flex;align-items:center;gap:3px;letter-spacing:.03em;}
 .agent-fab::after{content:"";position:absolute;inset:0;border-radius:50%;animation:fabPulse 2.8s ease-out infinite;}
 @keyframes fabRing{to{transform:rotate(360deg);}}
 @keyframes fabPulse{0%{box-shadow:0 0 0 0 rgba(167,139,250,.45);}70%{box-shadow:0 0 0 20px rgba(167,139,250,0);}100%{box-shadow:0 0 0 0 rgba(167,139,250,0);}}
@@ -220,6 +221,16 @@ a{color:inherit;}
 .agent-input:focus{border-color:rgba(167,139,250,.5);}
 .agent-send{width:42px;height:42px;border-radius:50%;background:var(--grad);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .25s ease,box-shadow .25s ease;}
 .agent-send:hover{transform:scale(1.08);box-shadow:0 0 16px rgba(167,139,250,.4);}
+
+/* ---- quiz d'introduction ---- */
+.quiz-opt{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:16px 18px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);color:#fff;font-size:14.5px;cursor:pointer;font-family:inherit;transition:border-color .25s ease,background .25s ease,transform .25s ease;}
+.quiz-opt:hover:not([disabled]){border-color:rgba(167,139,250,.5);transform:translateY(-1px);}
+.quiz-opt.correct{border-color:rgba(251,205,107,.8);background:rgba(251,205,107,.1);}
+.quiz-opt.wrong{border-color:rgba(255,110,110,.55);background:rgba(255,110,110,.06);opacity:.7;}
+.quiz-opt[disabled]{cursor:default;}
+.quiz-letter{width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:800;background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.3);color:var(--v1);flex-shrink:0;}
+.quiz-stat{font-family:var(--font-d);font-weight:800;font-size:clamp(2.2rem,6vw,3.2rem);letter-spacing:-.02em;}
+.intro-bubble{background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.22);color:#fff;border-radius:18px;border-bottom-left-radius:6px;padding:16px 18px;font-size:14.5px;line-height:1.62;animation:msgIn .5s var(--ease) both;white-space:pre-line;text-align:left;}
 
 @media (max-width:820px){
   .nav-desktop,.nav-actions-desktop{display:none !important;}
@@ -334,13 +345,28 @@ const FAQ = [
 ];
 
 const STATUTS = ['Étudiant','Salarié','Sans emploi','Freelance'];
-const DEMO_PROFILE = {status:'Salarié',income:1400,rent:550,charges:220,nom:''};
-const DEMO_GOALS = [
-  {id:1,name:'Voyage au Japon',target:1800,current:612},
-  {id:2,name:'Épargne de sécurité',target:1000,current:180},
-];
 const REWARD_THRESHOLDS = [50,250,500,1000];
 const DEMO_PRODUCT = {title:'Sneakers en édition limitée',price:149};
+
+/* Quiz d'introduction — chiffres arrondis issus d'études sur la consommation impulsive */
+const QUIZ = [
+  {q:"Selon une étude américaine, combien un consommateur dépense-t-il en moyenne chaque mois en achats impulsifs ?",
+   options:["Environ 40 €","Environ 120 €","Près de 300 €"], answer:2,
+   stat:"≈ 300 € / mois",
+   explain:"Soit plus de 3 500 € par an partis dans des achats non prévus. De quoi financer un vrai projet."},
+  {q:"Quelle part des achats impulsifs est regrettée après coup ?",
+   options:["Environ 1 sur 10","Environ 1 sur 3","Près de 2 sur 3"], answer:2,
+   stat:"≈ 2 sur 3",
+   explain:"L'envie dure quelques minutes. Le regret, lui, reste — et il revient à chaque relevé de compte."},
+  {q:"Combien de temps dure en moyenne une envie irrépressible d'acheter ?",
+   options:["Moins de 20 minutes","Plusieurs heures","Plusieurs jours"], answer:0,
+   stat:"< 20 min",
+   explain:"C'est tout le principe de la pause : si tu attends un peu, l'envie retombe presque toujours toute seule."},
+  {q:"Quelle part des acheteurs en ligne dit avoir déjà craqué à cause d'une promo « dernière chance » ?",
+   options:["Environ 1 sur 5","Environ 1 sur 2","Quasiment tout le monde"], answer:1,
+   stat:"≈ 1 sur 2",
+   explain:"Compte à rebours, stock « limité », urgence artificielle… le e-commerce est une machine conçue pour te faire craquer."},
+];
 
 const SHOP_AVATARS = [
   {id:'av1',label:'A',grad:'linear-gradient(135deg,#a78bfa,#7c3aed)',price:0},
@@ -365,20 +391,7 @@ const FRIENDS = {
   'Nora':{c1:'#a78bfa',c2:'#7c3aed',items:[]},
   'Max':{c1:'#a78bfa',c2:'#7c3aed',items:[]},
 };
-const WEEK_ACTIVITY = [
-  {day:'Lun',resisted:1,amount:12},
-  {day:'Mar',resisted:0,amount:0},
-  {day:'Mer',resisted:2,amount:31},
-  {day:'Jeu',resisted:1,amount:9},
-  {day:'Ven',resisted:3,amount:54},
-  {day:'Sam',resisted:1,amount:22},
-  {day:'Dim',resisted:0,amount:0},
-];
-const VICTORIES = [
-  {item:'Veste vintage',price:89,when:'Hier',goal:'Voyage au Japon'},
-  {item:'Gadget cuisine',price:34,when:'Mercredi',goal:'Épargne de sécurité'},
-  {item:'Troisième paire de sneakers',price:120,when:'Lundi',goal:'Voyage au Japon'},
-];
+const WEEK_DAYS = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
 const LEADERBOARD = [
   {rank:1,name:'Léa',amount:'42 €',badge:'Top économie'},
   {rank:2,name:'Toi',amount:'31 €',badge:'Plus grosse progression',me:true},
@@ -397,16 +410,52 @@ const SHOWCASE_ITEMS = [
 
 /* ============================== STATE ============================== */
 const state = {
-  page:'accueil', menuOpen:false, isPremium:false,
+  page:'accueil', menuOpen:false, isPremium:false, introDone:false,
   billing:'mensuel',
   auth:{mode:'connexion',nom:'',email:'',pass:'',showPass:false,errors:{},done:false},
-  onboarding:{step:0,status:'Salarié',income:'',rent:'',charges:''},
+  onboarding:{step:0,status:'Salarié',income:'',rent:'',charges:'',goalName:'',goalTarget:''},
   profile:null,
-  goals:DEMO_GOALS, streak:12, savedTotal:612, sous:230, sousToday:14,
+  goals:[], streak:0, savedTotal:0, sous:0, sousToday:0,
+  week:WEEK_DAYS.map(d=>({day:d,amount:0})), victories:[],
   owned:['av1','th1'], activeAvatar:'av1', activeTheme:'th1',
   demoQuestion:null, showcaseFilter:'Tous', shopTab:'avatars', selectedFriend:null,
   toasts:[],
 };
+const quiz = {i:0, picked:null, revealed:false, score:0, finished:false};
+
+/* ---- persistance locale : le profil de CHAQUE utilisateur, pas des données démo ---- */
+function saveLocal(){
+  try{
+    localStorage.setItem('worthit_v1', JSON.stringify({
+      introDone:state.introDone, profile:state.profile, goals:state.goals,
+      streak:state.streak, savedTotal:state.savedTotal, sous:state.sous,
+      week:state.week, victories:state.victories,
+      owned:state.owned, activeAvatar:state.activeAvatar, activeTheme:state.activeTheme,
+      isPremiumDemo:state.isPremium, authNom:state.auth.nom,
+    }));
+  }catch(e){}
+}
+function loadLocal(){
+  try{
+    const d = JSON.parse(localStorage.getItem('worthit_v1')||'null');
+    if(!d) return;
+    state.introDone = !!d.introDone;
+    state.profile = d.profile||null;
+    state.goals = Array.isArray(d.goals)?d.goals:[];
+    state.streak = d.streak||0; state.savedTotal = d.savedTotal||0; state.sous = d.sous||0;
+    if(Array.isArray(d.week) && d.week.length===7) state.week = d.week;
+    state.victories = Array.isArray(d.victories)?d.victories:[];
+    if(Array.isArray(d.owned)) state.owned = d.owned;
+    if(d.activeAvatar) state.activeAvatar = d.activeAvatar;
+    if(d.activeTheme){
+      state.activeTheme = d.activeTheme;
+      const th = SHOP_THEMES.find(t=>t.id===d.activeTheme);
+      if(th){ document.documentElement.style.setProperty('--accent-1',th.c1); document.documentElement.style.setProperty('--accent-2',th.c2); }
+    }
+    state.isPremium = !!d.isPremiumDemo;
+    if(d.authNom) state.auth.nom = d.authNom;
+  }catch(e){}
+}
 
 function computeBudget(p){
   const income=Number(p.income)||0, rent=Number(p.rent)||0, charges=Number(p.charges)||0;
@@ -545,6 +594,72 @@ function HeroScene(){
 }
 
 /* ============================== PAGES ============================== */
+function pageIntro(){
+  if(quiz.finished){
+    const btnDelay = .35 + 4*.4;
+    return `<section style="min-height:100vh;display:flex;align-items:center;background:radial-gradient(800px 500px at 50% 15%,rgba(124,58,237,.1),transparent 60%),var(--void);padding:110px 24px 80px;">
+      <div class="container" style="max-width:520px;">
+        <div style="display:flex;justify-content:center;margin-bottom:26px;">
+          <div class="agent-avatar" style="width:64px;height:64px;">${I('brain',28)}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div class="intro-bubble" style="animation-delay:.15s;">Tu avais vu juste sur <strong>${quiz.score} question${quiz.score>1?'s':''} sur ${QUIZ.length}</strong>. ${quiz.score>=3?'Impressionnant — tu connais déjà l’ennemi.':'Et c’est normal : personne ne mesure vraiment ces chiffres.'}</div>
+          <div class="intro-bubble" style="animation-delay:.55s;">Moi c'est <strong>Worthy</strong>. Mon travail : être de TON côté au moment exact où un site te pousse à craquer. Jamais du côté du vendeur.</div>
+          <div class="intro-bubble" style="animation-delay:.95s;">Worthit met une pause entre l'envie et l'achat : ton budget réel, une question honnête, ta série de jours sans craquer — et des récompenses quand tu tiens bon.</div>
+          <div class="intro-bubble" style="animation-delay:1.35s;">Configure ton profil en 2 minutes — aucune donnée bancaire — et on arrête de parler des moyennes des études : on parle de TES chiffres.</div>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:30px;animation:msgIn .5s var(--ease) ${btnDelay}s both;">
+          <button onclick="introFinish('signup')" class="btn btn-neon" style="padding:15px 28px;">Créer mon profil ${I('arrowRight',16)}</button>
+          <button onclick="introFinish('explore')" class="btn btn-ghost">Explorer d'abord</button>
+        </div>
+      </div>
+    </section>`;
+  }
+  const q = QUIZ[quiz.i];
+  return `<section style="min-height:100vh;display:flex;align-items:center;background:radial-gradient(800px 500px at 50% 15%,rgba(124,58,237,.1),transparent 60%),var(--void);padding:110px 24px 80px;position:relative;">
+    <button onclick="introFinish('explore')" style="position:absolute;top:100px;right:26px;background:none;border:none;cursor:pointer;font-size:13px;color:var(--ink-faint);font-family:inherit;">Passer le quiz →</button>
+    <div class="container" style="max-width:560px;">
+      <div class="center" style="margin-bottom:30px;">
+        <p class="eyebrow">Avant de commencer — question ${quiz.i+1} / ${QUIZ.length}</p>
+        <div style="display:flex;gap:6px;justify-content:center;margin-bottom:22px;">
+          ${QUIZ.map((_,i)=>`<span style="width:${i===quiz.i?22:8}px;height:8px;border-radius:99px;background:${i<quiz.i?'var(--grad-gold)':i===quiz.i?'var(--grad)':'rgba(255,255,255,.1)'};transition:all .3s ease;"></span>`).join('')}
+        </div>
+        <h2 style="font-size:clamp(1.4rem,3.4vw,1.85rem);font-weight:700;color:#fff;line-height:1.3;font-family:var(--font-d);">${esc(q.q)}</h2>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        ${q.options.map((opt,i)=>{
+          let cls='';
+          if(quiz.revealed){ if(i===q.answer) cls='correct'; else if(i===quiz.picked) cls='wrong'; }
+          return `<button class="quiz-opt ${cls}" ${quiz.revealed?'disabled':''} onclick="quizPick(${i})">
+            <span class="quiz-letter">${String.fromCharCode(65+i)}</span>${esc(opt)}
+            ${quiz.revealed&&i===q.answer?`<span style="margin-left:auto;color:var(--gold-1);display:flex;">${I('check',17)}</span>`:''}
+          </button>`;
+        }).join('')}
+      </div>
+      ${quiz.revealed?`<div class="glass check-pop" style="border-radius:18px;padding:26px 24px;margin-top:18px;text-align:center;">
+        <p class="quiz-stat gold-text" style="margin:0 0 8px;">${esc(q.stat)}</p>
+        <p style="font-size:13.8px;line-height:1.6;color:var(--ink-dim);margin:0 0 20px;">${esc(q.explain)}</p>
+        <button onclick="quizNext()" class="btn btn-neon">${quiz.i<QUIZ.length-1?'Question suivante':'Voir pourquoi Worthit existe'} ${I('arrowRight',15)}</button>
+      </div>`:''}
+    </div>
+  </section>`;
+}
+function quizPick(i){
+  if(quiz.revealed) return;
+  quiz.picked=i; quiz.revealed=true;
+  if(i===QUIZ[quiz.i].answer) quiz.score++;
+  render();
+}
+function quizNext(){
+  if(quiz.i<QUIZ.length-1){ quiz.i++; quiz.picked=null; quiz.revealed=false; render(true); }
+  else { quiz.finished=true; render(true); }
+}
+function introFinish(mode){
+  state.introDone=true; saveLocal();
+  if(mode==='signup'){ state.auth.mode='inscription'; nav('connexion'); }
+  else nav('accueil');
+}
+
 function pageAccueil(){
   return `<section style="position:relative;min-height:100vh;display:flex;align-items:center;overflow:hidden;background:radial-gradient(900px 600px at 50% 30%,rgba(124,58,237,.1),transparent 65%),var(--void);">
     ${HeroScene()}
@@ -689,21 +804,26 @@ async function subscribe(btn){
   if(r && r.url){ window.location.href = r.url; return; }
   // Pas de backend Stripe joignable : mode démo local
   state.isPremium=true;
+  saveLocal();
   confettiBurst(btn);
   toast('Bienvenue dans Premium ✨'+(r&&r.demo?' (mode démo)':''),'crown');
+  renderAgent();
   nav('dashboard');
 }
 function downgrade(){
   state.isPremium=false;
+  saveLocal();
   toast('Tu es repassé en Gratuit.','shield');
+  renderAgent();
   render(true);
 }
 
 function pageClassement(){
   const locked = !state.isPremium;
   const body = `<div class="glass reveal" style="display:flex;align-items:center;justify-content:center;gap:10px;padding:12px 18px;border-radius:999px;margin:0 auto 30px;width:fit-content;">
-      ${I('coins',16)}<span style="font-size:13.5px;color:#fff;">+${state.sousToday} sous gagnés aujourd'hui</span>
+      ${I('coins',16)}<span style="font-size:13.5px;color:#fff;">${state.sousToday>0?`+${state.sousToday} sous gagnés aujourd'hui`:'Résiste à un achat pour gagner des sous'}</span>
     </div>
+    <p class="reveal" style="font-size:11.5px;color:var(--ink-faint);text-align:center;margin:0 0 18px;">Aperçu démo — bientôt, tes vrais amis ici.</p>
     <div class="glass reveal" style="border-radius:20px;padding:10px;margin-bottom:20px;">
       ${LEADERBOARD.map((u,i)=>`<button ${u.name!=='Toi'?`onclick="openFriend('${u.name}')"`:''} style="display:flex;align-items:center;gap:14px;padding:16px 14px;width:100%;text-align:left;border:none;cursor:${u.name!=='Toi'?'pointer':'default'};font-family:inherit;border-bottom:${i<LEADERBOARD.length-1?'1px solid var(--line-soft)':'none'};background:${u.me?'rgba(167,139,250,.06)':'transparent'};border-radius:${u.me?'14px':'0'};">
         <span style="width:26px;text-align:center;font-size:14px;font-weight:700;color:${u.rank<=3?'var(--v1)':'var(--ink-faint)'};">${u.rank}</span>
@@ -890,12 +1010,12 @@ function submitAuth(){
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) errors.email='E-mail invalide.';
   if(pass.length<6) errors.pass='6 caractères minimum.';
   a.errors=errors;
-  if(Object.keys(errors).length===0){ a.done=true; }
+  if(Object.keys(errors).length===0){ a.done=true; saveLocal(); }
   render();
 }
 
 function pageOnboarding(){
-  const steps=['Ta situation','Tes revenus','Tes charges'];
+  const steps=['Ta situation','Tes revenus','Tes charges','Ton objectif'];
   const o=state.onboarding;
   return `<section class="section" style="min-height:100vh;display:flex;align-items:center;background:radial-gradient(800px 500px at 50% 20%,rgba(124,58,237,.09),transparent 60%),var(--void);">
     <div class="container" style="max-width:440px;">
@@ -904,7 +1024,7 @@ function pageOnboarding(){
           <div style="width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:${i<=o.step?'#fff':'var(--ink-faint)'};background:${i<=o.step?'var(--grad)':'rgba(255,255,255,.06)'};">${i<o.step?I('check',13):i+1}</div>`).join('')}
       </div>
       <div class="reveal center" style="margin-bottom:26px;">
-        <p class="eyebrow" style="margin-bottom:8px;">Étape ${o.step+1} / 3</p>
+        <p class="eyebrow" style="margin-bottom:8px;">Étape ${o.step+1} / 4</p>
         <h2 style="font-size:22px;font-weight:800;color:#fff;margin:0;font-family:var(--font-d);">${steps[o.step]}</h2>
       </div>
       <div class="glass reveal" style="border-radius:22px;padding:28px 26px;margin-bottom:20px;">
@@ -913,10 +1033,13 @@ function pageOnboarding(){
         </div>` : ''}
         ${o.step===1 ? FieldHtml('ob-income','Revenu mensuel (€)','number',o.income,null,'wallet') : ''}
         ${o.step===2 ? FieldHtml('ob-rent','Loyer (€)','number',o.rent,null,'home') + FieldHtml('ob-charges','Charges fixes et abonnements (€)','number',o.charges,null,'creditCard') : ''}
+        ${o.step===3 ? `<p style="font-size:13px;color:var(--ink-dim);margin:0 0 16px;line-height:1.6;">Pour quoi économises-tu ? Chaque achat auquel tu résisteras fera avancer cet objectif.</p>`
+          + FieldHtml('ob-goal-name','Ton objectif (ex : Voyage, Permis…)','text',o.goalName,null,'target')
+          + FieldHtml('ob-goal-target','Montant à atteindre (€)','number',o.goalTarget,null,'coins') : ''}
       </div>
       <div class="reveal" style="display:flex;gap:10px;">
         ${o.step>0?`<button onclick="onboardBack()" class="btn btn-ghost">${I('chevronLeft',16)} Retour</button>`:''}
-        <button onclick="onboardNext()" class="btn btn-neon" style="flex:1;">${o.step<2?'Continuer':'Voir mon dashboard'} ${I('chevronRight',16)}</button>
+        <button onclick="onboardNext()" class="btn btn-neon" style="flex:1;">${o.step<3?'Continuer':'Créer mon dashboard'} ${I('chevronRight',16)}</button>
       </div>
       <p class="reveal" style="font-size:11.5px;color:var(--ink-faint);text-align:center;margin:16px 0 0;">Stocké sur ton appareil uniquement. Aucune connexion bancaire.</p>
     </div>
@@ -926,18 +1049,51 @@ function selectStatus(s){ state.onboarding.status=s; render(); }
 function onboardBack(){ if(state.onboarding.step>0){ state.onboarding.step--; render(); } }
 function onboardNext(){
   const o=state.onboarding;
-  if(o.step===1){ o.income=document.getElementById('ob-income').value; }
-  if(o.step===2){ o.rent=document.getElementById('ob-rent').value; o.charges=document.getElementById('ob-charges').value; }
-  if(o.step<2){ o.step++; render(); return; }
+  if(o.step===1){
+    o.income=document.getElementById('ob-income').value;
+    if(!(Number(o.income)>0)){ toast('Indique ton revenu mensuel pour continuer.','wallet'); return; }
+  }
+  if(o.step===2){
+    o.rent=document.getElementById('ob-rent').value;
+    o.charges=document.getElementById('ob-charges').value;
+    if(o.rent==='' || o.charges===''){ toast('Indique ton loyer et tes charges (0 si aucun).','home'); return; }
+  }
+  if(o.step===3){
+    o.goalName=document.getElementById('ob-goal-name').value.trim();
+    o.goalTarget=document.getElementById('ob-goal-target').value;
+    if(!o.goalName || !(Number(o.goalTarget)>0)){ toast('Donne un nom et un montant à ton objectif.','target'); return; }
+  }
+  if(o.step<3){ o.step++; render(); return; }
   state.profile = {
     status:o.status, nom:state.auth.nom,
-    income:o.income||DEMO_PROFILE.income, rent:o.rent||DEMO_PROFILE.rent, charges:o.charges||DEMO_PROFILE.charges,
+    income:Number(o.income), rent:Number(o.rent)||0, charges:Number(o.charges)||0,
   };
+  state.goals = [{id:1, name:o.goalName, target:Number(o.goalTarget), current:0}];
+  state.streak = 1;
+  state.savedTotal = 0;
+  state.sous = 20; // bonus de bienvenue
+  state.week = WEEK_DAYS.map(d=>({day:d,amount:0}));
+  state.victories = [];
+  saveLocal();
+  toast('Profil créé — 20 sous de bienvenue !','coins');
   nav('dashboard');
 }
 
 function pageDashboard(){
-  const profile = state.profile || DEMO_PROFILE;
+  if(!state.profile){
+    return `<section class="section" style="min-height:100vh;display:flex;align-items:center;background:radial-gradient(800px 500px at 50% 20%,rgba(124,58,237,.09),transparent 60%),var(--deep);">
+      <div class="container" style="max-width:440px;">
+        <div class="glass check-pop" style="border-radius:22px;padding:44px 32px;text-align:center;">
+          <div style="width:52px;height:52px;border-radius:16px;background:var(--grad);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;color:#fff;">${I('user',22)}</div>
+          <h2 style="font-size:21px;font-weight:800;color:#fff;margin:0 0 10px;font-family:var(--font-d);">Ton dashboard t'attend</h2>
+          <p style="font-size:14px;color:var(--ink-dim);line-height:1.65;margin:0 0 24px;">Configure ton profil en 2 minutes — revenus, charges, objectif — et tout ici affichera TES chiffres, pas ceux d'une démo.</p>
+          <button onclick="state.auth.mode='inscription';nav('connexion')" class="btn btn-neon btn-block">Créer mon profil ${I('arrowRight',15)}</button>
+          ${!state.introDone?`<button onclick="nav('intro')" class="btn btn-ghost btn-block" style="margin-top:10px;">Faire le quiz d'intro d'abord</button>`:''}
+        </div>
+      </div>
+    </section>`;
+  }
+  const profile = state.profile;
   const {income,rent,charges,left} = computeBudget(profile);
   const rentPct = income>0?Math.round((rent/income)*100):0;
   const chargesPct = income>0?Math.round((charges/income)*100):0;
@@ -997,11 +1153,11 @@ function pageDashboard(){
       <div class="glass reveal" style="border-radius:18px;padding:22px 20px;margin-bottom:16px;">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
           <p style="font-size:13px;font-weight:700;color:#fff;margin:0;">Ta semaine de résistance</p>
-          <span class="tabular" style="font-size:12px;color:var(--ink-dim);">${WEEK_ACTIVITY.reduce((s,d)=>s+d.amount,0)} € gardés</span>
+          <span class="tabular" style="font-size:12px;color:var(--ink-dim);">${state.week.reduce((s,d)=>s+d.amount,0)} € gardés</span>
         </div>
         <div style="display:flex;align-items:flex-end;gap:10px;height:90px;">
-          ${WEEK_ACTIVITY.map(d=>{
-            const max = Math.max(...WEEK_ACTIVITY.map(x=>x.amount),1);
+          ${state.week.map(d=>{
+            const max = Math.max(...state.week.map(x=>x.amount),1);
             const hp = d.amount>0 ? Math.max(14, Math.round(d.amount/max*100)) : 6;
             return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;height:100%;justify-content:flex-end;">
               <div title="${d.amount} €" style="width:100%;max-width:34px;height:${hp}%;border-radius:7px 7px 3px 3px;background:${d.amount>0?'var(--grad)':'rgba(255,255,255,.07)'};box-shadow:${d.amount>0?'0 0 14px rgba(124,58,237,.25)':'none'};"></div>
@@ -1009,11 +1165,14 @@ function pageDashboard(){
             </div>`;
           }).join('')}
         </div>
+        ${state.week.every(d=>d.amount===0)?`<p style="font-size:12px;color:var(--ink-faint);margin:12px 0 0;text-align:center;">Chaque achat auquel tu résistes apparaîtra ici. Demande à Worthy quand l'envie monte.</p>`:''}
       </div>
       <div class="glass reveal" style="border-radius:18px;padding:22px 20px;margin-bottom:16px;">
         <p style="font-size:13px;font-weight:700;color:#fff;margin:0 0 14px;">Dernières victoires</p>
-        <div style="display:flex;flex-direction:column;">
-          ${VICTORIES.map((v,i)=>`<div style="display:flex;align-items:center;gap:12px;padding:11px 0;${i<VICTORIES.length-1?'border-bottom:1px solid var(--line-soft);':''}">
+        ${state.victories.length===0
+          ? `<p style="font-size:13px;color:var(--ink-faint);line-height:1.6;margin:0;">Aucune victoire enregistrée pour l'instant. La première fois que tu renonces à un achat, note-la ici — c'est le début de ta série. 🔥</p>`
+          : `<div style="display:flex;flex-direction:column;">
+          ${state.victories.map((v,i)=>`<div style="display:flex;align-items:center;gap:12px;padding:11px 0;${i<state.victories.length-1?'border-bottom:1px solid var(--line-soft);':''}">
             <div style="width:34px;height:34px;border-radius:10px;background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.25);display:flex;align-items:center;justify-content:center;color:var(--v1);flex-shrink:0;">${I('shield',15)}</div>
             <div style="flex:1;min-width:0;">
               <p style="font-size:13.5px;font-weight:600;color:#fff;margin:0 0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(v.item)}</p>
@@ -1021,7 +1180,8 @@ function pageDashboard(){
             </div>
             <span class="tabular grad-text" style="font-size:14px;font-weight:800;font-family:var(--font-d);flex-shrink:0;">+${v.price} €</span>
           </div>`).join('')}
-        </div>
+        </div>`}
+        <button onclick="addVictory()" class="btn btn-ghost btn-sm" style="margin-top:14px;">${I('shield',14)} J'ai résisté à un achat</button>
       </div>
       <div class="reveal" style="margin-bottom:16px;">
         <p style="font-size:13px;font-weight:700;color:#fff;margin:0 0 12px;">Tes objectifs</p>
@@ -1057,8 +1217,37 @@ function pageDashboard(){
 }
 function runDemoQuestion(){
   const goal = state.goals[0];
-  state.demoQuestion = generateQuestion(DEMO_PRODUCT, state.profile||DEMO_PROFILE, goal);
+  state.demoQuestion = generateQuestion(DEMO_PRODUCT, state.profile, goal);
   document.getElementById('demo-question-box').innerHTML = `<div style="background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.25);border-radius:12px;padding:14px 16px;"><p style="font-size:14px;line-height:1.55;color:#fff;margin:0;">${esc(state.demoQuestion)}</p></div>`;
+}
+function addVictory(){
+  document.getElementById('modal-root').innerHTML = `<div class="modal-backdrop" onclick="if(event.target===this)closeModal()">
+    <div class="glass modal-card check-pop">
+      <div style="width:48px;height:48px;border-radius:14px;background:var(--grad);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:#fff;">${I('shield',20)}</div>
+      <h3 style="font-size:18px;font-weight:800;color:#fff;margin:0 0 6px;">À quoi as-tu résisté ?</h3>
+      <p style="font-size:12.5px;color:var(--ink-dim);margin:0 0 20px;">Ce montant part vers ton objectif, et tu gagnes des sous.</p>
+      ${FieldHtml('vic-item','L’achat évité (ex : sneakers…)','text','',null,'bag')}
+      ${FieldHtml('vic-price','Son prix (€)','number','',null,'coins')}
+      <button class="btn btn-neon btn-block" onclick="saveVictory()" style="margin-top:4px;">Enregistrer ma victoire</button>
+    </div></div>`;
+}
+function saveVictory(){
+  const item = document.getElementById('vic-item').value.trim();
+  const price = Number(document.getElementById('vic-price').value);
+  if(!item || !(price>0)){ toast("Indique l'achat évité et son prix.",'bag'); return; }
+  const dayIdx = (new Date().getDay()+6)%7; // lundi = 0
+  state.week[dayIdx].amount += price;
+  state.savedTotal += price;
+  const goal = state.goals[0];
+  if(goal) goal.current = Math.min(goal.target, goal.current + price);
+  const gained = Math.max(5, Math.round(price/10));
+  state.sous += gained; state.sousToday += gained;
+  state.victories.unshift({item, price, when:"Aujourd'hui", goal: goal ? goal.name : 'ton objectif'});
+  state.victories = state.victories.slice(0,6);
+  closeModal(); saveLocal();
+  confettiBurst(null);
+  toast(`+${price} € gardés, +${gained} sous !`,'trophy');
+  render();
 }
 
 function pageBoutique(){
@@ -1109,6 +1298,7 @@ function setShopTab(tab){
 function buyItem(tab,id,price,btn){
   state.sous -= price;
   state.owned.push(id);
+  saveLocal();
   document.getElementById('shop-sous').textContent = state.sous + ' sous';
   confettiBurst(btn);
   toast('Objet débloqué !','gem');
@@ -1124,13 +1314,14 @@ function equipItem(tab,id){
     if(th){ document.documentElement.style.setProperty('--accent-1',th.c1); document.documentElement.style.setProperty('--accent-2',th.c2); }
     toast('Thème appliqué','palette');
   }
+  saveLocal();
   const grid=document.getElementById('shop-grid');
   grid.innerHTML = shopGridHtml(tab);
   initTilt(grid);
 }
 
 const PageMap = {
-  accueil:pageAccueil, fonctionnalites:pageFonctionnalites, tarifs:pageTarifs,
+  intro:pageIntro, accueil:pageAccueil, fonctionnalites:pageFonctionnalites, tarifs:pageTarifs,
   classement:pageClassement, showcase:pageShowcase, apropos:pageApropos,
   connexion:pageConnexion, onboarding:pageOnboarding, dashboard:pageDashboard, boutique:pageBoutique,
 };
@@ -1199,22 +1390,6 @@ function initTilt(root){
   });
 }
 
-/* hero scene pointer parallax */
-(function initSceneParallax(){
-  if(REDUCED) return;
-  document.addEventListener('pointermove', e=>{
-    const scene = document.getElementById('hero-scene');
-    if(!scene) return;
-    const r = scene.getBoundingClientRect();
-    if(e.clientY < r.top || e.clientY > r.bottom) return;
-    const inner = document.getElementById('scene-inner');
-    if(!inner) return;
-    const px = (e.clientX - r.left)/r.width - 0.5;
-    const py = (e.clientY - r.top)/r.height - 0.5;
-    inner.style.setProperty('--rx', px.toFixed(3));
-    inner.style.setProperty('--ry', py.toFixed(3));
-  });
-})();
 
 /* ============================== AMBIENT PARTICLE FIELD ============================== */
 (function initParticles(){
@@ -1222,15 +1397,15 @@ function initTilt(root){
   const ctx = canvas.getContext('2d');
   let w,h,particles=[];
   function resize(){
-    w = canvas.width = innerWidth * Math.min(devicePixelRatio||1,2);
-    h = canvas.height = innerHeight * Math.min(devicePixelRatio||1,2);
+    w = canvas.width = innerWidth * Math.min(devicePixelRatio||1,1.5);
+    h = canvas.height = innerHeight * Math.min(devicePixelRatio||1,1.5);
     canvas.style.width = innerWidth+'px';
     canvas.style.height = innerHeight+'px';
   }
   function seed(){
-    particles = Array.from({length:46},()=>({
+    particles = Array.from({length:32},()=>({
       x:Math.random()*w, y:Math.random()*h,
-      r:(Math.random()*1.6+0.4)*Math.min(devicePixelRatio||1,2),
+      r:(Math.random()*1.6+0.4)*Math.min(devicePixelRatio||1,1.5),
       vx:(Math.random()-0.5)*0.12, vy:(Math.random()-0.5)*0.12,
       hue: Math.random()>0.78 ? 'gold' : 'violet',
       a: Math.random()*0.5+0.15,
@@ -1253,8 +1428,9 @@ function initTilt(root){
 })();
 
 /* ============================== AGENT IA (Worthy) ============================== */
-const AGENT_FREE_LIMIT = 3;
-const agent = {open:false, messages:[], typing:false, freeUsed:0, greeted:false};
+/* Worthy est une fonctionnalité Premium : verrouillé en Gratuit */
+const agent = {open:false, messages:[], typing:false, greeted:false};
+const NO_PROFILE_CTX = {status:null, income:0, rent:0, charges:0, nom:''};
 
 /*
  * POINT DE BRANCHEMENT API :
@@ -1264,7 +1440,7 @@ const agent = {open:false, messages:[], typing:false, freeUsed:0, greeted:false}
  */
 function agentBrain(raw){
   const t = raw.toLowerCase();
-  const p = state.profile || DEMO_PROFILE;
+  const p = state.profile || NO_PROFILE_CTX;
   const b = computeBudget(p);
   const name = (p.nom||'').trim();
   const m = raw.match(/(\d+[.,]?\d*)\s*€?/);
@@ -1286,10 +1462,10 @@ function agentBrain(raw){
 }
 
 function agentGreeting(){
-  const p = state.profile || DEMO_PROFILE;
+  const p = state.profile || NO_PROFILE_CTX;
   const name = (p.nom||'').trim();
   let g = `Salut${name?' '+name:''} 👋 Je suis Worthy, ton garde-fou anti-achat-impulsif.\n\nUne envie d'achat ? Dis-moi quoi et à quel prix.`;
-  if(!state.isPremium) g += `\n\n(Mode Gratuit : ${AGENT_FREE_LIMIT} questions offertes — Premium pour l'agent complet)`;
+  if(!state.profile) g += `\n\nPS : configure ton profil pour que je calcule avec TES chiffres.`;
   return g;
 }
 
@@ -1302,23 +1478,21 @@ function toggleAgent(){
     } else { agent.open=false; renderAgent(); }
   } else {
     agent.open=true;
-    if(!agent.greeted){ agent.greeted=true; agent.messages.push({who:'bot',text:agentGreeting()}); }
+    if(state.isPremium && !agent.greeted){ agent.greeted=true; agent.messages.push({who:'bot',text:agentGreeting()}); }
     renderAgent();
   }
 }
-function agentLimitReached(){ return !state.isPremium && agent.freeUsed>=AGENT_FREE_LIMIT; }
 function agentContext(){
-  const p = state.profile || DEMO_PROFILE;
+  const p = state.profile || NO_PROFILE_CTX;
   const b = computeBudget(p);
   return {nom:(p.nom||'').trim()||null, statut:p.status, revenu:b.income, loyer:b.rent, charges:b.charges, reste:b.left,
           streak:state.streak, economise:state.savedTotal, objectifs:state.goals, premium:state.isPremium};
 }
 async function sendAgentMessage(text){
   text = (text||'').trim();
-  if(!text || agent.typing || agentLimitReached()) return;
+  if(!text || agent.typing || !state.isPremium) return;
   const history = agent.messages.slice(-10);
   agent.messages.push({who:'user',text});
-  if(!state.isPremium) agent.freeUsed++;
   agent.typing = true;
   renderAgent();
   const minDelay = new Promise(r=>setTimeout(r, REDUCED ? 60 : 850 + Math.random()*500));
@@ -1329,7 +1503,6 @@ async function sendAgentMessage(text){
   const [,r] = await Promise.all([minDelay, req]);
   agent.typing = false;
   agent.messages.push({who:'bot', text:(r && r.reply) ? r.reply : agentBrain(text)});
-  if(agentLimitReached()) agent.messages.push({who:'bot',text:"Tes " + AGENT_FREE_LIMIT + " questions gratuites sont épuisées pour aujourd'hui. ✨\n\nAvec Premium (2,99 €/mois), je suis disponible sans limite, et je connais ton profil par cœur."});
   renderAgent();
 }
 function agentQuick(text){ sendAgentMessage(text); }
@@ -1344,34 +1517,43 @@ function agentKeydown(e){ if(e.key==='Enter'){ e.preventDefault(); sendAgentFrom
 
 function renderAgent(){
   const root = document.getElementById('agent-root');
+  const locked = !state.isPremium;
   const chips = ["J'ai envie de craquer 😅","Où en est mon budget ?","Motive-moi"];
-  const showChips = agent.open && !agent.typing && !agentLimitReached() && agent.messages.filter(m=>m.who==='user').length===0;
-  const limited = agentLimitReached();
+  const showChips = !locked && agent.open && !agent.typing && agent.messages.filter(m=>m.who==='user').length===0;
+  const body = locked
+    ? `<div style="flex:1;display:flex;align-items:center;justify-content:center;padding:26px;">
+        <div style="text-align:center;max-width:270px;">
+          <div style="width:56px;height:56px;border-radius:18px;background:var(--grad-gold);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;color:#1a1206;">${I('lock',24)}</div>
+          <h3 style="font-size:17px;font-weight:800;color:#fff;margin:0 0 10px;font-family:var(--font-d);">Worthy est réservé au Premium</h3>
+          <p style="font-size:13px;line-height:1.65;color:var(--ink-dim);margin:0 0 20px;">L'agent IA qui connaît ton budget, tes objectifs et ta série — et te pose la bonne question au bon moment.</p>
+          <button onclick="toggleAgent();nav('tarifs')" class="btn btn-gold btn-block">${I('crown',14)} Débloquer — 2,99 €/mois</button>
+        </div>
+      </div>`
+    : `<div class="agent-msgs" id="agent-msgs">
+        ${agent.messages.map(m=>`<div class="a-msg ${m.who}">${esc(m.text)}</div>`).join('')}
+        ${agent.typing?`<div class="typing-dots"><span></span><span></span><span></span></div>`:''}
+      </div>
+      ${showChips?`<div class="agent-chips">${chips.map((c,i)=>`<button class="agent-chip" style="animation-delay:${.15+i*.08}s" onclick="agentQuick('${c.replace(/'/g,"\\'")}')">${esc(c)}</button>`).join('')}</div>`:''}
+      <div class="agent-input-row">
+        <input id="agent-input" class="agent-input" placeholder="Ex : une veste à 89 €…" onkeydown="agentKeydown(event)" ${agent.typing?'disabled':''}/>
+        <button class="agent-send" onclick="sendAgentFromInput()" aria-label="Envoyer">${I('arrowRight',17)}</button>
+      </div>`;
   root.innerHTML = `
     ${agent.open ? `<div class="agent-panel" id="agent-panel" role="dialog" aria-label="Assistant Worthy">
       <div class="agent-head">
         <div class="agent-avatar">${I('brain',19)}</div>
         <div style="flex:1;min-width:0;">
-          <p style="font-size:14.5px;font-weight:700;color:#fff;margin:0;display:flex;align-items:center;gap:7px;">Worthy ${state.isPremium?`<span class="badge-premium">${I('crown',9)} Premium</span>`:''}</p>
-          <p style="font-size:11px;color:var(--ink-dim);margin:2px 0 0;"><span class="agent-status-dot"></span>En ligne — jamais du côté du vendeur</p>
+          <p style="font-size:14.5px;font-weight:700;color:#fff;margin:0;display:flex;align-items:center;gap:7px;">Worthy <span class="badge-premium">${I('crown',9)} Premium</span></p>
+          <p style="font-size:11px;color:var(--ink-dim);margin:2px 0 0;"><span class="agent-status-dot"></span>${locked?'Réservé aux abonnés Premium':'En ligne — jamais du côté du vendeur'}</p>
         </div>
         <button onclick="toggleAgent()" aria-label="Fermer" style="background:none;border:none;cursor:pointer;color:var(--ink-dim);padding:6px;display:flex;">${I('x',17)}</button>
       </div>
-      <div class="agent-msgs" id="agent-msgs">
-        ${agent.messages.map(m=>`<div class="a-msg ${m.who}">${esc(m.text)}</div>`).join('')}
-        ${agent.typing?`<div class="typing-dots"><span></span><span></span><span></span></div>`:''}
-      </div>
-      ${showChips?`<div class="agent-chips">${chips.map((c,i)=>`<button class="agent-chip" style="animation-delay:${.15+i*.08}s" onclick="agentQuick('${c.replace(/'/g,"\\'")}')">${esc(c)}</button>`).join('')}</div>`:''}
-      ${limited
-        ? `<div style="padding:12px;border-top:1px solid var(--line);"><button onclick="toggleAgent();nav('tarifs')" class="btn btn-gold btn-block btn-sm">${I('crown',14)} Débloquer Worthy en illimité — 2,99 €/mois</button></div>`
-        : `<div class="agent-input-row">
-            <input id="agent-input" class="agent-input" placeholder="Ex : une veste à 89 €…" onkeydown="agentKeydown(event)" ${agent.typing?'disabled':''}/>
-            <button class="agent-send" onclick="sendAgentFromInput()" aria-label="Envoyer">${I('arrowRight',17)}</button>
-          </div>`}
+      ${body}
     </div>`:''}
     <button class="agent-fab" onclick="toggleAgent()" aria-label="${agent.open?'Fermer l’assistant':'Ouvrir l’assistant Worthy'}" aria-expanded="${agent.open}">
       <span class="fab-icon ${agent.open?'hidden-icon':''}">${I('brain',24,1.6)}</span>
       <span class="fab-icon ${agent.open?'':'hidden-icon'}">${I('x',22,1.9)}</span>
+      ${locked?`<span class="fab-lock">${I('crown',9)} PRO</span>`:''}
     </button>`;
   const msgs = document.getElementById('agent-msgs');
   if(msgs) msgs.scrollTop = msgs.scrollHeight;
@@ -1380,6 +1562,8 @@ function renderAgent(){
 }
 
 /* ============================== INIT ============================== */
+loadLocal();
+state.page = state.introDone ? 'accueil' : 'intro';
 render(false);
 renderAgent();
 

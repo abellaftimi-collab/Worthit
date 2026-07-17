@@ -225,8 +225,8 @@ a{color:inherit;}
 /* ---- quiz d'introduction ---- */
 .quiz-opt{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:16px 18px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);color:#fff;font-size:14.5px;cursor:pointer;font-family:inherit;transition:border-color .25s ease,background .25s ease,transform .25s ease;}
 .quiz-opt:hover:not([disabled]){border-color:rgba(167,139,250,.5);transform:translateY(-1px);}
-.quiz-opt.correct{border-color:rgba(251,205,107,.8);background:rgba(251,205,107,.1);}
-.quiz-opt.wrong{border-color:rgba(255,110,110,.55);background:rgba(255,110,110,.06);opacity:.7;}
+.quiz-opt.correct{border-color:rgba(74,222,128,.85);background:rgba(74,222,128,.12);box-shadow:0 0 18px rgba(74,222,128,.15);}
+.quiz-opt.wrong{border-color:rgba(255,95,95,.8);background:rgba(255,95,95,.1);box-shadow:0 0 18px rgba(255,95,95,.12);}
 .quiz-opt[disabled]{cursor:default;}
 .quiz-letter{width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:800;background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.3);color:var(--v1);flex-shrink:0;}
 .quiz-stat{font-family:var(--font-d);font-weight:800;font-size:clamp(2.2rem,6vw,3.2rem);letter-spacing:-.02em;}
@@ -432,6 +432,7 @@ function saveLocal(){
       week:state.week, victories:state.victories,
       owned:state.owned, activeAvatar:state.activeAvatar, activeTheme:state.activeTheme,
       isPremiumDemo:state.isPremium, authNom:state.auth.nom,
+      agentFreeUsed:(typeof agent!=='undefined'?agent.freeUsed:0), agentFreeDate:(new Date()).toDateString(),
     }));
   }catch(e){}
 }
@@ -454,6 +455,8 @@ function loadLocal(){
     }
     state.isPremium = !!d.isPremiumDemo;
     if(d.authNom) state.auth.nom = d.authNom;
+    // compteur de questions gratuites : remis à zéro chaque jour
+    if(typeof agent!=='undefined' && d.agentFreeDate === (new Date()).toDateString()) agent.freeUsed = d.agentFreeUsed||0;
   }catch(e){}
 }
 
@@ -632,7 +635,8 @@ function pageIntro(){
           if(quiz.revealed){ if(i===q.answer) cls='correct'; else if(i===quiz.picked) cls='wrong'; }
           return `<button class="quiz-opt ${cls}" ${quiz.revealed?'disabled':''} onclick="quizPick(${i})">
             <span class="quiz-letter">${String.fromCharCode(65+i)}</span>${esc(opt)}
-            ${quiz.revealed&&i===q.answer?`<span style="margin-left:auto;color:var(--gold-1);display:flex;">${I('check',17)}</span>`:''}
+            ${quiz.revealed&&i===q.answer?`<span style="margin-left:auto;color:#4ade80;display:flex;">${I('check',17)}</span>`:''}
+            ${quiz.revealed&&i===quiz.picked&&i!==q.answer?`<span style="margin-left:auto;color:#ff5f5f;display:flex;">${I('x',17)}</span>`:''}
           </button>`;
         }).join('')}
       </div>
@@ -1428,9 +1432,11 @@ function initTilt(root){
 })();
 
 /* ============================== AGENT IA (Worthy) ============================== */
-/* Worthy est une fonctionnalité Premium : verrouillé en Gratuit */
-const agent = {open:false, messages:[], typing:false, greeted:false};
+/* Worthy : 3 questions offertes par jour en Gratuit, illimité en Premium */
+const AGENT_FREE_LIMIT = 3;
+const agent = {open:false, messages:[], typing:false, greeted:false, freeUsed:0};
 const NO_PROFILE_CTX = {status:null, income:0, rent:0, charges:0, nom:''};
+function agentLimitReached(){ return !state.isPremium && agent.freeUsed>=AGENT_FREE_LIMIT; }
 
 /*
  * POINT DE BRANCHEMENT API :
@@ -1465,6 +1471,7 @@ function agentGreeting(){
   const p = state.profile || NO_PROFILE_CTX;
   const name = (p.nom||'').trim();
   let g = `Salut${name?' '+name:''} 👋 Je suis Worthy, ton garde-fou anti-achat-impulsif.\n\nUne envie d'achat ? Dis-moi quoi et à quel prix.`;
+  if(!state.isPremium) g += `\n\n(${AGENT_FREE_LIMIT} questions offertes par jour — Premium pour l'illimité)`;
   if(!state.profile) g += `\n\nPS : configure ton profil pour que je calcule avec TES chiffres.`;
   return g;
 }
@@ -1478,7 +1485,7 @@ function toggleAgent(){
     } else { agent.open=false; renderAgent(); }
   } else {
     agent.open=true;
-    if(state.isPremium && !agent.greeted){ agent.greeted=true; agent.messages.push({who:'bot',text:agentGreeting()}); }
+    if(!agent.greeted){ agent.greeted=true; agent.messages.push({who:'bot',text:agentGreeting()}); }
     renderAgent();
   }
 }
@@ -1490,9 +1497,10 @@ function agentContext(){
 }
 async function sendAgentMessage(text){
   text = (text||'').trim();
-  if(!text || agent.typing || !state.isPremium) return;
+  if(!text || agent.typing || agentLimitReached()) return;
   const history = agent.messages.slice(-10);
   agent.messages.push({who:'user',text});
+  if(!state.isPremium){ agent.freeUsed++; saveLocal(); }
   agent.typing = true;
   renderAgent();
   const minDelay = new Promise(r=>setTimeout(r, REDUCED ? 60 : 850 + Math.random()*500));
@@ -1503,6 +1511,7 @@ async function sendAgentMessage(text){
   const [,r] = await Promise.all([minDelay, req]);
   agent.typing = false;
   agent.messages.push({who:'bot', text:(r && r.reply) ? r.reply : agentBrain(text)});
+  if(agentLimitReached()) agent.messages.push({who:'bot',text:`Tes ${AGENT_FREE_LIMIT} questions gratuites du jour sont épuisées. ✨\n\nAvec Premium (2,99 €/mois), je suis là sans limite — et je connais ton profil par cœur.`});
   renderAgent();
 }
 function agentQuick(text){ sendAgentMessage(text); }
@@ -1517,43 +1526,39 @@ function agentKeydown(e){ if(e.key==='Enter'){ e.preventDefault(); sendAgentFrom
 
 function renderAgent(){
   const root = document.getElementById('agent-root');
-  const locked = !state.isPremium;
+  const limited = agentLimitReached();
+  const remaining = state.isPremium ? null : Math.max(0, AGENT_FREE_LIMIT - agent.freeUsed);
   const chips = ["J'ai envie de craquer 😅","Où en est mon budget ?","Motive-moi"];
-  const showChips = !locked && agent.open && !agent.typing && agent.messages.filter(m=>m.who==='user').length===0;
-  const body = locked
-    ? `<div style="flex:1;display:flex;align-items:center;justify-content:center;padding:26px;">
-        <div style="text-align:center;max-width:270px;">
-          <div style="width:56px;height:56px;border-radius:18px;background:var(--grad-gold);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;color:#1a1206;">${I('lock',24)}</div>
-          <h3 style="font-size:17px;font-weight:800;color:#fff;margin:0 0 10px;font-family:var(--font-d);">Worthy est réservé au Premium</h3>
-          <p style="font-size:13px;line-height:1.65;color:var(--ink-dim);margin:0 0 20px;">L'agent IA qui connaît ton budget, tes objectifs et ta série — et te pose la bonne question au bon moment.</p>
-          <button onclick="toggleAgent();nav('tarifs')" class="btn btn-gold btn-block">${I('crown',14)} Débloquer — 2,99 €/mois</button>
-        </div>
-      </div>`
-    : `<div class="agent-msgs" id="agent-msgs">
-        ${agent.messages.map(m=>`<div class="a-msg ${m.who}">${esc(m.text)}</div>`).join('')}
-        ${agent.typing?`<div class="typing-dots"><span></span><span></span><span></span></div>`:''}
-      </div>
-      ${showChips?`<div class="agent-chips">${chips.map((c,i)=>`<button class="agent-chip" style="animation-delay:${.15+i*.08}s" onclick="agentQuick('${c.replace(/'/g,"\\'")}')">${esc(c)}</button>`).join('')}</div>`:''}
-      <div class="agent-input-row">
-        <input id="agent-input" class="agent-input" placeholder="Ex : une veste à 89 €…" onkeydown="agentKeydown(event)" ${agent.typing?'disabled':''}/>
-        <button class="agent-send" onclick="sendAgentFromInput()" aria-label="Envoyer">${I('arrowRight',17)}</button>
-      </div>`;
+  const showChips = !limited && agent.open && !agent.typing && agent.messages.filter(m=>m.who==='user').length===0;
+  const statusLine = state.isPremium
+    ? 'En ligne — jamais du côté du vendeur'
+    : (limited ? 'Questions gratuites du jour épuisées' : `Gratuit — ${remaining} question${remaining>1?'s':''} offerte${remaining>1?'s':''} aujourd'hui`);
   root.innerHTML = `
     ${agent.open ? `<div class="agent-panel" id="agent-panel" role="dialog" aria-label="Assistant Worthy">
       <div class="agent-head">
         <div class="agent-avatar">${I('brain',19)}</div>
         <div style="flex:1;min-width:0;">
-          <p style="font-size:14.5px;font-weight:700;color:#fff;margin:0;display:flex;align-items:center;gap:7px;">Worthy <span class="badge-premium">${I('crown',9)} Premium</span></p>
-          <p style="font-size:11px;color:var(--ink-dim);margin:2px 0 0;"><span class="agent-status-dot"></span>${locked?'Réservé aux abonnés Premium':'En ligne — jamais du côté du vendeur'}</p>
+          <p style="font-size:14.5px;font-weight:700;color:#fff;margin:0;display:flex;align-items:center;gap:7px;">Worthy ${state.isPremium?`<span class="badge-premium">${I('crown',9)} Premium</span>`:''}</p>
+          <p style="font-size:11px;color:var(--ink-dim);margin:2px 0 0;"><span class="agent-status-dot"></span>${statusLine}</p>
         </div>
         <button onclick="toggleAgent()" aria-label="Fermer" style="background:none;border:none;cursor:pointer;color:var(--ink-dim);padding:6px;display:flex;">${I('x',17)}</button>
       </div>
-      ${body}
+      <div class="agent-msgs" id="agent-msgs">
+        ${agent.messages.map(m=>`<div class="a-msg ${m.who}">${esc(m.text)}</div>`).join('')}
+        ${agent.typing?`<div class="typing-dots"><span></span><span></span><span></span></div>`:''}
+      </div>
+      ${showChips?`<div class="agent-chips">${chips.map((c,i)=>`<button class="agent-chip" style="animation-delay:${.15+i*.08}s" onclick="agentQuick('${c.replace(/'/g,"\\'")}')">${esc(c)}</button>`).join('')}</div>`:''}
+      ${limited
+        ? `<div style="padding:12px;border-top:1px solid var(--line);"><button onclick="toggleAgent();nav('tarifs')" class="btn btn-gold btn-block btn-sm">${I('crown',14)} Débloquer Worthy en illimité — 2,99 €/mois</button></div>`
+        : `<div class="agent-input-row">
+            <input id="agent-input" class="agent-input" placeholder="Ex : une veste à 89 €…" onkeydown="agentKeydown(event)" ${agent.typing?'disabled':''}/>
+            <button class="agent-send" onclick="sendAgentFromInput()" aria-label="Envoyer">${I('arrowRight',17)}</button>
+          </div>`}
     </div>`:''}
     <button class="agent-fab" onclick="toggleAgent()" aria-label="${agent.open?'Fermer l’assistant':'Ouvrir l’assistant Worthy'}" aria-expanded="${agent.open}">
       <span class="fab-icon ${agent.open?'hidden-icon':''}">${I('brain',24,1.6)}</span>
       <span class="fab-icon ${agent.open?'':'hidden-icon'}">${I('x',22,1.9)}</span>
-      ${locked?`<span class="fab-lock">${I('crown',9)} PRO</span>`:''}
+      ${limited?`<span class="fab-lock">${I('crown',9)} PRO</span>`:''}
     </button>`;
   const msgs = document.getElementById('agent-msgs');
   if(msgs) msgs.scrollTop = msgs.scrollHeight;

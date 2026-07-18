@@ -240,6 +240,17 @@ a{color:inherit;}
 .agent-send{width:42px;height:42px;border-radius:50%;background:var(--grad);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .25s ease,box-shadow .25s ease;}
 .agent-send:hover{transform:scale(1.08);box-shadow:0 0 16px rgba(167,139,250,.4);}
 
+/* ---- simulateur : champs libres ---- */
+.sim-num{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:9px;color:#fff;font-size:13px;font-weight:700;padding:6px 10px;width:72px;text-align:right;outline:none;font-family:inherit;transition:border-color .25s ease;}
+.sim-num:focus{border-color:rgba(167,139,250,.55);}
+.sim-num::-webkit-outer-spin-button,.sim-num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+
+/* ---- modal fonctionnalité ---- */
+.feature-modal{position:relative;max-width:530px;width:100%;border-radius:24px;padding:34px 30px;animation:featZoom .5s cubic-bezier(.34,1.56,.64,1) both;max-height:88vh;overflow-y:auto;}
+@keyframes featZoom{from{opacity:0;transform:scale(.55) translateY(40px);}to{opacity:1;transform:scale(1) translateY(0);}}
+@media (prefers-reduced-motion:reduce){.feature-modal{animation:none !important;}}
+.feature-card{cursor:pointer;}
+
 /* ---- sélecteur de langue ---- */
 .lang-wrap{position:relative;}
 .lang-btn{display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid var(--line);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.05em;transition:border-color .25s ease,box-shadow .25s ease;}
@@ -365,12 +376,18 @@ const NAV_PAGES = [
 ];
 
 const FEATURES = [
-  {icon:'shield',title:'Limites et blocages',desc:"Un seuil, des mots-clés, une pause imposée.",tier:'free'},
-  {icon:'flame',title:'Streak',desc:"Chaque jour résisté allonge ta série.",tier:'free'},
-  {icon:'wallet',title:'Budget clair',desc:"Ce qu'il te reste, vraiment, ce mois-ci.",tier:'free'},
-  {icon:'brain',title:'Agent IA personnalisé',desc:"Des questions générées pour ton profil, jamais recyclées.",tier:'premium'},
-  {icon:'target',title:'Dashboard perso',desc:"Objectifs, récompenses et simulateur, en un seul endroit.",tier:'premium'},
-  {icon:'users',title:'Tournois entre amis',desc:"Classement hebdo, badges, profils à débloquer.",tier:'premium'},
+  {icon:'shield',title:'Limites et blocages',desc:"Un seuil, des mots-clés, une pause imposée.",tier:'free',
+   long:"Ajoute tes mots-clés sensibles (« sneakers », « gaming »…) et un seuil de prix. Dès qu'un achat les touche, Worthit impose une pause de 24 h avant le paiement — le temps que l'envie retombe. Tu configures tout depuis ton dashboard."},
+  {icon:'flame',title:'Streak',desc:"Chaque jour résisté allonge ta série.",tier:'free',
+   long:"Chaque jour sans achat impulsif allonge ta série. Casser une série de 30 jours pour un gadget à 15 € ? C'est toute la psychologie de Worthit : rendre la résistance plus gratifiante que l'achat."},
+  {icon:'wallet',title:'Budget clair',desc:"Ce qu'il te reste, vraiment, ce mois-ci.",tier:'free',
+   long:"Renseigne revenu, loyer et charges une seule fois : Worthit calcule ton vrai reste-à-vivre et le garde sous tes yeux. Fini le « je pense qu'il me reste à peu près… »."},
+  {icon:'brain',title:'Agent IA personnalisé',desc:"Des questions générées pour ton profil, jamais recyclées.",tier:'premium',
+   long:"Worthy connaît ton budget, ta fonction, tes faiblesses et tes objectifs. Au moment exact où tu hésites, il te pose LA question qui compte — jamais un sermon générique."},
+  {icon:'target',title:'Dashboard perso',desc:"Objectifs, récompenses et simulateur, en un seul endroit.",tier:'premium',
+   long:"Objectifs avec barres de progression, victoires enregistrées, graphique de ta semaine, récompenses à débloquer : tout ton combat contre l'achat impulsif, visualisé au même endroit."},
+  {icon:'users',title:'Tournois entre amis',desc:"Classement hebdo, badges, profils à débloquer.",tier:'premium',
+   long:"Un classement hebdomadaire entre amis : top économie, plus grosse progression, plus longue série. Trois badges chaque lundi, et les sous gagnés se dépensent en boutique."},
 ];
 
 const FAQ = [
@@ -448,9 +465,20 @@ const SHOWCASE_ITEMS = [
 
 /* ============================== I18N ============================== */
 const LANGS = {
-  fr:{name:'Français',flag:'🇫🇷'}, en:{name:'English',flag:'🇬🇧'}, es:{name:'Español',flag:'🇪🇸'},
-  de:{name:'Deutsch',flag:'🇩🇪'}, nl:{name:'Nederlands',flag:'🇳🇱'},
+  fr:{name:'Français'}, en:{name:'English'}, es:{name:'Español'},
+  de:{name:'Deutsch'}, nl:{name:'Nederlands'},
 };
+/* Mini-drapeaux SVG (les emojis drapeaux ne s'affichent pas sous Windows) */
+function flagSVG(code){
+  const f = {
+    fr:'<rect width="6" height="13" fill="#28418f"/><rect x="6" width="6" height="13" fill="#f2f2f2"/><rect x="12" width="6" height="13" fill="#d13030"/>',
+    en:'<rect width="18" height="13" fill="#28418f"/><path d="M0 0 18 13M18 0 0 13" stroke="#f2f2f2" stroke-width="2.6"/><path d="M0 0 18 13M18 0 0 13" stroke="#d13030" stroke-width="1.1"/><path d="M9 0v13M0 6.5h18" stroke="#f2f2f2" stroke-width="4"/><path d="M9 0v13M0 6.5h18" stroke="#d13030" stroke-width="2.2"/>',
+    es:'<rect width="18" height="13" fill="#c8102e"/><rect y="3.4" width="18" height="6.2" fill="#f5b70a"/>',
+    de:'<rect width="18" height="4.33" fill="#151515"/><rect y="4.33" width="18" height="4.33" fill="#d13030"/><rect y="8.66" width="18" height="4.34" fill="#f5b70a"/>',
+    nl:'<rect width="18" height="4.33" fill="#c8102e"/><rect y="4.33" width="18" height="4.33" fill="#f2f2f2"/><rect y="8.66" width="18" height="4.34" fill="#28418f"/>',
+  };
+  return `<svg width="18" height="13" viewBox="0 0 18 13" style="border-radius:2.5px;flex-shrink:0;box-shadow:0 0 0 1px rgba(255,255,255,.18);display:block;" aria-hidden="true">${f[code]||''}</svg>`;
+}
 const T = {
 fr:{ui:{
 'nav.home':"Accueil",'nav.features':"Fonctionnalités",'nav.pricing':"Tarifs",'nav.tournaments':"Tournois",'nav.showcase':"Showcase",'nav.about':"À propos",'nav.login':"Connexion",'nav.try':"Essayer",'nav.dashboard':"Dashboard",'nav.menuDash':"Voir le dashboard",'nav.menuTry':"Essayer Worthit",
@@ -460,7 +488,7 @@ fr:{ui:{
 'intro.score':"Tu avais vu juste sur <strong>{s} sur {n}</strong>.",'intro.praiseHigh':"Impressionnant — tu connais déjà l'ennemi.",'intro.praiseLow':"Et c'est normal : personne ne mesure vraiment ces chiffres.",'intro.b2':"Moi c'est <strong>Worthy</strong>. Mon travail : être de TON côté au moment exact où un site te pousse à craquer. Jamais du côté du vendeur.",'intro.b3':"Worthit met une pause entre l'envie et l'achat : ton budget réel, une question honnête, ta série de jours sans craquer — et des récompenses quand tu tiens bon.",'intro.b4':"Configure ton profil en 2 minutes — aucune donnée bancaire — et on arrête de parler des moyennes des études : on parle de TES chiffres.",'intro.ctaProfile':"Créer mon profil",'intro.ctaExplore':"Explorer d'abord",
 'foot.redo':"Refaire le quiz",
 'feat.eyebrow':"Fonctionnalités",'feat.h2':"Un garde-fou, pas un juge",'feat.lede':"Trois outils gratuits pour commencer. Trois de plus, propulsés par l'IA, en Premium.",'feat.locked':"Verrouillé",'feat.premium':"Premium",
-'sim.title':"Simulateur d'économies",'sim.sub':"Combien tu gardes si tu résistes, projeté dans le temps.",'sim.skips':"Achats évités / mois",'sim.avg':"Prix moyen",'sim.months':"mois",'sim.saved':"Économisé sur la période",'sim.perMonth':"Par mois",'sim.freePrem':"Premium offert",'sim.vs':"Vs objectif « Voyage au Japon » (1 800 €)",
+'sim.title':"Simulateur d'économies",'sim.sub':"Combien tu gardes si tu résistes, projeté dans le temps.",'sim.skips':"Achats évités / mois",'sim.avg':"Prix moyen",'sim.months':"mois",'sim.saved':"Économisé sur la période",'sim.perMonth':"Par mois",'sim.freePrem':"Premium offert",'sim.vs':"Vs objectif « Voyage au Japon » (1 800 €)",'sim.custom':"Libre",'sim.vsLabel':"Vs ton objectif",'sim.goalName':"Nom de l'objectif",'sim.goalTarget':"Montant cible (€)",
 'tarifs.eyebrow':"Tarifs",'tarifs.h2':"Gratuit pour t'essayer.<br/>Premium pour l'agent qui te connaît.",'tarifs.monthly':"Mensuel",'tarifs.annual':"Annuel",'tarifs.freeName':"Gratuit",'tarifs.perMonth':"/mois",'tarifs.freeSub':"Pour commencer, sans carte bancaire.",'tarifs.freeCta':"Continuer gratuitement",'tarifs.reco':"Recommandé",'tarifs.premSub':"Sans engagement, résiliable à tout moment",'tarifs.premSubAnnual':"Facturé 23,99 € / an",'tarifs.premCta':"Passer Premium",'tarifs.premCtaDone':"Déjà activé ✓",'tarifs.faqTitle':"Questions fréquentes",
 'show.eyebrow':"Showcase",'show.h2':"Le produit, en bref",'show.all':"Tous",
 'auth.welcome':"Content de te revoir",'auth.join':"Rejoindre Worthit",'auth.subLogin':"Connecte-toi à ton compte.",'auth.subJoin':"Deux minutes, zéro donnée bancaire.",'auth.tabLogin':"Connexion",'auth.tabJoin':"Inscription",'auth.fName':"Ton prénom",'auth.fEmail':"E-mail",'auth.fPass':"Mot de passe",'auth.btnLogin':"Se connecter",'auth.btnJoin':"Créer mon compte",
@@ -473,7 +501,7 @@ en:{ui:{
 'intro.score':"You guessed right on <strong>{s} of {n}</strong>.",'intro.praiseHigh':"Impressive — you already know the enemy.",'intro.praiseLow':"Totally normal: nobody really tracks these numbers.",'intro.b2':"I'm <strong>Worthy</strong>. My job: being on YOUR side at the exact moment a site pushes you to crack. Never on the seller's side.",'intro.b3':"Worthit puts a pause between urge and purchase: your real budget, one honest question, your no-crack streak — and rewards when you hold on.",'intro.b4':"Set up your profile in 2 minutes — no bank data — and we stop talking study averages: we talk YOUR numbers.",'intro.ctaProfile':"Create my profile",'intro.ctaExplore':"Explore first",
 'foot.redo':"Redo the quiz",
 'feat.eyebrow':"Features",'feat.h2':"A guardrail, not a judge",'feat.lede':"Three free tools to start. Three more, AI-powered, with Premium.",'feat.locked':"Locked",'feat.premium':"Premium",
-'sim.title':"Savings simulator",'sim.sub':"How much you keep if you resist, projected over time.",'sim.skips':"Purchases avoided / month",'sim.avg':"Average price",'sim.months':"months",'sim.saved':"Saved over the period",'sim.perMonth':"Per month",'sim.freePrem':"Premium covered",'sim.vs':"Vs “Trip to Japan” goal (€1,800)",
+'sim.title':"Savings simulator",'sim.sub':"How much you keep if you resist, projected over time.",'sim.skips':"Purchases avoided / month",'sim.avg':"Average price",'sim.months':"months",'sim.saved':"Saved over the period",'sim.perMonth':"Per month",'sim.freePrem':"Premium covered",'sim.vs':"Vs “Trip to Japan” goal (€1,800)",'sim.custom':"Custom",'sim.vsLabel':"Vs your goal",'sim.goalName':"Goal name",'sim.goalTarget':"Target amount (€)",
 'tarifs.eyebrow':"Pricing",'tarifs.h2':"Free to try it.<br/>Premium for the agent that knows you.",'tarifs.monthly':"Monthly",'tarifs.annual':"Yearly",'tarifs.freeName':"Free",'tarifs.perMonth':"/month",'tarifs.freeSub':"To get started, no card needed.",'tarifs.freeCta':"Continue for free",'tarifs.reco':"Recommended",'tarifs.premSub':"No commitment, cancel anytime",'tarifs.premSubAnnual':"Billed €23.99 / year",'tarifs.premCta':"Go Premium",'tarifs.premCtaDone':"Already active ✓",'tarifs.faqTitle':"Frequently asked questions",
 'show.eyebrow':"Showcase",'show.h2':"The product, in short",'show.all':"All",
 'auth.welcome':"Good to see you again",'auth.join':"Join Worthit",'auth.subLogin':"Log in to your account.",'auth.subJoin':"Two minutes, zero bank data.",'auth.tabLogin':"Log in",'auth.tabJoin':"Sign up",'auth.fName':"Your first name",'auth.fEmail':"Email",'auth.fPass':"Password",'auth.btnLogin':"Log in",'auth.btnJoin':"Create my account",
@@ -482,7 +510,7 @@ en:{ui:{
 {q:"What share of impulse purchases is regretted afterwards?",o:["About 1 in 10","About 1 in 3","Nearly 2 in 3"],stat:"≈ 2 in 3",explain:"The urge lasts minutes. The regret stays — and comes back with every bank statement."},
 {q:"How long does an irresistible urge to buy last on average?",o:["Under 20 minutes","Several hours","Several days"],stat:"< 20 min",explain:"That's the whole point of the pause: wait a little and the urge almost always fades on its own."},
 {q:"What share of online shoppers say they've cracked because of a “last chance” deal?",o:["About 1 in 5","About 1 in 2","Almost everyone"],stat:"≈ 1 in 2",explain:"Countdowns, “limited” stock, fake urgency… e-commerce is a machine built to make you crack."}],
-feat:[{t:"Limits & blocking",d:"A threshold, keywords, an enforced pause."},{t:"Streak",d:"Every day you resist extends your streak."},{t:"Clear budget",d:"What you really have left this month."},{t:"Personal AI agent",d:"Questions generated for your profile, never recycled."},{t:"Personal dashboard",d:"Goals, rewards and simulator, all in one place."},{t:"Tournaments with friends",d:"Weekly leaderboard, badges, unlockable profiles."}],
+feat:[{t:"Limits & blocking",d:"A threshold, keywords, an enforced pause.",l:"Add your trigger keywords (sneakers, gaming…) and a price threshold. When a purchase matches, Worthit enforces a 24h pause before checkout — long enough for the urge to fade. You set it all up from your dashboard."},{t:"Streak",d:"Every day you resist extends your streak.",l:"Every day without an impulse buy extends your streak. Breaking a 30-day streak for a €15 gadget? That is the whole psychology of Worthit: making resistance more rewarding than buying."},{t:"Clear budget",d:"What you really have left this month.",l:"Enter income, rent and bills once: Worthit computes your real disposable amount and keeps it in front of you. No more guessing what you have left."},{t:"Personal AI agent",d:"Questions generated for your profile, never recycled.",l:"Worthy knows your budget, your job, your weak spots and your goals. At the exact moment you hesitate, it asks THE question that matters — never a generic lecture."},{t:"Personal dashboard",d:"Goals, rewards and simulator, all in one place.",l:"Goals with progress bars, logged victories, your weekly chart, unlockable rewards: your whole fight against impulse buying, visualized in one place."},{t:"Tournaments with friends",d:"Weekly leaderboard, badges, unlockable profiles.",l:"A weekly leaderboard with friends: top saver, biggest progress, longest streak. Three badges every Monday, and the coins you earn are spent in the shop."}],
 show:[{t:"Checkout popup",d:"The right question, at the right moment."},{t:"Personalized question",d:"Generated for you, never recycled."},{t:"Blocking screen",d:"Your rule, set on a calm day."},{t:"Budget at a glance",d:"What's left, no detours."},{t:"Savings simulator",d:"How much you save if you resist."},{t:"Elegant paywall",d:"Premium invites, never imposes."}],
 faq:[{q:"Do I need to enter my bank details?",a:"No. Worthit never connects to any bank account, today or tomorrow. Your budget is entered by hand and stays on your device."},{q:"Can I cancel whenever I want?",a:"Yes, in one click, no questions asked. You drop back to Free and keep your history, streak and savings."},{q:"So what's the Free plan for?",a:"To try the guardrail and the streak with zero commitment. Premium unlocks the AI that truly knows your profile, your full dashboard and tournaments with friends."},{q:"What do I lose if I go back to Free?",a:"The personal AI agent, the detailed dashboard and tournaments. Your savings and streak remain yours."}],
 perksFree:["Limits & blocking","Daily streak","Simple budget","Cosmetic shop"],perksPrem:["Everything in Free, plus:","Personal AI agent","Full personal dashboard","Tournaments with friends","Advanced savings simulator"]},
@@ -494,7 +522,7 @@ es:{ui:{
 'intro.score':"Acertaste <strong>{s} de {n}</strong>.",'intro.praiseHigh':"Impresionante: ya conoces al enemigo.",'intro.praiseLow':"Es normal: nadie mide de verdad estas cifras.",'intro.b2':"Soy <strong>Worthy</strong>. Mi trabajo: estar de TU lado justo cuando una web te empuja a caer. Nunca del lado del vendedor.",'intro.b3':"Worthit pone una pausa entre el impulso y la compra: tu presupuesto real, una pregunta honesta, tu racha sin caer — y recompensas cuando aguantas.",'intro.b4':"Configura tu perfil en 2 minutos — sin datos bancarios — y dejamos las medias de los estudios: hablamos de TUS números.",'intro.ctaProfile':"Crear mi perfil",'intro.ctaExplore':"Explorar primero",
 'foot.redo':"Repetir el quiz",
 'feat.eyebrow':"Funciones",'feat.h2':"Una barrera, no un juez",'feat.lede':"Tres herramientas gratis para empezar. Tres más, con IA, en Premium.",'feat.locked':"Bloqueado",'feat.premium':"Premium",
-'sim.title':"Simulador de ahorro",'sim.sub':"Cuánto conservas si resistes, proyectado en el tiempo.",'sim.skips':"Compras evitadas / mes",'sim.avg':"Precio medio",'sim.months':"meses",'sim.saved':"Ahorrado en el período",'sim.perMonth':"Al mes",'sim.freePrem':"Premium cubierto",'sim.vs':"Vs meta «Viaje a Japón» (1 800 €)",
+'sim.title':"Simulador de ahorro",'sim.sub':"Cuánto conservas si resistes, proyectado en el tiempo.",'sim.skips':"Compras evitadas / mes",'sim.avg':"Precio medio",'sim.months':"meses",'sim.saved':"Ahorrado en el período",'sim.perMonth':"Al mes",'sim.freePrem':"Premium cubierto",'sim.vs':"Vs meta «Viaje a Japón» (1 800 €)",'sim.custom':"Libre",'sim.vsLabel':"Vs tu meta",'sim.goalName':"Nombre de la meta",'sim.goalTarget':"Importe objetivo (€)",
 'tarifs.eyebrow':"Precios",'tarifs.h2':"Gratis para probarlo.<br/>Premium para el agente que te conoce.",'tarifs.monthly':"Mensual",'tarifs.annual':"Anual",'tarifs.freeName':"Gratis",'tarifs.perMonth':"/mes",'tarifs.freeSub':"Para empezar, sin tarjeta.",'tarifs.freeCta':"Seguir gratis",'tarifs.reco':"Recomendado",'tarifs.premSub':"Sin permanencia, cancela cuando quieras",'tarifs.premSubAnnual':"Facturado 23,99 € / año",'tarifs.premCta':"Pasar a Premium",'tarifs.premCtaDone':"Ya activo ✓",'tarifs.faqTitle':"Preguntas frecuentes",
 'show.eyebrow':"Showcase",'show.h2':"El producto, en breve",'show.all':"Todos",
 'auth.welcome':"Qué bueno verte de nuevo",'auth.join':"Únete a Worthit",'auth.subLogin':"Inicia sesión en tu cuenta.",'auth.subJoin':"Dos minutos, cero datos bancarios.",'auth.tabLogin':"Iniciar sesión",'auth.tabJoin':"Registro",'auth.fName':"Tu nombre",'auth.fEmail':"E-mail",'auth.fPass':"Contraseña",'auth.btnLogin':"Iniciar sesión",'auth.btnJoin':"Crear mi cuenta",
@@ -503,7 +531,7 @@ es:{ui:{
 {q:"¿Qué parte de las compras impulsivas se lamenta después?",o:["1 de cada 10","1 de cada 3","Casi 2 de cada 3"],stat:"≈ 2 de 3",explain:"El impulso dura minutos. El arrepentimiento se queda — y vuelve con cada extracto."},
 {q:"¿Cuánto dura de media un impulso irresistible de comprar?",o:["Menos de 20 minutos","Varias horas","Varios días"],stat:"< 20 min",explain:"Ese es el principio de la pausa: si esperas un poco, el impulso casi siempre se desvanece solo."},
 {q:"¿Qué parte de los compradores online admite haber caído por una oferta de «última oportunidad»?",o:["1 de cada 5","1 de cada 2","Casi todo el mundo"],stat:"≈ 1 de 2",explain:"Cuentas atrás, stock «limitado», urgencia artificial… el e-commerce es una máquina diseñada para hacerte caer."}],
-feat:[{t:"Límites y bloqueos",d:"Un umbral, palabras clave, una pausa impuesta."},{t:"Racha",d:"Cada día que resistes alarga tu racha."},{t:"Presupuesto claro",d:"Lo que de verdad te queda este mes."},{t:"Agente IA personal",d:"Preguntas generadas para tu perfil, nunca recicladas."},{t:"Panel personal",d:"Metas, recompensas y simulador en un solo lugar."},{t:"Torneos entre amigos",d:"Clasificación semanal, insignias, perfiles desbloqueables."}],
+feat:[{t:"Límites y bloqueos",d:"Un umbral, palabras clave, una pausa impuesta.",l:"Añade tus palabras clave sensibles (zapatillas, gaming…) y un umbral de precio. Cuando una compra los toca, Worthit impone una pausa de 24 h antes del pago — tiempo para que el impulso se desvanezca."},{t:"Racha",d:"Cada día que resistes alarga tu racha.",l:"Cada día sin compra impulsiva alarga tu racha. ¿Romper una racha de 30 días por un gadget de 15 €? Esa es la psicología de Worthit: hacer que resistir sea más gratificante que comprar."},{t:"Presupuesto claro",d:"Lo que de verdad te queda este mes.",l:"Introduce ingresos, alquiler y gastos una vez: Worthit calcula tu resto real y lo mantiene a la vista. Se acabó el adivinar cuánto te queda."},{t:"Agente IA personal",d:"Preguntas generadas para tu perfil, nunca recicladas.",l:"Worthy conoce tu presupuesto, tu trabajo, tus debilidades y tus metas. Justo cuando dudas, te hace LA pregunta que importa — nunca un sermón genérico."},{t:"Panel personal",d:"Metas, recompensas y simulador en un solo lugar.",l:"Metas con barras de progreso, victorias registradas, tu gráfico semanal, recompensas: toda tu lucha contra la compra impulsiva, en un solo lugar."},{t:"Torneos entre amigos",d:"Clasificación semanal, insignias, perfiles desbloqueables.",l:"Una clasificación semanal entre amigos: mejor ahorrador, mayor progreso, racha más larga. Tres insignias cada lunes, y las monedas se gastan en la tienda."}],
 show:[{t:"Popup de pago",d:"La pregunta justa, en el momento justo."},{t:"Pregunta personalizada",d:"Generada para ti, nunca reciclada."},{t:"Pantalla de bloqueo",d:"Tu regla, fijada un día tranquilo."},{t:"Presupuesto de un vistazo",d:"Lo que queda, sin rodeos."},{t:"Simulador de ahorro",d:"Cuánto ahorras si resistes."},{t:"Paywall elegante",d:"Premium se descubre, no se impone."}],
 faq:[{q:"¿Tengo que introducir mis datos bancarios?",a:"No. Worthit no se conecta a ninguna cuenta bancaria, ni hoy ni mañana. Tu presupuesto se introduce a mano y se queda en tu dispositivo."},{q:"¿Puedo cancelar cuando quiera?",a:"Sí, en un clic y sin justificación. Vuelves a Gratis y conservas tu historial, tu racha y tus ahorros."},{q:"¿Entonces para qué sirve el plan Gratis?",a:"Para probar la barrera y la racha sin compromiso. Premium desbloquea la IA que conoce tu perfil, tu panel completo y los torneos entre amigos."},{q:"¿Qué pierdo si vuelvo a Gratis?",a:"El agente IA personal, el panel detallado y los torneos. Tus ahorros y tu racha son tuyos para siempre."}],
 perksFree:["Límites y bloqueos","Racha diaria","Presupuesto simple","Tienda cosmética"],perksPrem:["Todo lo de Gratis, más:","Agente IA personal","Panel personal completo","Torneos entre amigos","Simulador de ahorro avanzado"]},
@@ -515,7 +543,7 @@ de:{ui:{
 'intro.score':"Du lagst bei <strong>{s} von {n}</strong> richtig.",'intro.praiseHigh':"Beeindruckend – du kennst den Gegner schon.",'intro.praiseLow':"Ganz normal: kaum jemand kennt diese Zahlen wirklich.",'intro.b2':"Ich bin <strong>Worthy</strong>. Mein Job: auf DEINER Seite zu stehen, genau dann, wenn dich ein Shop zum Kauf drängt. Nie auf der Seite des Verkäufers.",'intro.b3':"Worthit setzt eine Pause zwischen Impuls und Kauf: dein echtes Budget, eine ehrliche Frage, deine Serie ohne Fehlkauf — und Belohnungen, wenn du standhaft bleibst.",'intro.b4':"Richte dein Profil in 2 Minuten ein — keine Bankdaten — und wir reden nicht mehr über Durchschnitte, sondern über DEINE Zahlen.",'intro.ctaProfile':"Profil erstellen",'intro.ctaExplore':"Erst umsehen",
 'foot.redo':"Quiz wiederholen",
 'feat.eyebrow':"Funktionen",'feat.h2':"Ein Geländer, kein Richter",'feat.lede':"Drei kostenlose Tools zum Start. Drei weitere, KI-gestützt, mit Premium.",'feat.locked':"Gesperrt",'feat.premium':"Premium",
-'sim.title':"Spar-Simulator",'sim.sub':"Wie viel du behältst, wenn du widerstehst — über die Zeit gerechnet.",'sim.skips':"Vermiedene Käufe / Monat",'sim.avg':"Ø Preis",'sim.months':"Monate",'sim.saved':"Im Zeitraum gespart",'sim.perMonth':"Pro Monat",'sim.freePrem':"Premium gedeckt",'sim.vs':"Vs. Ziel „Reise nach Japan“ (1.800 €)",
+'sim.title':"Spar-Simulator",'sim.sub':"Wie viel du behältst, wenn du widerstehst — über die Zeit gerechnet.",'sim.skips':"Vermiedene Käufe / Monat",'sim.avg':"Ø Preis",'sim.months':"Monate",'sim.saved':"Im Zeitraum gespart",'sim.perMonth':"Pro Monat",'sim.freePrem':"Premium gedeckt",'sim.vs':"Vs. Ziel „Reise nach Japan“ (1.800 €)",'sim.custom':"Frei",'sim.vsLabel':"Vs. dein Ziel",'sim.goalName':"Zielname",'sim.goalTarget':"Zielbetrag (€)",
 'tarifs.eyebrow':"Preise",'tarifs.h2':"Gratis zum Ausprobieren.<br/>Premium für den Agenten, der dich kennt.",'tarifs.monthly':"Monatlich",'tarifs.annual':"Jährlich",'tarifs.freeName':"Gratis",'tarifs.perMonth':"/Monat",'tarifs.freeSub':"Zum Starten, ohne Karte.",'tarifs.freeCta':"Gratis weitermachen",'tarifs.reco':"Empfohlen",'tarifs.premSub':"Ohne Bindung, jederzeit kündbar",'tarifs.premSubAnnual':"Abgerechnet 23,99 € / Jahr",'tarifs.premCta':"Premium holen",'tarifs.premCtaDone':"Bereits aktiv ✓",'tarifs.faqTitle':"Häufige Fragen",
 'show.eyebrow':"Showcase",'show.h2':"Das Produkt, kurz gefasst",'show.all':"Alle",
 'auth.welcome':"Schön, dich wiederzusehen",'auth.join':"Worthit beitreten",'auth.subLogin':"Melde dich bei deinem Konto an.",'auth.subJoin':"Zwei Minuten, null Bankdaten.",'auth.tabLogin':"Anmelden",'auth.tabJoin':"Registrieren",'auth.fName':"Dein Vorname",'auth.fEmail':"E-Mail",'auth.fPass':"Passwort",'auth.btnLogin':"Anmelden",'auth.btnJoin':"Konto erstellen",
@@ -524,7 +552,7 @@ de:{ui:{
 {q:"Wie viele Impulskäufe werden hinterher bereut?",o:["Etwa 1 von 10","Etwa 1 von 3","Fast 2 von 3"],stat:"≈ 2 von 3",explain:"Der Impuls dauert Minuten. Die Reue bleibt — und kehrt mit jedem Kontoauszug zurück."},
 {q:"Wie lange hält ein unwiderstehlicher Kaufimpuls im Schnitt an?",o:["Unter 20 Minuten","Mehrere Stunden","Mehrere Tage"],stat:"< 20 Min.",explain:"Genau das ist das Prinzip der Pause: Wartest du kurz, verfliegt der Impuls fast immer von selbst."},
 {q:"Wie viele Online-Käufer sagen, sie hätten wegen eines „Letzte Chance“-Angebots zugeschlagen?",o:["Etwa 1 von 5","Etwa 1 von 2","Fast alle"],stat:"≈ 1 von 2",explain:"Countdown, „limitierter“ Bestand, künstliche Dringlichkeit … E-Commerce ist eine Maschine, die dich schwach machen soll."}],
-feat:[{t:"Limits & Blockierung",d:"Ein Limit, Schlagwörter, eine erzwungene Pause."},{t:"Serie",d:"Jeder Tag ohne Kauf verlängert deine Serie."},{t:"Klares Budget",d:"Was dir diesen Monat wirklich bleibt."},{t:"Persönlicher KI-Agent",d:"Fragen für dein Profil generiert, nie recycelt."},{t:"Persönliches Dashboard",d:"Ziele, Belohnungen und Simulator an einem Ort."},{t:"Turniere mit Freunden",d:"Wochenrangliste, Abzeichen, freischaltbare Profile."}],
+feat:[{t:"Limits & Blockierung",d:"Ein Limit, Schlagwörter, eine erzwungene Pause.",l:"Füge sensible Schlagwörter hinzu (Sneaker, Gaming…) und ein Preislimit. Trifft ein Kauf sie, erzwingt Worthit 24 h Pause vor dem Bezahlen — genug Zeit, damit der Impuls verfliegt."},{t:"Serie",d:"Jeder Tag ohne Kauf verlängert deine Serie.",l:"Jeder Tag ohne Impulskauf verlängert deine Serie. Eine 30-Tage-Serie für ein 15-€-Gadget brechen? Genau das ist die Psychologie von Worthit: Widerstehen belohnender machen als Kaufen."},{t:"Klares Budget",d:"Was dir diesen Monat wirklich bleibt.",l:"Einkommen, Miete und Fixkosten einmal eintragen: Worthit berechnet, was dir wirklich bleibt, und behält es im Blick. Schluss mit dem Schätzen."},{t:"Persönlicher KI-Agent",d:"Fragen für dein Profil generiert, nie recycelt.",l:"Worthy kennt dein Budget, deinen Beruf, deine Schwächen und deine Ziele. Genau im Moment des Zögerns stellt er DIE Frage, die zählt — nie eine generische Predigt."},{t:"Persönliches Dashboard",d:"Ziele, Belohnungen und Simulator an einem Ort.",l:"Ziele mit Fortschrittsbalken, erfasste Siege, deine Wochengrafik, freischaltbare Belohnungen: dein ganzer Kampf gegen Impulskäufe, an einem Ort visualisiert."},{t:"Turniere mit Freunden",d:"Wochenrangliste, Abzeichen, freischaltbare Profile.",l:"Eine Wochenrangliste mit Freunden: Top-Sparer, größter Fortschritt, längste Serie. Jeden Montag drei Abzeichen, und die verdienten Münzen gibst du im Shop aus."}],
 show:[{t:"Checkout-Popup",d:"Die richtige Frage im richtigen Moment."},{t:"Personalisierte Frage",d:"Für dich generiert, nie recycelt."},{t:"Blockier-Screen",d:"Deine Regel, an einem ruhigen Tag gesetzt."},{t:"Budget auf einen Blick",d:"Was übrig ist, ohne Umwege."},{t:"Spar-Simulator",d:"Wie viel du sparst, wenn du widerstehst."},{t:"Elegante Paywall",d:"Premium lädt ein, drängt nie."}],
 faq:[{q:"Muss ich Bankdaten eingeben?",a:"Nein. Worthit verbindet sich mit keinem Bankkonto, weder heute noch morgen. Dein Budget gibst du von Hand ein, es bleibt auf deinem Gerät."},{q:"Kann ich jederzeit kündigen?",a:"Ja, mit einem Klick, ohne Begründung. Du wechselst zurück zu Gratis und behältst Verlauf, Serie und Ersparnisse."},{q:"Wozu ist der Gratis-Plan dann gut?",a:"Um Geländer und Serie unverbindlich zu testen. Premium schaltet die KI frei, die dein Profil wirklich kennt, dein volles Dashboard und Turniere mit Freunden."},{q:"Was verliere ich, wenn ich zurück zu Gratis gehe?",a:"Den persönlichen KI-Agenten, das detaillierte Dashboard und die Turniere. Ersparnisse und Serie bleiben dir erhalten."}],
 perksFree:["Limits & Blockierung","Tägliche Serie","Einfaches Budget","Kosmetik-Shop"],perksPrem:["Alles aus Gratis, plus:","Persönlicher KI-Agent","Komplettes Dashboard","Turniere mit Freunden","Erweiterter Spar-Simulator"]},
@@ -536,7 +564,7 @@ nl:{ui:{
 'intro.score':"Je had <strong>{s} van de {n}</strong> goed.",'intro.praiseHigh':"Indrukwekkend — je kent de vijand al.",'intro.praiseLow':"Heel normaal: niemand kent deze cijfers echt.",'intro.b2':"Ik ben <strong>Worthy</strong>. Mijn werk: aan JOUW kant staan op het moment dat een site je laat zwichten. Nooit aan de kant van de verkoper.",'intro.b3':"Worthit zet een pauze tussen impuls en aankoop: je echte budget, één eerlijke vraag, je streak zonder te zwichten — en beloningen als je volhoudt.",'intro.b4':"Stel je profiel in 2 minuten in — geen bankgegevens — en we praten niet meer over gemiddelden maar over JOUW cijfers.",'intro.ctaProfile':"Profiel aanmaken",'intro.ctaExplore':"Eerst rondkijken",
 'foot.redo':"Quiz opnieuw",
 'feat.eyebrow':"Functies",'feat.h2':"Een vangrail, geen rechter",'feat.lede':"Drie gratis tools om te starten. Drie extra, met AI, in Premium.",'feat.locked':"Vergrendeld",'feat.premium':"Premium",
-'sim.title':"Spaarsimulator",'sim.sub':"Hoeveel je overhoudt als je weerstaat, over de tijd berekend.",'sim.skips':"Vermeden aankopen / maand",'sim.avg':"Gemiddelde prijs",'sim.months':"maanden",'sim.saved':"Bespaard over de periode",'sim.perMonth':"Per maand",'sim.freePrem':"Premium gedekt",'sim.vs':"Vs doel ‘Reis naar Japan’ (€1.800)",
+'sim.title':"Spaarsimulator",'sim.sub':"Hoeveel je overhoudt als je weerstaat, over de tijd berekend.",'sim.skips':"Vermeden aankopen / maand",'sim.avg':"Gemiddelde prijs",'sim.months':"maanden",'sim.saved':"Bespaard over de periode",'sim.perMonth':"Per maand",'sim.freePrem':"Premium gedekt",'sim.vs':"Vs doel ‘Reis naar Japan’ (€1.800)",'sim.custom':"Vrij",'sim.vsLabel':"Vs jouw doel",'sim.goalName':"Doelnaam",'sim.goalTarget':"Doelbedrag (€)",
 'tarifs.eyebrow':"Prijzen",'tarifs.h2':"Gratis om te proberen.<br/>Premium voor de agent die jou kent.",'tarifs.monthly':"Maandelijks",'tarifs.annual':"Jaarlijks",'tarifs.freeName':"Gratis",'tarifs.perMonth':"/maand",'tarifs.freeSub':"Om te starten, zonder kaart.",'tarifs.freeCta':"Gratis doorgaan",'tarifs.reco':"Aanbevolen",'tarifs.premSub':"Geen verplichting, altijd opzegbaar",'tarifs.premSubAnnual':"Gefactureerd €23,99 / jaar",'tarifs.premCta':"Word Premium",'tarifs.premCtaDone':"Al actief ✓",'tarifs.faqTitle':"Veelgestelde vragen",
 'show.eyebrow':"Showcase",'show.h2':"Het product, in het kort",'show.all':"Alles",
 'auth.welcome':"Goed je weer te zien",'auth.join':"Word lid van Worthit",'auth.subLogin':"Log in op je account.",'auth.subJoin':"Twee minuten, nul bankgegevens.",'auth.tabLogin':"Inloggen",'auth.tabJoin':"Registreren",'auth.fName':"Je voornaam",'auth.fEmail':"E-mail",'auth.fPass':"Wachtwoord",'auth.btnLogin':"Inloggen",'auth.btnJoin':"Account aanmaken",
@@ -545,7 +573,7 @@ nl:{ui:{
 {q:"Welk deel van de impulsaankopen krijgt achteraf spijt?",o:["Zo'n 1 op 10","Zo'n 1 op 3","Bijna 2 op 3"],stat:"≈ 2 op 3",explain:"De impuls duurt minuten. De spijt blijft — en komt terug bij elk bankafschrift."},
 {q:"Hoe lang duurt een onweerstaanbare koopimpuls gemiddeld?",o:["Minder dan 20 minuten","Meerdere uren","Meerdere dagen"],stat:"< 20 min",explain:"Dat is het hele idee van de pauze: wacht even en de impuls zakt bijna altijd vanzelf weg."},
 {q:"Hoeveel online shoppers zeggen ooit gezwicht te zijn voor een 'laatste kans'-actie?",o:["Zo'n 1 op 5","Zo'n 1 op 2","Bijna iedereen"],stat:"≈ 1 op 2",explain:"Aftelklokken, 'beperkte' voorraad, kunstmatige urgentie … e-commerce is een machine die je laat zwichten."}],
-feat:[{t:"Limieten & blokkades",d:"Een drempel, trefwoorden, een verplichte pauze."},{t:"Streak",d:"Elke dag zonder aankoop verlengt je streak."},{t:"Helder budget",d:"Wat je deze maand écht overhoudt."},{t:"Persoonlijke AI-agent",d:"Vragen op maat van jouw profiel, nooit hergebruikt."},{t:"Persoonlijk dashboard",d:"Doelen, beloningen en simulator op één plek."},{t:"Toernooien met vrienden",d:"Wekelijks klassement, badges, ontgrendelbare profielen."}],
+feat:[{t:"Limieten & blokkades",d:"Een drempel, trefwoorden, een verplichte pauze.",l:"Voeg je gevoelige trefwoorden toe (sneakers, gaming…) en een prijsdrempel. Raakt een aankoop ze, dan dwingt Worthit 24 uur pauze af voor het afrekenen — lang genoeg om de impuls te laten wegzakken."},{t:"Streak",d:"Elke dag zonder aankoop verlengt je streak.",l:"Elke dag zonder impulsaankoop verlengt je streak. Een streak van 30 dagen breken voor een gadget van €15? Dat is de hele psychologie van Worthit: weerstaan lonender maken dan kopen."},{t:"Helder budget",d:"Wat je deze maand écht overhoudt.",l:"Vul inkomen, huur en vaste lasten één keer in: Worthit berekent wat je écht overhoudt en houdt het zichtbaar. Klaar met gokken hoeveel er nog is."},{t:"Persoonlijke AI-agent",d:"Vragen op maat van jouw profiel, nooit hergebruikt.",l:"Worthy kent je budget, je werk, je zwakke plekken en je doelen. Precies op het moment van twijfel stelt hij DE vraag die telt — nooit een generieke preek."},{t:"Persoonlijk dashboard",d:"Doelen, beloningen en simulator op één plek.",l:"Doelen met voortgangsbalken, gelogde overwinningen, je weekgrafiek, te ontgrendelen beloningen: je hele strijd tegen impulsaankopen, op één plek."},{t:"Toernooien met vrienden",d:"Wekelijks klassement, badges, ontgrendelbare profielen.",l:"Een wekelijks klassement met vrienden: beste spaarder, grootste vooruitgang, langste streak. Elke maandag drie badges, en je verdiende munten geef je uit in de shop."}],
 show:[{t:"Checkout-popup",d:"De juiste vraag op het juiste moment."},{t:"Gepersonaliseerde vraag",d:"Voor jou gegenereerd, nooit hergebruikt."},{t:"Blokkeerscherm",d:"Jouw regel, gezet op een rustige dag."},{t:"Budget in één oogopslag",d:"Wat er over is, zonder omwegen."},{t:"Spaarsimulator",d:"Hoeveel je bespaart als je weerstaat."},{t:"Elegante paywall",d:"Premium nodigt uit, dringt niet op."}],
 faq:[{q:"Moet ik bankgegevens invoeren?",a:"Nee. Worthit koppelt met geen enkele bankrekening, vandaag niet en morgen niet. Je budget voer je zelf in en blijft op je apparaat."},{q:"Kan ik opzeggen wanneer ik wil?",a:"Ja, met één klik, zonder reden. Je valt terug naar Gratis en houdt je geschiedenis, streak en besparingen."},{q:"Waar is het Gratis-plan dan voor?",a:"Om de vangrail en de streak vrijblijvend te testen. Premium ontgrendelt de AI die jouw profiel echt kent, je volledige dashboard en toernooien met vrienden."},{q:"Wat verlies ik als ik terugga naar Gratis?",a:"De persoonlijke AI-agent, het gedetailleerde dashboard en de toernooien. Je besparingen en streak blijven van jou."}],
 perksFree:["Limieten & blokkades","Dagelijkse streak","Eenvoudig budget","Cosmetische shop"],perksPrem:["Alles uit Gratis, plus:","Persoonlijke AI-agent","Volledig dashboard","Toernooien met vrienden","Geavanceerde spaarsimulator"]},
@@ -557,7 +585,7 @@ function t(key,vars){
   return s;
 }
 function QZ(i){ const b=QUIZ[i], tr=T[state.lang]&&T[state.lang].quiz&&T[state.lang].quiz[i]; return tr?{q:tr.q,options:tr.o,answer:b.answer,stat:tr.stat,explain:tr.explain}:b; }
-function FT(i){ const b=FEATURES[i], tr=T[state.lang]&&T[state.lang].feat&&T[state.lang].feat[i]; return tr?{...b,title:tr.t,desc:tr.d}:b; }
+function FT(i){ const b=FEATURES[i], tr=T[state.lang]&&T[state.lang].feat&&T[state.lang].feat[i]; return tr?{...b,title:tr.t,desc:tr.d,long:tr.l||b.long}:b; }
 function SCI(i){ const b=SHOWCASE_ITEMS[i], tr=T[state.lang]&&T[state.lang].show&&T[state.lang].show[i]; return tr?{...b,title:tr.t,desc:tr.d}:b; }
 function FAQI(i){ const b=FAQ[i], tr=T[state.lang]&&T[state.lang].faq&&T[state.lang].faq[i]; return tr||b; }
 function PERKS(kind){ const loc=T[state.lang]; return (loc&&loc[kind])||T.fr[kind]; }
@@ -572,6 +600,7 @@ const state = {
   profile:null,
   goals:[], streak:0, savedTotal:0, sous:0, sousToday:0,
   week:WEEK_DAYS.map(d=>({day:d,amount:0})), victories:[],
+  blockKeywords:[], priceLimit:'',
   owned:['av1','th1'], activeAvatar:'av1', activeTheme:'th1',
   demoQuestion:null, showcaseFilter:'Tous', shopTab:'avatars', selectedFriend:null,
   toasts:[],
@@ -585,6 +614,7 @@ function saveLocal(){
       introDone:state.introDone, profile:state.profile, goals:state.goals,
       streak:state.streak, savedTotal:state.savedTotal, sous:state.sous,
       week:state.week, victories:state.victories,
+      blockKeywords:state.blockKeywords, priceLimit:state.priceLimit,
       owned:state.owned, activeAvatar:state.activeAvatar, activeTheme:state.activeTheme,
       isPremiumDemo:state.isPremium, authNom:state.auth.nom, lang:state.lang,
       agentFreeUsed:(typeof agent!=='undefined'?agent.freeUsed:0), agentFreeDate:(new Date()).toDateString(),
@@ -601,6 +631,8 @@ function loadLocal(){
     state.streak = d.streak||0; state.savedTotal = d.savedTotal||0; state.sous = d.sous||0;
     if(Array.isArray(d.week) && d.week.length===7) state.week = d.week;
     state.victories = Array.isArray(d.victories)?d.victories:[];
+    if(Array.isArray(d.blockKeywords)) state.blockKeywords = d.blockKeywords;
+    if(d.priceLimit!==undefined) state.priceLimit = d.priceLimit;
     if(Array.isArray(d.owned)) state.owned = d.owned;
     if(d.activeAvatar) state.activeAvatar = d.activeAvatar;
     if(d.activeTheme){
@@ -685,23 +717,23 @@ function Navbar(){
   const hasProfile = !!state.profile;
   return `<header id="nav-root" style="position:fixed;top:0;left:0;right:0;z-index:50;">
     <div class="glass" style="border-left:none;border-right:none;border-top:none;">
-      <div class="container" style="padding-top:16px;padding-bottom:16px;display:flex;align-items:center;justify-content:space-between;">
+      <div class="container" style="max-width:1300px;padding-top:16px;padding-bottom:16px;display:flex;align-items:center;justify-content:space-between;">
         <button onclick="nav('accueil')" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;">
           <span style="width:9px;height:9px;border-radius:50%;background:var(--grad);box-shadow:0 0 12px rgba(167,139,250,.7);"></span>
           <span style="color:#fff;font-family:var(--font-d);font-size:18px;font-weight:700;letter-spacing:-.02em;">worthit</span>
           ${state.isPremium?`<span class="badge-premium">${I('crown',11)} Premium</span>`:''}
         </button>
-        <nav class="nav-desktop" style="display:flex;gap:26px;">
-          ${NAV_PAGES.map(p=>`<button onclick="nav('${p.id}')" class="nav-link ${state.page===p.id?'active':''}" style="color:${state.page===p.id?'#fff':'var(--ink-dim)'};">${esc(t(p.k))}</button>`).join('')}
+        <nav class="nav-desktop" style="display:flex;gap:clamp(26px,3vw,44px);margin:0 28px;">
+          ${NAV_PAGES.map(p=>`<button onclick="nav('${p.id}')" class="nav-link ${state.page===p.id?'active':''}" style="color:${state.page===p.id?'#fff':'var(--ink-dim)'};white-space:nowrap;">${esc(t(p.k))}</button>`).join('')}
         </nav>
-        <div style="display:flex;gap:10px;align-items:center;">
+        <div style="display:flex;gap:14px;align-items:center;">
           <div class="lang-wrap">
             <button class="lang-btn ${state.langMenuOpen?'open':''}" onclick="toggleLangMenu(event)" aria-haspopup="listbox" aria-expanded="${state.langMenuOpen}">
-              ${I('globe',14)} ${state.lang.toUpperCase()} <span class="chev">${I('chevronRight',12)}</span>
+              ${flagSVG(state.lang)} ${state.lang.toUpperCase()} <span class="chev">${I('chevronRight',12)}</span>
             </button>
             ${state.langMenuOpen?`<div class="lang-menu" role="listbox" onclick="event.stopPropagation()">
               ${Object.entries(LANGS).map(([code,l],i)=>`<button class="lang-item ${state.lang===code?'active':''}" role="option" style="animation-delay:${(.06+i*.05).toFixed(2)}s" onclick="setLang('${code}')">
-                <span class="flag">${l.flag}</span>${l.name}${state.lang===code?`<span style="margin-left:auto;display:flex;">${I('check',13)}</span>`:''}
+                ${flagSVG(code)}${l.name}${state.lang===code?`<span style="margin-left:auto;display:flex;">${I('check',13)}</span>`:''}
               </button>`).join('')}
             </div>`:''}
           </div>
@@ -906,7 +938,7 @@ function pageFonctionnalites(){
         ${FEATURES.map((_,i)=>{
           const f = FT(i);
           const locked = f.tier==='premium' && !state.isPremium;
-          return `<div class="glass feature-card tilt reveal ${locked?'locked':''}" style="border-radius:20px;padding:28px 24px;transition-delay:${i*60}ms;">
+          return `<div class="glass feature-card tilt reveal ${locked?'locked':''}" onclick="openFeature(${i})" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openFeature(${i})" style="border-radius:20px;padding:28px 24px;transition-delay:${i*60}ms;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
               <div style="width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(167,139,250,.14),rgba(124,58,237,.14));border:1px solid rgba(167,139,250,.25);color:var(--v1);">${I(f.icon,20)}</div>
               ${f.tier==='premium'?`<span class="badge-premium">${I('crown',10)} ${esc(locked?t('feat.locked'):t('feat.premium'))}</span>`:''}
@@ -922,6 +954,7 @@ function pageFonctionnalites(){
 }
 
 function SavingsSimulator(){
+  const goal = state.goals[0] || {name:'Voyage au Japon', target:1800};
   return `<div class="glass reveal" style="border-radius:var(--r-xl);padding:36px 30px;">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
       ${I('zap',18)}<h3 style="font-size:19px;font-weight:700;color:#fff;margin:0;">${esc(t('sim.title'))}</h3>
@@ -929,27 +962,43 @@ function SavingsSimulator(){
     <p style="font-size:13.5px;color:var(--ink-dim);margin:0 0 26px;">${esc(t('sim.sub'))}</p>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:26px;margin-bottom:24px;">
       <div class="range-row">
-        <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--ink-dim);margin-bottom:8px;"><span>${esc(t('sim.skips'))}</span><span class="tabular" id="sim-skip-val" style="color:#fff;font-weight:700;">3</span></div>
-        <input type="range" id="sim-skip" min="1" max="12" value="3" oninput="simUpdate()"/>
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--ink-dim);margin-bottom:8px;">
+          <span>${esc(t('sim.skips'))}</span>
+          <input id="sim-skip-num" type="number" min="0" value="3" oninput="simSync('skip',this.value)" class="sim-num"/>
+        </div>
+        <input type="range" id="sim-skip" min="1" max="30" value="3" oninput="simSync('skip',this.value)"/>
       </div>
       <div class="range-row">
-        <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--ink-dim);margin-bottom:8px;"><span>${esc(t('sim.avg'))}</span><span class="tabular" id="sim-price-val" style="color:#fff;font-weight:700;">35 €</span></div>
-        <input type="range" id="sim-price" min="10" max="150" step="5" value="35" oninput="simUpdate()"/>
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--ink-dim);margin-bottom:8px;">
+          <span>${esc(t('sim.avg'))} (€)</span>
+          <input id="sim-price-num" type="number" min="0" value="35" oninput="simSync('price',this.value)" class="sim-num"/>
+        </div>
+        <input type="range" id="sim-price" min="5" max="500" step="5" value="35" oninput="simSync('price',this.value)"/>
       </div>
     </div>
-    <div style="display:flex;gap:8px;margin-bottom:24px;" id="sim-months-row">
+    <div style="display:flex;gap:8px;margin-bottom:24px;align-items:center;flex-wrap:wrap;" id="sim-months-row">
       ${[6,12,24].map(m=>`<button class="filter-pill ${m===12?'active':''}" data-months="${m}" onclick="simSetMonths(${m},this)">${m} ${esc(t('sim.months'))}</button>`).join('')}
+      <input id="sim-months-custom" type="number" min="1" max="600" placeholder="${esc(t('sim.custom'))}" oninput="simCustomMonths()" class="sim-num" style="width:86px;"/>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:20px;">
-      <div class="glass stat-tile"><p style="font-size:12px;color:var(--ink-dim);margin:0 0 6px;">${esc(t('sim.saved'))}</p><p class="tabular grad-text" style="font-family:var(--font-d);font-size:26px;font-weight:800;margin:0;" id="sim-total">1 260 €</p></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:22px;">
+      <div class="glass stat-tile"><p style="font-size:12px;color:var(--ink-dim);margin:0 0 6px;">${esc(t('sim.saved'))}</p><p class="tabular grad-text" style="font-family:var(--font-d);font-size:26px;font-weight:800;margin:0;" id="sim-total">1 260 €</p></div>
       <div class="glass stat-tile"><p style="font-size:12px;color:var(--ink-dim);margin:0 0 6px;">${esc(t('sim.perMonth'))}</p><p class="tabular" style="font-family:var(--font-d);font-size:26px;font-weight:800;margin:0;color:#fff;" id="sim-monthly">105 €</p></div>
       <div class="glass stat-tile"><p style="font-size:12px;color:var(--ink-dim);margin:0 0 6px;">${esc(t('sim.freePrem'))}</p><p class="tabular" style="font-family:var(--font-d);font-size:26px;font-weight:800;margin:0;color:#fff;"><span id="sim-premium">35</span> ${esc(t('sim.months'))}</p></div>
     </div>
-    <p style="font-size:12px;color:var(--ink-dim);margin:0 0 8px;">${esc(t('sim.vs'))}</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:16px;">
+      <div>
+        <p style="font-size:11.5px;color:var(--ink-faint);margin:0 0 6px;">${esc(t('sim.goalName'))}</p>
+        <input id="sim-goal-name" value="${esc(goal.name)}" oninput="simUpdate()" class="sim-num" style="width:100%;text-align:left;"/>
+      </div>
+      <div>
+        <p style="font-size:11.5px;color:var(--ink-faint);margin:0 0 6px;">${esc(t('sim.goalTarget'))}</p>
+        <input id="sim-goal-target" type="number" min="1" value="${goal.target}" oninput="simUpdate()" class="sim-num" style="width:100%;text-align:left;"/>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--ink-dim);margin:0 0 8px;" id="sim-vs-label"></p>
     <div class="progress-track"><div class="progress-fill" id="sim-bar" style="width:70%;"></div></div>
   </div>`;
 }
-
 function pageTarifs(){
   const annualPrice = 23.99, monthlyPrice = 2.99;
   const isAnnual = state.billing==='annuel';
@@ -1365,6 +1414,7 @@ function pageDashboard(){
     return `<section class="section" style="min-height:100vh;background:radial-gradient(800px 500px at 15% 10%,rgba(124,58,237,.08),transparent 60%),var(--deep);">
       <div class="container" style="max-width:900px;">
         ${header}${budgetCards}
+        ${blocksCard()}
         <div class="glass reveal" style="border-radius:18px;padding:26px 24px;display:flex;gap:20px;flex-wrap:wrap;align-items:center;justify-content:space-between;">
           <div style="max-width:420px;">
             <div class="badge-premium" style="margin-bottom:12px;">${I('crown',11)} Premium</div>
@@ -1384,6 +1434,7 @@ function pageDashboard(){
   return `<section class="section" style="min-height:100vh;background:radial-gradient(800px 500px at 15% 10%,rgba(124,58,237,.08),transparent 60%),var(--deep);">
     <div class="container" style="max-width:900px;">
       ${header}${budgetCards}
+      ${blocksCard()}
       <div class="glass reveal" style="border-radius:18px;padding:22px 20px;margin-bottom:16px;">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
           <p style="font-size:13px;font-weight:700;color:#fff;margin:0;">Ta semaine de résistance</p>
@@ -1454,6 +1505,81 @@ function runDemoQuestion(){
   state.demoQuestion = generateQuestion(DEMO_PRODUCT, state.profile, goal);
   document.getElementById('demo-question-box').innerHTML = `<div style="background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.25);border-radius:12px;padding:14px 16px;"><p style="font-size:14px;line-height:1.55;color:#fff;margin:0;">${esc(state.demoQuestion)}</p></div>`;
 }
+/* ---- modal fonctionnalité : zoom animé au clic sur une carte ---- */
+function featureDemoHtml(i){
+  const box=(inner)=>`<div style="border:1px solid var(--line);border-radius:14px;padding:16px;background:rgba(255,255,255,.02);">${inner}</div>`;
+  if(i===0) return box(`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;"><span class="filter-pill active">sneakers ✕</span><span class="filter-pill active">gaming ✕</span><span class="filter-pill">+</span></div><p style="font-size:12px;color:var(--ink-faint);margin:0;">Pause imposée au-delà de <strong style="color:#fff;">80 €</strong></p>`);
+  if(i===1) return box(`<div style="display:flex;align-items:center;gap:12px;"><span style="color:var(--v1);display:flex;">${I('flame',26)}</span><div><p style="font-size:18px;font-weight:800;color:#fff;margin:0;font-family:var(--font-d);">12 jours</p><div style="display:flex;gap:4px;margin-top:6px;">${Array.from({length:7},(_,d)=>`<span style="width:14px;height:5px;border-radius:3px;background:${d<5?'var(--grad)':'rgba(255,255,255,.1)'};"></span>`).join('')}</div></div></div>`);
+  if(i===2) return box(`<div style="display:flex;height:9px;border-radius:5px;overflow:hidden;margin-bottom:8px;"><div style="width:39%;background:var(--v2);"></div><div style="width:16%;background:var(--v1);"></div><div style="width:45%;background:rgba(255,255,255,.12);"></div></div><p style="font-size:12px;color:var(--ink-faint);margin:0;">Loyer 39% · Charges 16% · <strong style="color:#fff;">Disponible 45%</strong></p>`);
+  if(i===3) return box(`<div style="display:flex;gap:9px;"><div class="agent-avatar" style="width:26px;height:26px;flex-shrink:0;">${I('brain',12)}</div><p style="font-size:12.5px;line-height:1.55;color:#fff;margin:0;background:rgba(167,139,250,.09);border:1px solid rgba(167,139,250,.2);border-radius:11px;border-top-left-radius:4px;padding:9px 11px;">Toi qui craques surtout sur le gaming : cette manette à 79 €, besoin réel ou envie du moment ?</p></div>`);
+  if(i===4) return box(`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"><div><p style="font-size:11px;color:var(--ink-faint);margin:0 0 3px;">Économisé</p><p class="grad-text" style="font-size:17px;font-weight:800;margin:0;font-family:var(--font-d);">612 €</p></div><div><p style="font-size:11px;color:var(--ink-faint);margin:0 0 3px;">Objectif</p><p style="font-size:17px;font-weight:800;color:#fff;margin:0;font-family:var(--font-d);">34 %</p></div></div>`);
+  return box(['🥇 Léa — 42 €','🥈 Toi — 31 €','🥉 Tom — 18 €'].map((r,j)=>`<p style="font-size:12.5px;color:${j===1?'#fff':'var(--ink-dim)'};margin:${j<2?'0 0 7px':'0'};font-weight:${j===1?'700':'400'};">${r}</p>`).join(''));
+}
+function openFeature(i){
+  const f = FT(i);
+  const locked = f.tier==='premium' && !state.isPremium;
+  document.getElementById('modal-root').innerHTML = `<div class="modal-backdrop" onclick="if(event.target===this)closeModal()">
+    <div class="glass feature-modal">
+      <button onclick="closeModal()" aria-label="Fermer" style="position:absolute;top:14px;right:14px;background:none;border:none;cursor:pointer;color:var(--ink-dim);padding:6px;display:flex;">${I('x',18)}</button>
+      <div style="width:64px;height:64px;border-radius:18px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(167,139,250,.16),rgba(124,58,237,.16));border:1px solid rgba(167,139,250,.3);color:var(--v1);margin-bottom:18px;">${I(f.icon,30,1.5)}</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
+        <h3 style="font-size:21px;font-weight:800;color:#fff;margin:0;font-family:var(--font-d);">${esc(f.title)}</h3>
+        ${f.tier==='premium'?`<span class="badge-premium">${I('crown',10)} ${esc(locked?t('feat.locked'):t('feat.premium'))}</span>`:''}
+      </div>
+      <p style="font-size:14.5px;line-height:1.7;color:var(--ink-dim);margin:0 0 20px;">${esc(f.long||f.desc)}</p>
+      ${featureDemoHtml(i)}
+      <div style="display:flex;gap:10px;margin-top:22px;">
+        ${locked
+          ? `<button onclick="closeModal();nav('tarifs')" class="btn btn-gold" style="flex:1;">${I('crown',14)} ${esc(t('tarifs.premCta'))}</button>`
+          : `<button onclick="closeModal();nav('${state.profile?'dashboard':'connexion'}')" class="btn btn-neon" style="flex:1;">${esc(t('hero.ctaStart'))} ${I('arrowRight',15)}</button>`}
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ---- Limites et blocages : mots-clés + seuil de prix ---- */
+function blocksCard(){
+  return `<div class="glass reveal" style="border-radius:18px;padding:22px 20px;margin-bottom:16px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;"><span style="color:var(--v1);display:flex;">${I('shield',17)}</span><p style="font-size:13px;font-weight:700;color:#fff;margin:0;">Limites et blocages</p></div>
+    <p style="font-size:12.5px;color:var(--ink-dim);margin:0 0 16px;">Mots-clés sensibles et seuil de prix : au-delà, la pause de 24 h s'impose avant tout achat.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+      ${state.blockKeywords.length
+        ? state.blockKeywords.map(w=>`<span class="filter-pill active" style="display:inline-flex;align-items:center;gap:6px;">${esc(w)}<button onclick="removeBlockKeyword('${w.replace(/'/g,"\\'")}')" style="background:none;border:none;cursor:pointer;color:inherit;display:flex;padding:0;" aria-label="Retirer ${esc(w)}">${I('x',12)}</button></span>`).join('')
+        : `<span style="font-size:12px;color:var(--ink-faint);">Aucun mot-clé bloqué pour l'instant. Ajoute ce qui te fait craquer.</span>`}
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:18px;">
+      <input id="block-kw-input" class="agent-input" style="border-radius:12px;flex:1;" placeholder="Ex : sneakers, gaming, vinted…" onkeydown="if(event.key==='Enter'){event.preventDefault();addBlockKeyword();}"/>
+      <button onclick="addBlockKeyword()" class="btn btn-neon btn-sm" style="border-radius:12px;">${I('shield',13)} Bloquer</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span style="font-size:13px;color:var(--ink-dim);">Pause imposée au-delà de</span>
+      <input id="block-price-input" class="sim-num" type="number" min="0" value="${esc(state.priceLimit)}" style="width:90px;" placeholder="80" onchange="setPriceLimit(this.value)"/>
+      <span style="font-size:13px;color:var(--ink-dim);">€</span>
+      ${state.priceLimit?`<span class="glass pill" style="font-size:11.5px;color:var(--gold-1);">${I('lock',11)} Actif</span>`:''}
+    </div>
+  </div>`;
+}
+function addBlockKeyword(){
+  const inp=document.getElementById('block-kw-input');
+  const w=(inp.value||'').trim();
+  if(!w) return;
+  if(!state.blockKeywords.includes(w)) state.blockKeywords.push(w);
+  saveLocal();
+  toast(`« ${w} » est maintenant bloqué`,'shield');
+  render();
+}
+function removeBlockKeyword(w){
+  state.blockKeywords = state.blockKeywords.filter(x=>x!==w);
+  saveLocal();
+  toast(`« ${w} » débloqué`,'shield');
+  render();
+}
+function setPriceLimit(v){
+  state.priceLimit = v==='' ? '' : Math.max(0, Number(v)||0);
+  saveLocal();
+  toast(state.priceLimit ? `Pause imposée au-delà de ${state.priceLimit} €` : 'Seuil de prix retiré','lock');
+}
+
 function addVictory(){
   document.getElementById('modal-root').innerHTML = `<div class="modal-backdrop" onclick="if(event.target===this)closeModal()">
     <div class="glass modal-card check-pop">
@@ -1561,26 +1687,44 @@ const PageMap = {
 };
 
 /* ============================== SIMULATOR ============================== */
+function simVal(id){ const el=document.getElementById(id); return el ? Math.max(0, +el.value||0) : 0; }
+function simSync(key, v){
+  v = Math.max(0, +v||0);
+  const r=document.getElementById('sim-'+key), n=document.getElementById('sim-'+key+'-num');
+  if(r) r.value=v;
+  if(n && +n.value!==v) n.value=v;
+  simUpdate();
+}
+function simMonths(){
+  const custom = simVal('sim-months-custom');
+  if(custom>0) return custom;
+  return +(document.querySelector('#sim-months-row .filter-pill.active')?.dataset.months || 12);
+}
 function simUpdate(){
-  const skip = +document.getElementById('sim-skip').value;
-  const price = +document.getElementById('sim-price').value;
-  document.getElementById('sim-skip-val').textContent = skip;
-  document.getElementById('sim-price-val').textContent = price+' €';
-  const months = +(document.querySelector('#sim-months-row .filter-pill.active')?.dataset.months || 12);
+  const skip = simVal('sim-skip-num');
+  const price = simVal('sim-price-num');
+  const months = simMonths();
   const monthly = skip*price;
   const total = monthly*months;
   document.getElementById('sim-total').textContent = total.toLocaleString('fr-FR')+' €';
-  document.getElementById('sim-monthly').textContent = monthly+' €';
-  const pct = Math.min(100, Math.round(total/1800*100));
-  document.getElementById('sim-bar').style.width = pct+'%';
-  document.getElementById('sim-premium').textContent = Math.max(1,Math.round(monthly/2.99));
+  document.getElementById('sim-monthly').textContent = monthly.toLocaleString('fr-FR')+' €';
+  document.getElementById('sim-premium').textContent = Math.max(0,Math.round(monthly/2.99));
+  const goalName = (document.getElementById('sim-goal-name').value||'').trim() || '—';
+  const goalTarget = Math.max(1, simVal('sim-goal-target')||1800);
+  document.getElementById('sim-vs-label').textContent = t('sim.vsLabel')+' « '+goalName+' » ('+goalTarget.toLocaleString('fr-FR')+' €)';
+  document.getElementById('sim-bar').style.width = Math.min(100, Math.round(total/goalTarget*100))+'%';
 }
 function simSetMonths(m,btn){
   document.querySelectorAll('#sim-months-row .filter-pill').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
+  const c=document.getElementById('sim-months-custom'); if(c) c.value='';
   simUpdate();
 }
-
+function simCustomMonths(){
+  if(simVal('sim-months-custom')>0) document.querySelectorAll('#sim-months-row .filter-pill').forEach(b=>b.classList.remove('active'));
+  else { const d=document.querySelector('#sim-months-row .filter-pill[data-months="12"]'); if(d) d.classList.add('active'); }
+  simUpdate();
+}
 /* ============================== REVEAL / TILT / COUNTUP ============================== */
 let revealObs;
 function initReveal(){
@@ -1724,6 +1868,7 @@ function agentContext(){
   const b = computeBudget(p);
   return {nom:(p.nom||'').trim()||null, statut:p.status, fonction:p.fonction||null,
           faiblesses:p.weaknesses||[], frequenceImpulsions:p.impulseFreq||null, langue:state.lang,
+          motsClesBloques:state.blockKeywords, seuilPrix:state.priceLimit||null,
           revenu:b.income, loyer:b.rent, charges:b.charges, reste:b.left,
           streak:state.streak, economise:state.savedTotal, objectifs:state.goals, premium:state.isPremium};
 }

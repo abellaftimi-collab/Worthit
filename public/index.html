@@ -240,6 +240,20 @@ a{color:inherit;}
 .agent-send{width:42px;height:42px;border-radius:50%;background:var(--grad);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .25s ease,box-shadow .25s ease;}
 .agent-send:hover{transform:scale(1.08);box-shadow:0 0 16px rgba(167,139,250,.4);}
 
+/* ---- sélecteur de langue ---- */
+.lang-wrap{position:relative;}
+.lang-btn{display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid var(--line);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.05em;transition:border-color .25s ease,box-shadow .25s ease;}
+.lang-btn:hover{border-color:rgba(167,139,250,.5);box-shadow:0 0 14px rgba(124,58,237,.15);}
+.lang-btn .chev{display:flex;transition:transform .35s var(--ease);}
+.lang-btn.open .chev{transform:rotate(180deg);}
+.lang-menu{position:absolute;top:calc(100% + 10px);right:0;min-width:176px;background:rgba(12,7,22,.97);border:1px solid rgba(167,139,250,.28);border-radius:14px;padding:6px;z-index:60;transform-origin:top right;animation:langIn .35s cubic-bezier(.34,1.56,.64,1) both;box-shadow:0 18px 50px rgba(0,0,0,.55),0 0 30px rgba(124,58,237,.12);}
+@keyframes langIn{from{opacity:0;transform:scale(.8) translateY(-8px);}to{opacity:1;transform:scale(1) translateY(0);}}
+.lang-item{display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;border-radius:9px;background:none;border:none;cursor:pointer;color:rgba(255,255,255,.85);font-size:13px;font-family:inherit;text-align:left;animation:msgIn .35s var(--ease) both;transition:background .2s ease,transform .2s ease;}
+.lang-item:hover{background:rgba(167,139,250,.12);transform:translateX(2px);}
+.lang-item.active{color:var(--v1);font-weight:700;}
+.lang-item .flag{font-size:16px;line-height:1;}
+@media (prefers-reduced-motion:reduce){.lang-menu,.lang-item{animation:none !important;}}
+
 /* ---- quiz d'introduction ---- */
 .quiz-opt{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:16px 18px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);color:#fff;font-size:14.5px;cursor:pointer;font-family:inherit;transition:border-color .25s ease,background .25s ease,transform .25s ease;}
 .quiz-opt:hover:not([disabled]){border-color:rgba(167,139,250,.5);transform:translateY(-1px);}
@@ -315,6 +329,7 @@ image:'<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy
 crown:'<path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z"/><path d="M5 21h14"/>',
 star:'<path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/>',
 zap:'<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>',
+globe:'<circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>',
 };
 function I(name,size,sw){
   size=size||18; sw=sw||1.7;
@@ -341,12 +356,12 @@ const CID = (function(){
 
 /* ============================== DATA ============================== */
 const NAV_PAGES = [
-  {id:'accueil',label:'Accueil'},
-  {id:'fonctionnalites',label:'Fonctionnalités'},
-  {id:'tarifs',label:'Tarifs'},
-  {id:'classement',label:'Tournois'},
-  {id:'showcase',label:'Showcase'},
-  {id:'apropos',label:'À propos'},
+  {id:'accueil',k:'nav.home'},
+  {id:'fonctionnalites',k:'nav.features'},
+  {id:'tarifs',k:'nav.pricing'},
+  {id:'classement',k:'nav.tournaments'},
+  {id:'showcase',k:'nav.showcase'},
+  {id:'apropos',k:'nav.about'},
 ];
 
 const FEATURES = [
@@ -366,6 +381,8 @@ const FAQ = [
 ];
 
 const STATUTS = ['Étudiant','Salarié','Sans emploi','Freelance'];
+const WEAKNESS_CATS = ['Mode','Tech','Gaming','Beauté','Food & livraison','Déco','Sport'];
+const IMPULSE_FREQS = ['Rarement','Chaque semaine','Presque chaque jour'];
 const REWARD_THRESHOLDS = [50,250,500,1000];
 const DEMO_PRODUCT = {title:'Sneakers en édition limitée',price:149};
 
@@ -429,12 +446,129 @@ const SHOWCASE_ITEMS = [
   {cat:'IA',title:'Paywall élégant',desc:"Le Premium se découvre, ne s'impose pas.",icon:'crown'},
 ];
 
+/* ============================== I18N ============================== */
+const LANGS = {
+  fr:{name:'Français',flag:'🇫🇷'}, en:{name:'English',flag:'🇬🇧'}, es:{name:'Español',flag:'🇪🇸'},
+  de:{name:'Deutsch',flag:'🇩🇪'}, nl:{name:'Nederlands',flag:'🇳🇱'},
+};
+const T = {
+fr:{ui:{
+'nav.home':"Accueil",'nav.features':"Fonctionnalités",'nav.pricing':"Tarifs",'nav.tournaments':"Tournois",'nav.showcase':"Showcase",'nav.about':"À propos",'nav.login':"Connexion",'nav.try':"Essayer",'nav.dashboard':"Dashboard",'nav.menuDash':"Voir le dashboard",'nav.menuTry':"Essayer Worthit",
+'hero.badge':"Du côté de l'acheteur, pas du vendeur",'hero.h1a':"Achète moins.",'hero.h1b':"Vis mieux.",'hero.lede':"Worthit met une pause entre l'envie et l'achat : ton budget réel, une question honnête, ta décision.",'hero.ctaStart':"Commencer gratuitement",'hero.ctaPremium':"Voir Premium",'hero.t1':"Aucune carte requise",'hero.t2':"Annulable en un clic",'hero.t3':"Données sur ton appareil",
+'mock.checkout':"sneaker-store.com — Paiement",'mock.product':"Sneakers édition limitée",'mock.sub':"Panier · livraison offerte",'mock.msg':"Ça représente <strong>34 %</strong> de ce qu'il te reste ce mois-ci. Ton objectif « Voyage » recule. Toujours partant ?",'mock.left':"Reste ce mois-ci",'mock.wait':"J'attends 24 h",'mock.buy':"J'achète",'mock.chip1':"12 jours de série",'mock.chip2':"gardés cette semaine",
+'quiz.before':"Avant de commencer — question",'quiz.skip':"Passer le quiz →",'quiz.next':"Question suivante",'quiz.why':"Voir pourquoi Worthit existe",
+'intro.score':"Tu avais vu juste sur <strong>{s} sur {n}</strong>.",'intro.praiseHigh':"Impressionnant — tu connais déjà l'ennemi.",'intro.praiseLow':"Et c'est normal : personne ne mesure vraiment ces chiffres.",'intro.b2':"Moi c'est <strong>Worthy</strong>. Mon travail : être de TON côté au moment exact où un site te pousse à craquer. Jamais du côté du vendeur.",'intro.b3':"Worthit met une pause entre l'envie et l'achat : ton budget réel, une question honnête, ta série de jours sans craquer — et des récompenses quand tu tiens bon.",'intro.b4':"Configure ton profil en 2 minutes — aucune donnée bancaire — et on arrête de parler des moyennes des études : on parle de TES chiffres.",'intro.ctaProfile':"Créer mon profil",'intro.ctaExplore':"Explorer d'abord",
+'foot.redo':"Refaire le quiz",
+'feat.eyebrow':"Fonctionnalités",'feat.h2':"Un garde-fou, pas un juge",'feat.lede':"Trois outils gratuits pour commencer. Trois de plus, propulsés par l'IA, en Premium.",'feat.locked':"Verrouillé",'feat.premium':"Premium",
+'sim.title':"Simulateur d'économies",'sim.sub':"Combien tu gardes si tu résistes, projeté dans le temps.",'sim.skips':"Achats évités / mois",'sim.avg':"Prix moyen",'sim.months':"mois",'sim.saved':"Économisé sur la période",'sim.perMonth':"Par mois",'sim.freePrem':"Premium offert",'sim.vs':"Vs objectif « Voyage au Japon » (1 800 €)",
+'tarifs.eyebrow':"Tarifs",'tarifs.h2':"Gratuit pour t'essayer.<br/>Premium pour l'agent qui te connaît.",'tarifs.monthly':"Mensuel",'tarifs.annual':"Annuel",'tarifs.freeName':"Gratuit",'tarifs.perMonth':"/mois",'tarifs.freeSub':"Pour commencer, sans carte bancaire.",'tarifs.freeCta':"Continuer gratuitement",'tarifs.reco':"Recommandé",'tarifs.premSub':"Sans engagement, résiliable à tout moment",'tarifs.premSubAnnual':"Facturé 23,99 € / an",'tarifs.premCta':"Passer Premium",'tarifs.premCtaDone':"Déjà activé ✓",'tarifs.faqTitle':"Questions fréquentes",
+'show.eyebrow':"Showcase",'show.h2':"Le produit, en bref",'show.all':"Tous",
+'auth.welcome':"Content de te revoir",'auth.join':"Rejoindre Worthit",'auth.subLogin':"Connecte-toi à ton compte.",'auth.subJoin':"Deux minutes, zéro donnée bancaire.",'auth.tabLogin':"Connexion",'auth.tabJoin':"Inscription",'auth.fName':"Ton prénom",'auth.fEmail':"E-mail",'auth.fPass':"Mot de passe",'auth.btnLogin':"Se connecter",'auth.btnJoin':"Créer mon compte",
+},perksFree:["Limites et blocages","Streak quotidienne","Budget simple","Boutique cosmétique"],perksPrem:["Tout Gratuit, plus :","Agent IA personnalisé","Dashboard perso complet","Tournois entre amis","Simulateur d'économies avancé"]},
+en:{ui:{
+'nav.home':"Home",'nav.features':"Features",'nav.pricing':"Pricing",'nav.tournaments':"Tournaments",'nav.showcase':"Showcase",'nav.about':"About",'nav.login':"Log in",'nav.try':"Try it",'nav.dashboard':"Dashboard",'nav.menuDash':"Open dashboard",'nav.menuTry':"Try Worthit",
+'hero.badge':"On the buyer's side, not the seller's",'hero.h1a':"Buy less.",'hero.h1b':"Live more.",'hero.lede':"Worthit puts a pause between the urge and the purchase: your real budget, one honest question, your decision.",'hero.ctaStart':"Start for free",'hero.ctaPremium':"See Premium",'hero.t1':"No card required",'hero.t2':"Cancel anytime",'hero.t3':"Data stays on your device",
+'mock.checkout':"sneaker-store.com — Checkout",'mock.product':"Limited edition sneakers",'mock.sub':"Cart · free shipping",'mock.msg':"That's <strong>34%</strong> of what you have left this month. Your “Travel” goal slips back. Still going for it?",'mock.left':"Left this month",'mock.wait':"I'll wait 24h",'mock.buy':"Buy anyway",'mock.chip1':"12-day streak",'mock.chip2':"kept this week",
+'quiz.before':"Before we start — question",'quiz.skip':"Skip the quiz →",'quiz.next':"Next question",'quiz.why':"See why Worthit exists",
+'intro.score':"You guessed right on <strong>{s} of {n}</strong>.",'intro.praiseHigh':"Impressive — you already know the enemy.",'intro.praiseLow':"Totally normal: nobody really tracks these numbers.",'intro.b2':"I'm <strong>Worthy</strong>. My job: being on YOUR side at the exact moment a site pushes you to crack. Never on the seller's side.",'intro.b3':"Worthit puts a pause between urge and purchase: your real budget, one honest question, your no-crack streak — and rewards when you hold on.",'intro.b4':"Set up your profile in 2 minutes — no bank data — and we stop talking study averages: we talk YOUR numbers.",'intro.ctaProfile':"Create my profile",'intro.ctaExplore':"Explore first",
+'foot.redo':"Redo the quiz",
+'feat.eyebrow':"Features",'feat.h2':"A guardrail, not a judge",'feat.lede':"Three free tools to start. Three more, AI-powered, with Premium.",'feat.locked':"Locked",'feat.premium':"Premium",
+'sim.title':"Savings simulator",'sim.sub':"How much you keep if you resist, projected over time.",'sim.skips':"Purchases avoided / month",'sim.avg':"Average price",'sim.months':"months",'sim.saved':"Saved over the period",'sim.perMonth':"Per month",'sim.freePrem':"Premium covered",'sim.vs':"Vs “Trip to Japan” goal (€1,800)",
+'tarifs.eyebrow':"Pricing",'tarifs.h2':"Free to try it.<br/>Premium for the agent that knows you.",'tarifs.monthly':"Monthly",'tarifs.annual':"Yearly",'tarifs.freeName':"Free",'tarifs.perMonth':"/month",'tarifs.freeSub':"To get started, no card needed.",'tarifs.freeCta':"Continue for free",'tarifs.reco':"Recommended",'tarifs.premSub':"No commitment, cancel anytime",'tarifs.premSubAnnual':"Billed €23.99 / year",'tarifs.premCta':"Go Premium",'tarifs.premCtaDone':"Already active ✓",'tarifs.faqTitle':"Frequently asked questions",
+'show.eyebrow':"Showcase",'show.h2':"The product, in short",'show.all':"All",
+'auth.welcome':"Good to see you again",'auth.join':"Join Worthit",'auth.subLogin':"Log in to your account.",'auth.subJoin':"Two minutes, zero bank data.",'auth.tabLogin':"Log in",'auth.tabJoin':"Sign up",'auth.fName':"Your first name",'auth.fEmail':"Email",'auth.fPass':"Password",'auth.btnLogin':"Log in",'auth.btnJoin':"Create my account",
+},quiz:[
+{q:"According to a US study, how much does the average consumer spend on impulse purchases each month?",o:["About €40","About €120","Nearly €300"],stat:"≈ €300 / month",explain:"That's over €3,500 a year gone on unplanned purchases. Enough to fund a real project."},
+{q:"What share of impulse purchases is regretted afterwards?",o:["About 1 in 10","About 1 in 3","Nearly 2 in 3"],stat:"≈ 2 in 3",explain:"The urge lasts minutes. The regret stays — and comes back with every bank statement."},
+{q:"How long does an irresistible urge to buy last on average?",o:["Under 20 minutes","Several hours","Several days"],stat:"< 20 min",explain:"That's the whole point of the pause: wait a little and the urge almost always fades on its own."},
+{q:"What share of online shoppers say they've cracked because of a “last chance” deal?",o:["About 1 in 5","About 1 in 2","Almost everyone"],stat:"≈ 1 in 2",explain:"Countdowns, “limited” stock, fake urgency… e-commerce is a machine built to make you crack."}],
+feat:[{t:"Limits & blocking",d:"A threshold, keywords, an enforced pause."},{t:"Streak",d:"Every day you resist extends your streak."},{t:"Clear budget",d:"What you really have left this month."},{t:"Personal AI agent",d:"Questions generated for your profile, never recycled."},{t:"Personal dashboard",d:"Goals, rewards and simulator, all in one place."},{t:"Tournaments with friends",d:"Weekly leaderboard, badges, unlockable profiles."}],
+show:[{t:"Checkout popup",d:"The right question, at the right moment."},{t:"Personalized question",d:"Generated for you, never recycled."},{t:"Blocking screen",d:"Your rule, set on a calm day."},{t:"Budget at a glance",d:"What's left, no detours."},{t:"Savings simulator",d:"How much you save if you resist."},{t:"Elegant paywall",d:"Premium invites, never imposes."}],
+faq:[{q:"Do I need to enter my bank details?",a:"No. Worthit never connects to any bank account, today or tomorrow. Your budget is entered by hand and stays on your device."},{q:"Can I cancel whenever I want?",a:"Yes, in one click, no questions asked. You drop back to Free and keep your history, streak and savings."},{q:"So what's the Free plan for?",a:"To try the guardrail and the streak with zero commitment. Premium unlocks the AI that truly knows your profile, your full dashboard and tournaments with friends."},{q:"What do I lose if I go back to Free?",a:"The personal AI agent, the detailed dashboard and tournaments. Your savings and streak remain yours."}],
+perksFree:["Limits & blocking","Daily streak","Simple budget","Cosmetic shop"],perksPrem:["Everything in Free, plus:","Personal AI agent","Full personal dashboard","Tournaments with friends","Advanced savings simulator"]},
+es:{ui:{
+'nav.home':"Inicio",'nav.features':"Funciones",'nav.pricing':"Precios",'nav.tournaments':"Torneos",'nav.showcase':"Showcase",'nav.about':"Acerca de",'nav.login':"Iniciar sesión",'nav.try':"Probar",'nav.dashboard':"Panel",'nav.menuDash':"Abrir el panel",'nav.menuTry':"Probar Worthit",
+'hero.badge':"Del lado del comprador, no del vendedor",'hero.h1a':"Compra menos.",'hero.h1b':"Vive mejor.",'hero.lede':"Worthit pone una pausa entre el impulso y la compra: tu presupuesto real, una pregunta honesta, tu decisión.",'hero.ctaStart':"Empieza gratis",'hero.ctaPremium':"Ver Premium",'hero.t1':"Sin tarjeta",'hero.t2':"Cancela cuando quieras",'hero.t3':"Tus datos en tu dispositivo",
+'mock.checkout':"sneaker-store.com — Pago",'mock.product':"Zapatillas edición limitada",'mock.sub':"Carrito · envío gratis",'mock.msg':"Es el <strong>34 %</strong> de lo que te queda este mes. Tu meta «Viaje» retrocede. ¿Sigues adelante?",'mock.left':"Te queda este mes",'mock.wait':"Espero 24 h",'mock.buy':"Comprar igual",'mock.chip1':"Racha de 12 días",'mock.chip2':"ahorrados esta semana",
+'quiz.before':"Antes de empezar — pregunta",'quiz.skip':"Saltar el quiz →",'quiz.next':"Siguiente pregunta",'quiz.why':"Ver por qué existe Worthit",
+'intro.score':"Acertaste <strong>{s} de {n}</strong>.",'intro.praiseHigh':"Impresionante: ya conoces al enemigo.",'intro.praiseLow':"Es normal: nadie mide de verdad estas cifras.",'intro.b2':"Soy <strong>Worthy</strong>. Mi trabajo: estar de TU lado justo cuando una web te empuja a caer. Nunca del lado del vendedor.",'intro.b3':"Worthit pone una pausa entre el impulso y la compra: tu presupuesto real, una pregunta honesta, tu racha sin caer — y recompensas cuando aguantas.",'intro.b4':"Configura tu perfil en 2 minutos — sin datos bancarios — y dejamos las medias de los estudios: hablamos de TUS números.",'intro.ctaProfile':"Crear mi perfil",'intro.ctaExplore':"Explorar primero",
+'foot.redo':"Repetir el quiz",
+'feat.eyebrow':"Funciones",'feat.h2':"Una barrera, no un juez",'feat.lede':"Tres herramientas gratis para empezar. Tres más, con IA, en Premium.",'feat.locked':"Bloqueado",'feat.premium':"Premium",
+'sim.title':"Simulador de ahorro",'sim.sub':"Cuánto conservas si resistes, proyectado en el tiempo.",'sim.skips':"Compras evitadas / mes",'sim.avg':"Precio medio",'sim.months':"meses",'sim.saved':"Ahorrado en el período",'sim.perMonth':"Al mes",'sim.freePrem':"Premium cubierto",'sim.vs':"Vs meta «Viaje a Japón» (1 800 €)",
+'tarifs.eyebrow':"Precios",'tarifs.h2':"Gratis para probarlo.<br/>Premium para el agente que te conoce.",'tarifs.monthly':"Mensual",'tarifs.annual':"Anual",'tarifs.freeName':"Gratis",'tarifs.perMonth':"/mes",'tarifs.freeSub':"Para empezar, sin tarjeta.",'tarifs.freeCta':"Seguir gratis",'tarifs.reco':"Recomendado",'tarifs.premSub':"Sin permanencia, cancela cuando quieras",'tarifs.premSubAnnual':"Facturado 23,99 € / año",'tarifs.premCta':"Pasar a Premium",'tarifs.premCtaDone':"Ya activo ✓",'tarifs.faqTitle':"Preguntas frecuentes",
+'show.eyebrow':"Showcase",'show.h2':"El producto, en breve",'show.all':"Todos",
+'auth.welcome':"Qué bueno verte de nuevo",'auth.join':"Únete a Worthit",'auth.subLogin':"Inicia sesión en tu cuenta.",'auth.subJoin':"Dos minutos, cero datos bancarios.",'auth.tabLogin':"Iniciar sesión",'auth.tabJoin':"Registro",'auth.fName':"Tu nombre",'auth.fEmail':"E-mail",'auth.fPass':"Contraseña",'auth.btnLogin':"Iniciar sesión",'auth.btnJoin':"Crear mi cuenta",
+},quiz:[
+{q:"Según un estudio estadounidense, ¿cuánto gasta de media un consumidor cada mes en compras impulsivas?",o:["Unos 40 €","Unos 120 €","Casi 300 €"],stat:"≈ 300 € / mes",explain:"Más de 3 500 € al año en compras no planeadas. Suficiente para financiar un proyecto de verdad."},
+{q:"¿Qué parte de las compras impulsivas se lamenta después?",o:["1 de cada 10","1 de cada 3","Casi 2 de cada 3"],stat:"≈ 2 de 3",explain:"El impulso dura minutos. El arrepentimiento se queda — y vuelve con cada extracto."},
+{q:"¿Cuánto dura de media un impulso irresistible de comprar?",o:["Menos de 20 minutos","Varias horas","Varios días"],stat:"< 20 min",explain:"Ese es el principio de la pausa: si esperas un poco, el impulso casi siempre se desvanece solo."},
+{q:"¿Qué parte de los compradores online admite haber caído por una oferta de «última oportunidad»?",o:["1 de cada 5","1 de cada 2","Casi todo el mundo"],stat:"≈ 1 de 2",explain:"Cuentas atrás, stock «limitado», urgencia artificial… el e-commerce es una máquina diseñada para hacerte caer."}],
+feat:[{t:"Límites y bloqueos",d:"Un umbral, palabras clave, una pausa impuesta."},{t:"Racha",d:"Cada día que resistes alarga tu racha."},{t:"Presupuesto claro",d:"Lo que de verdad te queda este mes."},{t:"Agente IA personal",d:"Preguntas generadas para tu perfil, nunca recicladas."},{t:"Panel personal",d:"Metas, recompensas y simulador en un solo lugar."},{t:"Torneos entre amigos",d:"Clasificación semanal, insignias, perfiles desbloqueables."}],
+show:[{t:"Popup de pago",d:"La pregunta justa, en el momento justo."},{t:"Pregunta personalizada",d:"Generada para ti, nunca reciclada."},{t:"Pantalla de bloqueo",d:"Tu regla, fijada un día tranquilo."},{t:"Presupuesto de un vistazo",d:"Lo que queda, sin rodeos."},{t:"Simulador de ahorro",d:"Cuánto ahorras si resistes."},{t:"Paywall elegante",d:"Premium se descubre, no se impone."}],
+faq:[{q:"¿Tengo que introducir mis datos bancarios?",a:"No. Worthit no se conecta a ninguna cuenta bancaria, ni hoy ni mañana. Tu presupuesto se introduce a mano y se queda en tu dispositivo."},{q:"¿Puedo cancelar cuando quiera?",a:"Sí, en un clic y sin justificación. Vuelves a Gratis y conservas tu historial, tu racha y tus ahorros."},{q:"¿Entonces para qué sirve el plan Gratis?",a:"Para probar la barrera y la racha sin compromiso. Premium desbloquea la IA que conoce tu perfil, tu panel completo y los torneos entre amigos."},{q:"¿Qué pierdo si vuelvo a Gratis?",a:"El agente IA personal, el panel detallado y los torneos. Tus ahorros y tu racha son tuyos para siempre."}],
+perksFree:["Límites y bloqueos","Racha diaria","Presupuesto simple","Tienda cosmética"],perksPrem:["Todo lo de Gratis, más:","Agente IA personal","Panel personal completo","Torneos entre amigos","Simulador de ahorro avanzado"]},
+de:{ui:{
+'nav.home':"Start",'nav.features':"Funktionen",'nav.pricing':"Preise",'nav.tournaments':"Turniere",'nav.showcase':"Showcase",'nav.about':"Über uns",'nav.login':"Anmelden",'nav.try':"Testen",'nav.dashboard':"Dashboard",'nav.menuDash':"Dashboard öffnen",'nav.menuTry':"Worthit testen",
+'hero.badge':"Auf der Seite des Käufers, nicht des Verkäufers",'hero.h1a':"Kauf weniger.",'hero.h1b':"Leb besser.",'hero.lede':"Worthit setzt eine Pause zwischen Impuls und Kauf: dein echtes Budget, eine ehrliche Frage, deine Entscheidung.",'hero.ctaStart':"Kostenlos starten",'hero.ctaPremium':"Premium ansehen",'hero.t1':"Keine Karte nötig",'hero.t2':"Jederzeit kündbar",'hero.t3':"Daten bleiben auf deinem Gerät",
+'mock.checkout':"sneaker-store.com — Kasse",'mock.product':"Sneakers Limited Edition",'mock.sub':"Warenkorb · Gratisversand",'mock.msg':"Das sind <strong>34 %</strong> von dem, was dir diesen Monat bleibt. Dein Ziel „Reise“ rückt weiter weg. Trotzdem kaufen?",'mock.left':"Diesen Monat übrig",'mock.wait':"Ich warte 24 h",'mock.buy':"Trotzdem kaufen",'mock.chip1':"12-Tage-Serie",'mock.chip2':"diese Woche behalten",
+'quiz.before':"Bevor wir starten — Frage",'quiz.skip':"Quiz überspringen →",'quiz.next':"Nächste Frage",'quiz.why':"Warum es Worthit gibt",
+'intro.score':"Du lagst bei <strong>{s} von {n}</strong> richtig.",'intro.praiseHigh':"Beeindruckend – du kennst den Gegner schon.",'intro.praiseLow':"Ganz normal: kaum jemand kennt diese Zahlen wirklich.",'intro.b2':"Ich bin <strong>Worthy</strong>. Mein Job: auf DEINER Seite zu stehen, genau dann, wenn dich ein Shop zum Kauf drängt. Nie auf der Seite des Verkäufers.",'intro.b3':"Worthit setzt eine Pause zwischen Impuls und Kauf: dein echtes Budget, eine ehrliche Frage, deine Serie ohne Fehlkauf — und Belohnungen, wenn du standhaft bleibst.",'intro.b4':"Richte dein Profil in 2 Minuten ein — keine Bankdaten — und wir reden nicht mehr über Durchschnitte, sondern über DEINE Zahlen.",'intro.ctaProfile':"Profil erstellen",'intro.ctaExplore':"Erst umsehen",
+'foot.redo':"Quiz wiederholen",
+'feat.eyebrow':"Funktionen",'feat.h2':"Ein Geländer, kein Richter",'feat.lede':"Drei kostenlose Tools zum Start. Drei weitere, KI-gestützt, mit Premium.",'feat.locked':"Gesperrt",'feat.premium':"Premium",
+'sim.title':"Spar-Simulator",'sim.sub':"Wie viel du behältst, wenn du widerstehst — über die Zeit gerechnet.",'sim.skips':"Vermiedene Käufe / Monat",'sim.avg':"Ø Preis",'sim.months':"Monate",'sim.saved':"Im Zeitraum gespart",'sim.perMonth':"Pro Monat",'sim.freePrem':"Premium gedeckt",'sim.vs':"Vs. Ziel „Reise nach Japan“ (1.800 €)",
+'tarifs.eyebrow':"Preise",'tarifs.h2':"Gratis zum Ausprobieren.<br/>Premium für den Agenten, der dich kennt.",'tarifs.monthly':"Monatlich",'tarifs.annual':"Jährlich",'tarifs.freeName':"Gratis",'tarifs.perMonth':"/Monat",'tarifs.freeSub':"Zum Starten, ohne Karte.",'tarifs.freeCta':"Gratis weitermachen",'tarifs.reco':"Empfohlen",'tarifs.premSub':"Ohne Bindung, jederzeit kündbar",'tarifs.premSubAnnual':"Abgerechnet 23,99 € / Jahr",'tarifs.premCta':"Premium holen",'tarifs.premCtaDone':"Bereits aktiv ✓",'tarifs.faqTitle':"Häufige Fragen",
+'show.eyebrow':"Showcase",'show.h2':"Das Produkt, kurz gefasst",'show.all':"Alle",
+'auth.welcome':"Schön, dich wiederzusehen",'auth.join':"Worthit beitreten",'auth.subLogin':"Melde dich bei deinem Konto an.",'auth.subJoin':"Zwei Minuten, null Bankdaten.",'auth.tabLogin':"Anmelden",'auth.tabJoin':"Registrieren",'auth.fName':"Dein Vorname",'auth.fEmail':"E-Mail",'auth.fPass':"Passwort",'auth.btnLogin':"Anmelden",'auth.btnJoin':"Konto erstellen",
+},quiz:[
+{q:"Laut einer US-Studie: Wie viel gibt ein Durchschnittskonsument monatlich für Impulskäufe aus?",o:["Etwa 40 €","Etwa 120 €","Fast 300 €"],stat:"≈ 300 € / Monat",explain:"Über 3.500 € pro Jahr für ungeplante Käufe. Genug für ein echtes Projekt."},
+{q:"Wie viele Impulskäufe werden hinterher bereut?",o:["Etwa 1 von 10","Etwa 1 von 3","Fast 2 von 3"],stat:"≈ 2 von 3",explain:"Der Impuls dauert Minuten. Die Reue bleibt — und kehrt mit jedem Kontoauszug zurück."},
+{q:"Wie lange hält ein unwiderstehlicher Kaufimpuls im Schnitt an?",o:["Unter 20 Minuten","Mehrere Stunden","Mehrere Tage"],stat:"< 20 Min.",explain:"Genau das ist das Prinzip der Pause: Wartest du kurz, verfliegt der Impuls fast immer von selbst."},
+{q:"Wie viele Online-Käufer sagen, sie hätten wegen eines „Letzte Chance“-Angebots zugeschlagen?",o:["Etwa 1 von 5","Etwa 1 von 2","Fast alle"],stat:"≈ 1 von 2",explain:"Countdown, „limitierter“ Bestand, künstliche Dringlichkeit … E-Commerce ist eine Maschine, die dich schwach machen soll."}],
+feat:[{t:"Limits & Blockierung",d:"Ein Limit, Schlagwörter, eine erzwungene Pause."},{t:"Serie",d:"Jeder Tag ohne Kauf verlängert deine Serie."},{t:"Klares Budget",d:"Was dir diesen Monat wirklich bleibt."},{t:"Persönlicher KI-Agent",d:"Fragen für dein Profil generiert, nie recycelt."},{t:"Persönliches Dashboard",d:"Ziele, Belohnungen und Simulator an einem Ort."},{t:"Turniere mit Freunden",d:"Wochenrangliste, Abzeichen, freischaltbare Profile."}],
+show:[{t:"Checkout-Popup",d:"Die richtige Frage im richtigen Moment."},{t:"Personalisierte Frage",d:"Für dich generiert, nie recycelt."},{t:"Blockier-Screen",d:"Deine Regel, an einem ruhigen Tag gesetzt."},{t:"Budget auf einen Blick",d:"Was übrig ist, ohne Umwege."},{t:"Spar-Simulator",d:"Wie viel du sparst, wenn du widerstehst."},{t:"Elegante Paywall",d:"Premium lädt ein, drängt nie."}],
+faq:[{q:"Muss ich Bankdaten eingeben?",a:"Nein. Worthit verbindet sich mit keinem Bankkonto, weder heute noch morgen. Dein Budget gibst du von Hand ein, es bleibt auf deinem Gerät."},{q:"Kann ich jederzeit kündigen?",a:"Ja, mit einem Klick, ohne Begründung. Du wechselst zurück zu Gratis und behältst Verlauf, Serie und Ersparnisse."},{q:"Wozu ist der Gratis-Plan dann gut?",a:"Um Geländer und Serie unverbindlich zu testen. Premium schaltet die KI frei, die dein Profil wirklich kennt, dein volles Dashboard und Turniere mit Freunden."},{q:"Was verliere ich, wenn ich zurück zu Gratis gehe?",a:"Den persönlichen KI-Agenten, das detaillierte Dashboard und die Turniere. Ersparnisse und Serie bleiben dir erhalten."}],
+perksFree:["Limits & Blockierung","Tägliche Serie","Einfaches Budget","Kosmetik-Shop"],perksPrem:["Alles aus Gratis, plus:","Persönlicher KI-Agent","Komplettes Dashboard","Turniere mit Freunden","Erweiterter Spar-Simulator"]},
+nl:{ui:{
+'nav.home':"Home",'nav.features':"Functies",'nav.pricing':"Prijzen",'nav.tournaments':"Toernooien",'nav.showcase':"Showcase",'nav.about':"Over ons",'nav.login':"Inloggen",'nav.try':"Proberen",'nav.dashboard':"Dashboard",'nav.menuDash':"Dashboard openen",'nav.menuTry':"Worthit proberen",
+'hero.badge':"Aan de kant van de koper, niet de verkoper",'hero.h1a':"Koop minder.",'hero.h1b':"Leef beter.",'hero.lede':"Worthit zet een pauze tussen de impuls en de aankoop: je echte budget, één eerlijke vraag, jouw beslissing.",'hero.ctaStart':"Gratis beginnen",'hero.ctaPremium':"Bekijk Premium",'hero.t1':"Geen kaart nodig",'hero.t2':"Altijd opzegbaar",'hero.t3':"Data blijft op je apparaat",
+'mock.checkout':"sneaker-store.com — Afrekenen",'mock.product':"Sneakers limited edition",'mock.sub':"Winkelmand · gratis verzending",'mock.msg':"Dat is <strong>34%</strong> van wat je deze maand overhoudt. Je doel ‘Reis’ schuift op. Toch doen?",'mock.left':"Deze maand over",'mock.wait':"Ik wacht 24 u",'mock.buy':"Toch kopen",'mock.chip1':"12 dagen streak",'mock.chip2':"deze week bespaard",
+'quiz.before':"Voor we beginnen — vraag",'quiz.skip':"Quiz overslaan →",'quiz.next':"Volgende vraag",'quiz.why':"Waarom Worthit bestaat",
+'intro.score':"Je had <strong>{s} van de {n}</strong> goed.",'intro.praiseHigh':"Indrukwekkend — je kent de vijand al.",'intro.praiseLow':"Heel normaal: niemand kent deze cijfers echt.",'intro.b2':"Ik ben <strong>Worthy</strong>. Mijn werk: aan JOUW kant staan op het moment dat een site je laat zwichten. Nooit aan de kant van de verkoper.",'intro.b3':"Worthit zet een pauze tussen impuls en aankoop: je echte budget, één eerlijke vraag, je streak zonder te zwichten — en beloningen als je volhoudt.",'intro.b4':"Stel je profiel in 2 minuten in — geen bankgegevens — en we praten niet meer over gemiddelden maar over JOUW cijfers.",'intro.ctaProfile':"Profiel aanmaken",'intro.ctaExplore':"Eerst rondkijken",
+'foot.redo':"Quiz opnieuw",
+'feat.eyebrow':"Functies",'feat.h2':"Een vangrail, geen rechter",'feat.lede':"Drie gratis tools om te starten. Drie extra, met AI, in Premium.",'feat.locked':"Vergrendeld",'feat.premium':"Premium",
+'sim.title':"Spaarsimulator",'sim.sub':"Hoeveel je overhoudt als je weerstaat, over de tijd berekend.",'sim.skips':"Vermeden aankopen / maand",'sim.avg':"Gemiddelde prijs",'sim.months':"maanden",'sim.saved':"Bespaard over de periode",'sim.perMonth':"Per maand",'sim.freePrem':"Premium gedekt",'sim.vs':"Vs doel ‘Reis naar Japan’ (€1.800)",
+'tarifs.eyebrow':"Prijzen",'tarifs.h2':"Gratis om te proberen.<br/>Premium voor de agent die jou kent.",'tarifs.monthly':"Maandelijks",'tarifs.annual':"Jaarlijks",'tarifs.freeName':"Gratis",'tarifs.perMonth':"/maand",'tarifs.freeSub':"Om te starten, zonder kaart.",'tarifs.freeCta':"Gratis doorgaan",'tarifs.reco':"Aanbevolen",'tarifs.premSub':"Geen verplichting, altijd opzegbaar",'tarifs.premSubAnnual':"Gefactureerd €23,99 / jaar",'tarifs.premCta':"Word Premium",'tarifs.premCtaDone':"Al actief ✓",'tarifs.faqTitle':"Veelgestelde vragen",
+'show.eyebrow':"Showcase",'show.h2':"Het product, in het kort",'show.all':"Alles",
+'auth.welcome':"Goed je weer te zien",'auth.join':"Word lid van Worthit",'auth.subLogin':"Log in op je account.",'auth.subJoin':"Twee minuten, nul bankgegevens.",'auth.tabLogin':"Inloggen",'auth.tabJoin':"Registreren",'auth.fName':"Je voornaam",'auth.fEmail':"E-mail",'auth.fPass':"Wachtwoord",'auth.btnLogin':"Inloggen",'auth.btnJoin':"Account aanmaken",
+},quiz:[
+{q:"Volgens een Amerikaanse studie: hoeveel geeft een gemiddelde consument per maand uit aan impulsaankopen?",o:["Ongeveer €40","Ongeveer €120","Bijna €300"],stat:"≈ €300 / maand",explain:"Ruim €3.500 per jaar aan ongeplande aankopen. Genoeg voor een echt project."},
+{q:"Welk deel van de impulsaankopen krijgt achteraf spijt?",o:["Zo'n 1 op 10","Zo'n 1 op 3","Bijna 2 op 3"],stat:"≈ 2 op 3",explain:"De impuls duurt minuten. De spijt blijft — en komt terug bij elk bankafschrift."},
+{q:"Hoe lang duurt een onweerstaanbare koopimpuls gemiddeld?",o:["Minder dan 20 minuten","Meerdere uren","Meerdere dagen"],stat:"< 20 min",explain:"Dat is het hele idee van de pauze: wacht even en de impuls zakt bijna altijd vanzelf weg."},
+{q:"Hoeveel online shoppers zeggen ooit gezwicht te zijn voor een 'laatste kans'-actie?",o:["Zo'n 1 op 5","Zo'n 1 op 2","Bijna iedereen"],stat:"≈ 1 op 2",explain:"Aftelklokken, 'beperkte' voorraad, kunstmatige urgentie … e-commerce is een machine die je laat zwichten."}],
+feat:[{t:"Limieten & blokkades",d:"Een drempel, trefwoorden, een verplichte pauze."},{t:"Streak",d:"Elke dag zonder aankoop verlengt je streak."},{t:"Helder budget",d:"Wat je deze maand écht overhoudt."},{t:"Persoonlijke AI-agent",d:"Vragen op maat van jouw profiel, nooit hergebruikt."},{t:"Persoonlijk dashboard",d:"Doelen, beloningen en simulator op één plek."},{t:"Toernooien met vrienden",d:"Wekelijks klassement, badges, ontgrendelbare profielen."}],
+show:[{t:"Checkout-popup",d:"De juiste vraag op het juiste moment."},{t:"Gepersonaliseerde vraag",d:"Voor jou gegenereerd, nooit hergebruikt."},{t:"Blokkeerscherm",d:"Jouw regel, gezet op een rustige dag."},{t:"Budget in één oogopslag",d:"Wat er over is, zonder omwegen."},{t:"Spaarsimulator",d:"Hoeveel je bespaart als je weerstaat."},{t:"Elegante paywall",d:"Premium nodigt uit, dringt niet op."}],
+faq:[{q:"Moet ik bankgegevens invoeren?",a:"Nee. Worthit koppelt met geen enkele bankrekening, vandaag niet en morgen niet. Je budget voer je zelf in en blijft op je apparaat."},{q:"Kan ik opzeggen wanneer ik wil?",a:"Ja, met één klik, zonder reden. Je valt terug naar Gratis en houdt je geschiedenis, streak en besparingen."},{q:"Waar is het Gratis-plan dan voor?",a:"Om de vangrail en de streak vrijblijvend te testen. Premium ontgrendelt de AI die jouw profiel echt kent, je volledige dashboard en toernooien met vrienden."},{q:"Wat verlies ik als ik terugga naar Gratis?",a:"De persoonlijke AI-agent, het gedetailleerde dashboard en de toernooien. Je besparingen en streak blijven van jou."}],
+perksFree:["Limieten & blokkades","Dagelijkse streak","Eenvoudig budget","Cosmetische shop"],perksPrem:["Alles uit Gratis, plus:","Persoonlijke AI-agent","Volledig dashboard","Toernooien met vrienden","Geavanceerde spaarsimulator"]},
+};
+function t(key,vars){
+  const loc = T[state.lang];
+  let s = (loc && loc.ui && loc.ui[key]) || T.fr.ui[key] || key;
+  if(vars) for(const k in vars) s = s.replace('{'+k+'}', vars[k]);
+  return s;
+}
+function QZ(i){ const b=QUIZ[i], tr=T[state.lang]&&T[state.lang].quiz&&T[state.lang].quiz[i]; return tr?{q:tr.q,options:tr.o,answer:b.answer,stat:tr.stat,explain:tr.explain}:b; }
+function FT(i){ const b=FEATURES[i], tr=T[state.lang]&&T[state.lang].feat&&T[state.lang].feat[i]; return tr?{...b,title:tr.t,desc:tr.d}:b; }
+function SCI(i){ const b=SHOWCASE_ITEMS[i], tr=T[state.lang]&&T[state.lang].show&&T[state.lang].show[i]; return tr?{...b,title:tr.t,desc:tr.d}:b; }
+function FAQI(i){ const b=FAQ[i], tr=T[state.lang]&&T[state.lang].faq&&T[state.lang].faq[i]; return tr||b; }
+function PERKS(kind){ const loc=T[state.lang]; return (loc&&loc[kind])||T.fr[kind]; }
+
 /* ============================== STATE ============================== */
 const state = {
   page:'accueil', menuOpen:false, isPremium:false, introDone:false,
+  lang:'fr', langMenuOpen:false,
   billing:'mensuel',
   auth:{mode:'connexion',nom:'',email:'',pass:'',showPass:false,errors:{},done:false},
-  onboarding:{step:0,status:'Salarié',income:'',rent:'',charges:'',goalName:'',goalTarget:''},
+  onboarding:{step:0,status:'Salarié',fonction:'',income:'',rent:'',charges:'',weaknesses:[],impulseFreq:'',goalName:'',goalTarget:''},
   profile:null,
   goals:[], streak:0, savedTotal:0, sous:0, sousToday:0,
   week:WEEK_DAYS.map(d=>({day:d,amount:0})), victories:[],
@@ -452,7 +586,7 @@ function saveLocal(){
       streak:state.streak, savedTotal:state.savedTotal, sous:state.sous,
       week:state.week, victories:state.victories,
       owned:state.owned, activeAvatar:state.activeAvatar, activeTheme:state.activeTheme,
-      isPremiumDemo:state.isPremium, authNom:state.auth.nom,
+      isPremiumDemo:state.isPremium, authNom:state.auth.nom, lang:state.lang,
       agentFreeUsed:(typeof agent!=='undefined'?agent.freeUsed:0), agentFreeDate:(new Date()).toDateString(),
     }));
   }catch(e){}
@@ -476,6 +610,7 @@ function loadLocal(){
     }
     state.isPremium = !!d.isPremiumDemo;
     if(d.authNom) state.auth.nom = d.authNom;
+    if(d.lang && LANGS[d.lang]) state.lang = d.lang;
     // compteur de questions gratuites : remis à zéro chaque jour
     if(typeof agent!=='undefined' && d.agentFreeDate === (new Date()).toDateString()) agent.freeUsed = d.agentFreeUsed||0;
   }catch(e){}
@@ -557,13 +692,25 @@ function Navbar(){
           ${state.isPremium?`<span class="badge-premium">${I('crown',11)} Premium</span>`:''}
         </button>
         <nav class="nav-desktop" style="display:flex;gap:26px;">
-          ${NAV_PAGES.map(p=>`<button onclick="nav('${p.id}')" class="nav-link ${state.page===p.id?'active':''}" style="color:${state.page===p.id?'#fff':'var(--ink-dim)'};">${esc(p.label)}</button>`).join('')}
+          ${NAV_PAGES.map(p=>`<button onclick="nav('${p.id}')" class="nav-link ${state.page===p.id?'active':''}" style="color:${state.page===p.id?'#fff':'var(--ink-dim)'};">${esc(t(p.k))}</button>`).join('')}
         </nav>
-        <div class="nav-actions-desktop" style="display:flex;gap:10px;">
-          ${hasProfile
-            ? `<button onclick="nav('dashboard')" class="btn btn-neon btn-sm">${I('flame',14)} Dashboard</button>`
-            : `<button onclick="nav('connexion')" class="btn btn-ghost btn-sm">Connexion</button>
-               <button onclick="nav('connexion')" class="btn btn-neon btn-sm">Essayer</button>`}
+        <div style="display:flex;gap:10px;align-items:center;">
+          <div class="lang-wrap">
+            <button class="lang-btn ${state.langMenuOpen?'open':''}" onclick="toggleLangMenu(event)" aria-haspopup="listbox" aria-expanded="${state.langMenuOpen}">
+              ${I('globe',14)} ${state.lang.toUpperCase()} <span class="chev">${I('chevronRight',12)}</span>
+            </button>
+            ${state.langMenuOpen?`<div class="lang-menu" role="listbox" onclick="event.stopPropagation()">
+              ${Object.entries(LANGS).map(([code,l],i)=>`<button class="lang-item ${state.lang===code?'active':''}" role="option" style="animation-delay:${(.06+i*.05).toFixed(2)}s" onclick="setLang('${code}')">
+                <span class="flag">${l.flag}</span>${l.name}${state.lang===code?`<span style="margin-left:auto;display:flex;">${I('check',13)}</span>`:''}
+              </button>`).join('')}
+            </div>`:''}
+          </div>
+          <div class="nav-actions-desktop" style="display:flex;gap:10px;">
+            ${hasProfile
+              ? `<button onclick="nav('dashboard')" class="btn btn-neon btn-sm">${I('flame',14)} ${esc(t('nav.dashboard'))}</button>`
+              : `<button onclick="nav('connexion')" class="btn btn-ghost btn-sm">${esc(t('nav.login'))}</button>
+                 <button onclick="nav('connexion')" class="btn btn-neon btn-sm">${esc(t('nav.try'))}</button>`}
+          </div>
         </div>
         <button class="nav-burger" onclick="toggleMenu()" aria-label="Menu" style="background:none;border:none;cursor:pointer;display:flex;flex-direction:column;gap:5px;padding:6px;">
           <span class="burger-line" style="${state.menuOpen?'transform:translateY(7px) rotate(45deg);':''}"></span>
@@ -573,11 +720,23 @@ function Navbar(){
       </div>
     </div>
     ${state.menuOpen?`<div class="glass menu-in nav-burger" style="margin:8px 16px;border-radius:16px;padding:12px;">
-      ${NAV_PAGES.map(p=>`<button onclick="nav('${p.id}')" style="display:block;width:100%;text-align:left;background:none;border:none;cursor:pointer;padding:13px 14px;border-radius:10px;font-size:15px;color:${state.page===p.id?'var(--v1)':'rgba(255,255,255,.82)'};font-family:inherit;">${esc(p.label)}</button>`).join('')}
-      <button onclick="nav('${hasProfile?'dashboard':'connexion'}')" class="btn btn-neon btn-block" style="margin-top:8px;padding:13px 14px;">${hasProfile?'Voir le dashboard':'Essayer Worthit'}</button>
+      ${NAV_PAGES.map(p=>`<button onclick="nav('${p.id}')" style="display:block;width:100%;text-align:left;background:none;border:none;cursor:pointer;padding:13px 14px;border-radius:10px;font-size:15px;color:${state.page===p.id?'var(--v1)':'rgba(255,255,255,.82)'};font-family:inherit;">${esc(t(p.k))}</button>`).join('')}
+      <button onclick="nav('${hasProfile?'dashboard':'connexion'}')" class="btn btn-neon btn-block" style="margin-top:8px;padding:13px 14px;">${hasProfile?esc(t('nav.menuDash')):esc(t('nav.menuTry'))}</button>
     </div>`:''}
   </header>`;
 }
+function toggleLangMenu(e){
+  if(e) e.stopPropagation();
+  state.langMenuOpen = !state.langMenuOpen;
+  renderNavOnly();
+}
+function setLang(code){
+  state.lang = code;
+  state.langMenuOpen = false;
+  saveLocal();
+  render();
+}
+document.addEventListener('click', ()=>{ if(state.langMenuOpen){ state.langMenuOpen=false; renderNavOnly(); } });
 function Footer(){
   return `<footer style="background:#040207;border-top:1px solid var(--line-soft);padding:36px 24px;">
     <div class="container" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:18px;">
@@ -586,8 +745,8 @@ function Footer(){
         <span style="color:#fff;font-family:var(--font-d);font-size:14.5px;font-weight:700;">worthit</span>
       </div>
       <div style="display:flex;gap:20px;flex-wrap:wrap;">
-        ${NAV_PAGES.concat([{id:'connexion',label:'Connexion'}]).map(p=>`<button onclick="nav('${p.id}')" style="background:none;border:none;cursor:pointer;font-size:12.5px;color:var(--ink-faint);font-family:inherit;">${esc(p.label)}</button>`).join('')}
-        <button onclick="restartQuiz()" style="background:none;border:none;cursor:pointer;font-size:12.5px;color:var(--v1);font-family:inherit;">Refaire le quiz</button>
+        ${NAV_PAGES.concat([{id:'connexion',k:'nav.login'}]).map(p=>`<button onclick="nav('${p.id}')" style="background:none;border:none;cursor:pointer;font-size:12.5px;color:var(--ink-faint);font-family:inherit;">${esc(t(p.k))}</button>`).join('')}
+        <button onclick="restartQuiz()" style="background:none;border:none;cursor:pointer;font-size:12.5px;color:var(--v1);font-family:inherit;">${esc(t('foot.redo'))}</button>
       </div>
     </div>
   </footer>`;
@@ -605,35 +764,35 @@ function HeroScene(){
           <span style="width:8px;height:8px;border-radius:50%;background:rgba(255,95,95,.75);"></span>
           <span style="width:8px;height:8px;border-radius:50%;background:rgba(251,191,36,.75);"></span>
           <span style="width:8px;height:8px;border-radius:50%;background:rgba(74,222,128,.75);"></span>
-          <span style="margin-left:6px;">sneaker-store.com — Paiement</span>
+          <span style="margin-left:6px;">${esc(t('mock.checkout'))}</span>
         </span>
         <span style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#fff;"><span style="width:8px;height:8px;border-radius:50%;background:var(--grad);box-shadow:0 0 10px rgba(167,139,250,.8);"></span>worthit</span>
       </div>
       <div style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.02);margin-bottom:14px;">
         <div style="width:44px;height:44px;border-radius:11px;background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.22);display:flex;align-items:center;justify-content:center;color:var(--v1);flex-shrink:0;">${I('bag',19)}</div>
         <div style="flex:1;min-width:0;">
-          <p style="font-size:13.5px;font-weight:600;color:#fff;margin:0 0 2px;">Sneakers édition limitée</p>
-          <p style="font-size:11.5px;color:var(--ink-faint);margin:0;">Panier · livraison offerte</p>
+          <p style="font-size:13.5px;font-weight:600;color:#fff;margin:0 0 2px;">${esc(t('mock.product'))}</p>
+          <p style="font-size:11.5px;color:var(--ink-faint);margin:0;">${esc(t('mock.sub'))}</p>
         </div>
         <span class="tabular" style="font-size:15px;font-weight:800;color:#fff;font-family:var(--font-d);">149 €</span>
       </div>
       <div style="display:flex;gap:10px;margin-bottom:14px;">
         <div class="agent-avatar" style="width:30px;height:30px;flex-shrink:0;">${I('brain',14)}</div>
         <div style="background:rgba(167,139,250,.09);border:1px solid rgba(167,139,250,.22);border-radius:13px;border-top-left-radius:5px;padding:11px 13px;">
-          <p style="font-size:12.8px;line-height:1.55;color:#fff;margin:0;">Ça représente <strong>34 %</strong> de ce qu'il te reste ce mois-ci. Ton objectif « Voyage » recule. Toujours partant ?</p>
+          <p style="font-size:12.8px;line-height:1.55;color:#fff;margin:0;">${t('mock.msg')}</p>
         </div>
       </div>
       <div style="margin-bottom:16px;">
-        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--ink-faint);margin-bottom:6px;"><span>Reste ce mois-ci</span><span class="tabular">440 €</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--ink-faint);margin-bottom:6px;"><span>${esc(t('mock.left'))}</span><span class="tabular">440 €</span></div>
         <div style="height:6px;border-radius:4px;background:rgba(255,255,255,.07);overflow:hidden;"><div style="width:34%;height:100%;background:var(--grad);"></div></div>
       </div>
       <div style="display:flex;gap:9px;">
-        <button onclick="nav('connexion')" class="btn btn-neon btn-sm" style="flex:1.4;">J'attends 24 h</button>
-        <button onclick="nav('connexion')" class="btn btn-ghost btn-sm" style="flex:1;">J'achète</button>
+        <button onclick="nav('connexion')" class="btn btn-neon btn-sm" style="flex:1.4;">${esc(t('mock.wait'))}</button>
+        <button onclick="nav('connexion')" class="btn btn-ghost btn-sm" style="flex:1;">${esc(t('mock.buy'))}</button>
       </div>
     </div>
-    <span class="mock-chip c1">${I('flame',13)} 12 jours de série</span>
-    <span class="mock-chip c2"><span class="gold-text" style="font-weight:800;">+45 €</span>&nbsp;gardés cette semaine</span>
+    <span class="mock-chip c1">${I('flame',13)} ${esc(t('mock.chip1'))}</span>
+    <span class="mock-chip c2"><span class="gold-text" style="font-weight:800;">+45 €</span>&nbsp;${esc(t('mock.chip2'))}</span>
   </div>`;
 }
 
@@ -647,24 +806,24 @@ function pageIntro(){
           <div class="agent-avatar" style="width:64px;height:64px;">${I('brain',28)}</div>
         </div>
         <div style="display:flex;flex-direction:column;gap:12px;">
-          <div class="intro-bubble" style="animation-delay:.15s;">Tu avais vu juste sur <strong>${quiz.score} question${quiz.score>1?'s':''} sur ${QUIZ.length}</strong>. ${quiz.score>=3?'Impressionnant — tu connais déjà l’ennemi.':'Et c’est normal : personne ne mesure vraiment ces chiffres.'}</div>
-          <div class="intro-bubble" style="animation-delay:.55s;">Moi c'est <strong>Worthy</strong>. Mon travail : être de TON côté au moment exact où un site te pousse à craquer. Jamais du côté du vendeur.</div>
-          <div class="intro-bubble" style="animation-delay:.95s;">Worthit met une pause entre l'envie et l'achat : ton budget réel, une question honnête, ta série de jours sans craquer — et des récompenses quand tu tiens bon.</div>
-          <div class="intro-bubble" style="animation-delay:1.35s;">Configure ton profil en 2 minutes — aucune donnée bancaire — et on arrête de parler des moyennes des études : on parle de TES chiffres.</div>
+          <div class="intro-bubble" style="animation-delay:.15s;">${t('intro.score',{s:quiz.score,n:QUIZ.length})} ${quiz.score>=3?t('intro.praiseHigh'):t('intro.praiseLow')}</div>
+          <div class="intro-bubble" style="animation-delay:.55s;">${t('intro.b2')}</div>
+          <div class="intro-bubble" style="animation-delay:.95s;">${t('intro.b3')}</div>
+          <div class="intro-bubble" style="animation-delay:1.35s;">${t('intro.b4')}</div>
         </div>
         <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:30px;animation:msgIn .5s var(--ease) ${btnDelay}s both;">
-          <button onclick="introFinish('signup')" class="btn btn-neon" style="padding:15px 28px;">Créer mon profil ${I('arrowRight',16)}</button>
-          <button onclick="introFinish('explore')" class="btn btn-ghost">Explorer d'abord</button>
+          <button onclick="introFinish('signup')" class="btn btn-neon" style="padding:15px 28px;">${esc(t('intro.ctaProfile'))} ${I('arrowRight',16)}</button>
+          <button onclick="introFinish('explore')" class="btn btn-ghost">${esc(t('intro.ctaExplore'))}</button>
         </div>
       </div>
     </section>`;
   }
-  const q = QUIZ[quiz.i];
+  const q = QZ(quiz.i);
   return `<section style="min-height:100vh;display:flex;align-items:center;background:radial-gradient(800px 500px at 50% 15%,rgba(124,58,237,.1),transparent 60%),var(--void);padding:110px 24px 80px;position:relative;">
-    <button onclick="introFinish('explore')" style="position:absolute;top:100px;right:26px;background:none;border:none;cursor:pointer;font-size:13px;color:var(--ink-faint);font-family:inherit;">Passer le quiz →</button>
+    <button onclick="introFinish('explore')" style="position:absolute;top:100px;right:26px;background:none;border:none;cursor:pointer;font-size:13px;color:var(--ink-faint);font-family:inherit;">${esc(t('quiz.skip'))}</button>
     <div class="container" style="max-width:560px;">
       <div class="center" style="margin-bottom:30px;">
-        <p class="eyebrow">Avant de commencer — question ${quiz.i+1} / ${QUIZ.length}</p>
+        <p class="eyebrow">${esc(t('quiz.before'))} ${quiz.i+1} / ${QUIZ.length}</p>
         <div style="display:flex;gap:6px;justify-content:center;margin-bottom:22px;">
           ${QUIZ.map((_,i)=>`<span style="width:${i===quiz.i?22:8}px;height:8px;border-radius:99px;background:${i<quiz.i?'var(--grad-gold)':i===quiz.i?'var(--grad)':'rgba(255,255,255,.1)'};transition:all .3s ease;"></span>`).join('')}
         </div>
@@ -684,7 +843,7 @@ function pageIntro(){
       ${quiz.revealed?`<div class="glass check-pop" style="border-radius:18px;padding:26px 24px;margin-top:18px;text-align:center;">
         <p class="quiz-stat gold-text" style="margin:0 0 8px;">${esc(q.stat)}</p>
         <p style="font-size:13.8px;line-height:1.6;color:var(--ink-dim);margin:0 0 20px;">${esc(q.explain)}</p>
-        <button onclick="quizNext()" class="btn btn-neon">${quiz.i<QUIZ.length-1?'Question suivante':'Voir pourquoi Worthit existe'} ${I('arrowRight',15)}</button>
+        <button onclick="quizNext()" class="btn btn-neon">${esc(quiz.i<QUIZ.length-1?t('quiz.next'):t('quiz.why'))} ${I('arrowRight',15)}</button>
       </div>`:''}
     </div>
   </section>`;
@@ -715,18 +874,18 @@ function pageAccueil(){
       <div class="hero-grid">
         <div class="hero-l">
           <div class="glass hero-up" style="display:inline-flex;align-items:center;gap:8px;padding:7px 16px;border-radius:999px;margin-bottom:26px;animation-delay:.05s;">
-            ${I('shield',14)}<span style="font-size:12.5px;letter-spacing:.06em;color:var(--ink-dim);">Du côté de l'acheteur, pas du vendeur</span>
+            ${I('shield',14)}<span style="font-size:12.5px;letter-spacing:.06em;color:var(--ink-dim);">${esc(t('hero.badge'))}</span>
           </div>
           <h1 class="hero-up" style="font-size:clamp(2.5rem,5.5vw,4.2rem);line-height:1.04;font-weight:800;letter-spacing:-.03em;color:#fff;margin:0 0 20px;animation-delay:.14s;">
-            Achète moins.<br/><span class="grad-text">Vis mieux.</span>
+            ${esc(t('hero.h1a'))}<br/><span class="grad-text">${esc(t('hero.h1b'))}</span>
           </h1>
-          <p class="lede hero-up" style="font-size:17px;margin:0 0 32px;max-width:430px;animation-delay:.23s;">Worthit met une pause entre l'envie et l'achat : ton budget réel, une question honnête, ta décision.</p>
+          <p class="lede hero-up" style="font-size:17px;margin:0 0 32px;max-width:430px;animation-delay:.23s;">${esc(t('hero.lede'))}</p>
           <div class="hero-up hero-cta" style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:28px;animation-delay:.32s;">
-            <button onclick="nav('connexion')" class="btn btn-neon" style="padding:15px 30px;font-size:15.5px;">Commencer gratuitement ${I('arrowRight',16)}</button>
-            <button onclick="nav('tarifs')" class="btn btn-ghost" style="padding:15px 30px;font-size:15.5px;">${I('crown',15)} Voir Premium</button>
+            <button onclick="nav('connexion')" class="btn btn-neon" style="padding:15px 30px;font-size:15.5px;">${esc(t('hero.ctaStart'))} ${I('arrowRight',16)}</button>
+            <button onclick="nav('tarifs')" class="btn btn-ghost" style="padding:15px 30px;font-size:15.5px;">${I('crown',15)} ${esc(t('hero.ctaPremium'))}</button>
           </div>
           <div class="hero-up hero-trust" style="display:flex;gap:20px;flex-wrap:wrap;animation-delay:.41s;">
-            ${['Aucune carte requise','Annulable en un clic','Données sur ton appareil'].map(t=>`<span style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-faint);">${I('check',13)}${t}</span>`).join('')}
+            ${[t('hero.t1'),t('hero.t2'),t('hero.t3')].map(x=>`<span style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-faint);">${I('check',13)}${esc(x)}</span>`).join('')}
           </div>
         </div>
         ${HeroScene()}
@@ -739,17 +898,18 @@ function pageFonctionnalites(){
   return `<section class="section" style="min-height:100vh;background:radial-gradient(800px 500px at 80% 10%,rgba(124,58,237,.08),transparent 60%),var(--deep);">
     <div class="container">
       <div class="reveal center" style="max-width:540px;margin-bottom:56px;">
-        <p class="eyebrow">Fonctionnalités</p>
-        <h2 class="h2">Un garde-fou, pas un juge</h2>
-        <p class="lede" style="margin-top:14px;">Trois outils gratuits pour commencer. Trois de plus, propulsés par l'IA, en Premium.</p>
+        <p class="eyebrow">${esc(t('feat.eyebrow'))}</p>
+        <h2 class="h2">${esc(t('feat.h2'))}</h2>
+        <p class="lede" style="margin-top:14px;">${esc(t('feat.lede'))}</p>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;margin-bottom:70px;">
-        ${FEATURES.map((f,i)=>{
+        ${FEATURES.map((_,i)=>{
+          const f = FT(i);
           const locked = f.tier==='premium' && !state.isPremium;
           return `<div class="glass feature-card tilt reveal ${locked?'locked':''}" style="border-radius:20px;padding:28px 24px;transition-delay:${i*60}ms;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
               <div style="width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(167,139,250,.14),rgba(124,58,237,.14));border:1px solid rgba(167,139,250,.25);color:var(--v1);">${I(f.icon,20)}</div>
-              ${f.tier==='premium'?`<span class="badge-premium">${I('crown',10)} ${locked?'Verrouillé':'Premium'}</span>`:''}
+              ${f.tier==='premium'?`<span class="badge-premium">${I('crown',10)} ${esc(locked?t('feat.locked'):t('feat.premium'))}</span>`:''}
             </div>
             <h3 style="font-size:17px;font-weight:700;color:#fff;margin:0 0 8px;">${esc(f.title)}</h3>
             <p style="font-size:14px;line-height:1.6;color:var(--ink-dim);margin:0;">${esc(f.desc)}</p>
@@ -764,28 +924,28 @@ function pageFonctionnalites(){
 function SavingsSimulator(){
   return `<div class="glass reveal" style="border-radius:var(--r-xl);padding:36px 30px;">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-      ${I('zap',18)}<h3 style="font-size:19px;font-weight:700;color:#fff;margin:0;">Simulateur d'économies</h3>
+      ${I('zap',18)}<h3 style="font-size:19px;font-weight:700;color:#fff;margin:0;">${esc(t('sim.title'))}</h3>
     </div>
-    <p style="font-size:13.5px;color:var(--ink-dim);margin:0 0 26px;">Combien tu gardes si tu résistes, projeté dans le temps.</p>
+    <p style="font-size:13.5px;color:var(--ink-dim);margin:0 0 26px;">${esc(t('sim.sub'))}</p>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:26px;margin-bottom:24px;">
       <div class="range-row">
-        <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--ink-dim);margin-bottom:8px;"><span>Achats évités / mois</span><span class="tabular" id="sim-skip-val" style="color:#fff;font-weight:700;">3</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--ink-dim);margin-bottom:8px;"><span>${esc(t('sim.skips'))}</span><span class="tabular" id="sim-skip-val" style="color:#fff;font-weight:700;">3</span></div>
         <input type="range" id="sim-skip" min="1" max="12" value="3" oninput="simUpdate()"/>
       </div>
       <div class="range-row">
-        <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--ink-dim);margin-bottom:8px;"><span>Prix moyen</span><span class="tabular" id="sim-price-val" style="color:#fff;font-weight:700;">35 €</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--ink-dim);margin-bottom:8px;"><span>${esc(t('sim.avg'))}</span><span class="tabular" id="sim-price-val" style="color:#fff;font-weight:700;">35 €</span></div>
         <input type="range" id="sim-price" min="10" max="150" step="5" value="35" oninput="simUpdate()"/>
       </div>
     </div>
     <div style="display:flex;gap:8px;margin-bottom:24px;" id="sim-months-row">
-      ${[6,12,24].map(m=>`<button class="filter-pill ${m===12?'active':''}" data-months="${m}" onclick="simSetMonths(${m},this)">${m} mois</button>`).join('')}
+      ${[6,12,24].map(m=>`<button class="filter-pill ${m===12?'active':''}" data-months="${m}" onclick="simSetMonths(${m},this)">${m} ${esc(t('sim.months'))}</button>`).join('')}
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:20px;">
-      <div class="glass stat-tile"><p style="font-size:12px;color:var(--ink-dim);margin:0 0 6px;">Économisé sur la période</p><p class="tabular grad-text" style="font-family:var(--font-d);font-size:26px;font-weight:800;margin:0;" id="sim-total">1 260 €</p></div>
-      <div class="glass stat-tile"><p style="font-size:12px;color:var(--ink-dim);margin:0 0 6px;">Par mois</p><p class="tabular" style="font-family:var(--font-d);font-size:26px;font-weight:800;margin:0;color:#fff;" id="sim-monthly">105 €</p></div>
-      <div class="glass stat-tile"><p style="font-size:12px;color:var(--ink-dim);margin:0 0 6px;">Premium offert</p><p class="tabular" style="font-family:var(--font-d);font-size:26px;font-weight:800;margin:0;color:#fff;"><span id="sim-premium">35</span> mois</p></div>
+      <div class="glass stat-tile"><p style="font-size:12px;color:var(--ink-dim);margin:0 0 6px;">${esc(t('sim.saved'))}</p><p class="tabular grad-text" style="font-family:var(--font-d);font-size:26px;font-weight:800;margin:0;" id="sim-total">1 260 €</p></div>
+      <div class="glass stat-tile"><p style="font-size:12px;color:var(--ink-dim);margin:0 0 6px;">${esc(t('sim.perMonth'))}</p><p class="tabular" style="font-family:var(--font-d);font-size:26px;font-weight:800;margin:0;color:#fff;" id="sim-monthly">105 €</p></div>
+      <div class="glass stat-tile"><p style="font-size:12px;color:var(--ink-dim);margin:0 0 6px;">${esc(t('sim.freePrem'))}</p><p class="tabular" style="font-family:var(--font-d);font-size:26px;font-weight:800;margin:0;color:#fff;"><span id="sim-premium">35</span> ${esc(t('sim.months'))}</p></div>
     </div>
-    <p style="font-size:12px;color:var(--ink-dim);margin:0 0 8px;">Vs objectif « Voyage au Japon » (1 800 €)</p>
+    <p style="font-size:12px;color:var(--ink-dim);margin:0 0 8px;">${esc(t('sim.vs'))}</p>
     <div class="progress-track"><div class="progress-fill" id="sim-bar" style="width:70%;"></div></div>
   </div>`;
 }
@@ -797,44 +957,44 @@ function pageTarifs(){
   return `<section class="section" style="min-height:100vh;background:radial-gradient(800px 500px at 20% 10%,rgba(228,161,27,.06),transparent 60%),radial-gradient(700px 500px at 80% 60%,rgba(124,58,237,.08),transparent 60%),var(--void);">
     <div class="container" style="max-width:920px;">
       <div class="reveal center" style="max-width:520px;margin-bottom:36px;">
-        <p class="eyebrow">Tarifs</p>
-        <h2 class="h2">Gratuit pour t'essayer.<br/>Premium pour l'agent qui te connaît.</h2>
+        <p class="eyebrow">${esc(t('tarifs.eyebrow'))}</p>
+        <h2 class="h2">${t('tarifs.h2')}</h2>
       </div>
       <div class="reveal glass" style="display:inline-flex;padding:6px;border-radius:999px;margin:0 auto 40px;position:relative;" >
         <div style="display:flex;">
-          <button onclick="setBilling('mensuel')" class="tab-btn" id="bill-m" style="padding:9px 20px;border-radius:999px;color:${!isAnnual?'#fff':'var(--ink-dim)'};background:${!isAnnual?'var(--grad)':'transparent'};">Mensuel</button>
-          <button onclick="setBilling('annuel')" class="tab-btn" id="bill-a" style="padding:9px 20px;border-radius:999px;color:${isAnnual?'#fff':'var(--ink-dim)'};background:${isAnnual?'var(--grad)':'transparent'};">Annuel <span style="opacity:.75;">− 33%</span></button>
+          <button onclick="setBilling('mensuel')" class="tab-btn" id="bill-m" style="padding:9px 20px;border-radius:999px;color:${!isAnnual?'#fff':'var(--ink-dim)'};background:${!isAnnual?'var(--grad)':'transparent'};">${esc(t('tarifs.monthly'))}</button>
+          <button onclick="setBilling('annuel')" class="tab-btn" id="bill-a" style="padding:9px 20px;border-radius:999px;color:${isAnnual?'#fff':'var(--ink-dim)'};background:${isAnnual?'var(--grad)':'transparent'};">${esc(t('tarifs.annual'))} <span style="opacity:.75;">− 33%</span></button>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px;margin-bottom:60px;" id="pricing-cards">
         ${PricingCards(isAnnual, displayPrice)}
       </div>
       <div class="reveal" style="max-width:640px;margin:0 auto;">
-        <h3 style="font-size:20px;font-weight:700;color:#fff;margin:0 0 18px;text-align:center;">Questions fréquentes</h3>
-        ${FAQ.map(f=>`<details class="glass faq-item"><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></details>`).join('')}
+        <h3 style="font-size:20px;font-weight:700;color:#fff;margin:0 0 18px;text-align:center;">${esc(t('tarifs.faqTitle'))}</h3>
+        ${FAQ.map((_,i)=>{const f=FAQI(i);return `<details class="glass faq-item"><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></details>`;}).join('')}
       </div>
     </div>
   </section>`;
 }
 function PricingCards(isAnnual, displayPrice){
-  const freePerks = ['Limites et blocages','Streak quotidienne','Budget simple','Boutique cosmétique'];
-  const premPerks = ['Tout Gratuit, plus :','Agent IA personnalisé','Dashboard perso complet','Tournois entre amis','Simulateur d’économies avancé'];
+  const freePerks = PERKS('perksFree');
+  const premPerks = PERKS('perksPrem');
   return `
     <div class="glass price-card reveal tilt">
-      <p style="font-size:13px;font-weight:700;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.08em;margin:0 0 14px;">Gratuit</p>
-      <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:6px;"><span class="price-num" style="color:#fff;">0 €</span><span style="color:var(--ink-faint);font-size:13px;">/mois</span></div>
-      <p style="font-size:12.5px;color:var(--ink-faint);margin:0 0 24px;">Pour commencer, sans carte bancaire.</p>
-      <button onclick="nav('connexion')" class="btn btn-ghost btn-block" style="margin-bottom:24px;">Continuer gratuitement</button>
+      <p style="font-size:13px;font-weight:700;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.08em;margin:0 0 14px;">${esc(t('tarifs.freeName'))}</p>
+      <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:6px;"><span class="price-num" style="color:#fff;">0 €</span><span style="color:var(--ink-faint);font-size:13px;">${esc(t('tarifs.perMonth'))}</span></div>
+      <p style="font-size:12.5px;color:var(--ink-faint);margin:0 0 24px;">${esc(t('tarifs.freeSub'))}</p>
+      <button onclick="nav('connexion')" class="btn btn-ghost btn-block" style="margin-bottom:24px;">${esc(t('tarifs.freeCta'))}</button>
       <div>${freePerks.map(p=>`<div class="perk-row">${I('check',15)}<span>${esc(p)}</span></div>`).join('')}</div>
     </div>
     <div class="glass price-card highlight reveal tilt" style="transition-delay:80ms;">
-      <span class="badge-premium" style="position:absolute;top:-12px;right:28px;">${I('crown',11)} Recommandé</span>
+      <span class="badge-premium" style="position:absolute;top:-12px;right:28px;">${I('crown',11)} ${esc(t('tarifs.reco'))}</span>
       <p style="font-size:13px;font-weight:700;color:var(--gold-1);text-transform:uppercase;letter-spacing:.08em;margin:0 0 14px;">Premium</p>
       <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:6px;">
-        <span class="price-num gold-text" id="price-num">${displayPrice} €</span><span style="color:var(--ink-faint);font-size:13px;">/mois</span>
+        <span class="price-num gold-text" id="price-num">${displayPrice} €</span><span style="color:var(--ink-faint);font-size:13px;">${esc(t('tarifs.perMonth'))}</span>
       </div>
-      <p style="font-size:12.5px;color:var(--ink-faint);margin:0 0 24px;" id="price-sub">${isAnnual?'Facturé 23,99 € / an':'Sans engagement, résiliable à tout moment'}</p>
-      <button onclick="subscribe(this)" class="btn btn-gold btn-block" style="margin-bottom:24px;">${state.isPremium?'Déjà activé ✓':'Passer Premium'}</button>
+      <p style="font-size:12.5px;color:var(--ink-faint);margin:0 0 24px;" id="price-sub">${esc(isAnnual?t('tarifs.premSubAnnual'):t('tarifs.premSub'))}</p>
+      <button onclick="subscribe(this)" class="btn btn-gold btn-block" style="margin-bottom:24px;">${esc(state.isPremium?t('tarifs.premCtaDone'):t('tarifs.premCta'))}</button>
       <div>${premPerks.map(p=>`<div class="perk-row">${I('star',15)}<span>${esc(p)}</span></div>`).join('')}</div>
     </div>`;
 }
@@ -846,7 +1006,7 @@ function setBilling(cycle){
   document.getElementById('bill-a').style.background = cycle==='annuel'?'var(--grad)':'transparent';
   const isAnnual = cycle==='annuel';
   document.getElementById('price-num').textContent = (isAnnual ? (23.99/12).toFixed(2).replace('.',',') : '2,99') + ' €';
-  document.getElementById('price-sub').textContent = isAnnual ? 'Facturé 23,99 € / an' : 'Sans engagement, résiliable à tout moment';
+  document.getElementById('price-sub').textContent = isAnnual ? t('tarifs.premSubAnnual') : t('tarifs.premSub');
 }
 async function subscribe(btn){
   if(state.isPremium){ toast('Ton abonnement Premium est déjà actif.', 'crown'); return; }
@@ -933,11 +1093,11 @@ function pageShowcase(){
   return `<section class="section" style="min-height:100vh;background:radial-gradient(800px 500px at 15% 15%,rgba(124,58,237,.07),transparent 60%),var(--deep);">
     <div class="container">
       <div class="reveal center" style="max-width:480px;margin-bottom:40px;">
-        <p class="eyebrow">Showcase</p>
-        <h2 class="h2">Le produit, en bref</h2>
+        <p class="eyebrow">${esc(t('show.eyebrow'))}</p>
+        <h2 class="h2">${esc(t('show.h2'))}</h2>
       </div>
       <div class="reveal" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:36px;">
-        ${filters.map(f=>`<button onclick="setShowcaseFilter('${f}')" class="filter-pill ${state.showcaseFilter===f?'active':''}" data-filter="${f}">${esc(f)}</button>`).join('')}
+        ${filters.map(f=>`<button onclick="setShowcaseFilter('${f}')" class="filter-pill ${state.showcaseFilter===f?'active':''}" data-filter="${f}">${esc(f==='Tous'?t('show.all'):f)}</button>`).join('')}
       </div>
       <div id="showcase-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;">
         ${showcaseItemsHtml(state.showcaseFilter)}
@@ -946,7 +1106,7 @@ function pageShowcase(){
   </section>`;
 }
 function showcaseItemsHtml(filter){
-  const items = filter==='Tous' ? SHOWCASE_ITEMS : SHOWCASE_ITEMS.filter(i=>i.cat===filter);
+  const items = SHOWCASE_ITEMS.map((_,i)=>SCI(i)).filter(i=>filter==='Tous'||i.cat===filter);
   return items.map(item=>`<div class="glass show-card tilt">
       <div style="height:130px;background:rgba(167,139,250,.14);display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--line-soft);color:rgba(255,255,255,.85);">${I(item.icon,34,1.3)}</div>
       <div style="padding:20px 22px 24px;">
@@ -1028,24 +1188,24 @@ function pageConnexion(){
     <div class="container" style="max-width:420px;">
       <div class="reveal center" style="margin-bottom:34px;">
         <span style="width:40px;height:40px;border-radius:12px;background:var(--grad);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;">${I('lock',18,2)}</span>
-        <h2 style="font-size:26px;font-weight:800;color:#fff;margin:0 0 6px;letter-spacing:-.02em;font-family:var(--font-d);">${a.mode==='connexion'?'Content de te revoir':'Rejoindre Worthit'}</h2>
-        <p style="font-size:14px;color:var(--ink-dim);margin:0;">${a.mode==='connexion'?'Connecte-toi à ton compte.':"Deux minutes, zéro donnée bancaire."}</p>
+        <h2 style="font-size:26px;font-weight:800;color:#fff;margin:0 0 6px;letter-spacing:-.02em;font-family:var(--font-d);">${esc(a.mode==='connexion'?t('auth.welcome'):t('auth.join'))}</h2>
+        <p style="font-size:14px;color:var(--ink-dim);margin:0;">${esc(a.mode==='connexion'?t('auth.subLogin'):t('auth.subJoin'))}</p>
       </div>
       <div class="glass reveal" style="border-radius:22px;padding:10px;margin-bottom:20px;display:flex;position:relative;">
         <div style="position:absolute;top:10px;bottom:10px;left:${a.mode==='connexion'?'10px':'50%'};width:calc(50% - 14px);border-radius:14px;background:var(--grad);transition:left .3s cubic-bezier(.22,1,.36,1);"></div>
-        <button onclick="switchAuthMode('connexion')" class="tab-btn" style="color:${a.mode==='connexion'?'#fff':'var(--ink-dim)'};">Connexion</button>
-        <button onclick="switchAuthMode('inscription')" class="tab-btn" style="color:${a.mode==='inscription'?'#fff':'var(--ink-dim)'};">Inscription</button>
+        <button onclick="switchAuthMode('connexion')" class="tab-btn" style="color:${a.mode==='connexion'?'#fff':'var(--ink-dim)'};">${esc(t('auth.tabLogin'))}</button>
+        <button onclick="switchAuthMode('inscription')" class="tab-btn" style="color:${a.mode==='inscription'?'#fff':'var(--ink-dim)'};">${esc(t('auth.tabJoin'))}</button>
       </div>
       <div class="glass reveal" style="border-radius:22px;padding:30px 26px;">
-        ${a.mode==='inscription'?FieldHtml('f-nom','Ton prénom','text',a.nom,a.errors.nom,'user'):''}
-        ${FieldHtml('f-email','E-mail','email',a.email,a.errors.email,'mail')}
+        ${a.mode==='inscription'?FieldHtml('f-nom',t('auth.fName'),'text',a.nom,a.errors.nom,'user'):''}
+        ${FieldHtml('f-email',t('auth.fEmail'),'email',a.email,a.errors.email,'mail')}
         <div class="field">
           <input id="f-pass" type="${a.showPass?'text':'password'}" value="${esc(a.pass)}" placeholder=" " class="${a.errors.pass?'error':''}"/>
-          <label for="f-pass">Mot de passe</label>
+          <label for="f-pass">${esc(t('auth.fPass'))}</label>
           <button onclick="toggleShowPass()" class="field-toggle" aria-label="Afficher">${I(a.showPass?'eyeOff':'eye',16)}</button>
           ${a.errors.pass?`<p class="field-error">${esc(a.errors.pass)}</p>`:''}
         </div>
-        <button onclick="submitAuth()" class="btn btn-neon btn-block" style="padding:15px;margin-top:4px;">${a.mode==='connexion'?'Se connecter':'Créer mon compte'}</button>
+        <button onclick="submitAuth()" class="btn btn-neon btn-block" style="padding:15px;margin-top:4px;">${esc(a.mode==='connexion'?t('auth.btnLogin'):t('auth.btnJoin'))}</button>
       </div>
     </div>
   </section>`;
@@ -1068,7 +1228,7 @@ function submitAuth(){
 }
 
 function pageOnboarding(){
-  const steps=['Ta situation','Tes revenus','Tes charges','Ton objectif'];
+  const steps=['Ta situation','Tes revenus','Tes charges','Tes habitudes','Ton objectif'];
   const o=state.onboarding;
   return `<section class="section" style="min-height:100vh;display:flex;align-items:center;background:radial-gradient(800px 500px at 50% 20%,rgba(124,58,237,.09),transparent 60%),var(--void);">
     <div class="container" style="max-width:440px;">
@@ -1077,31 +1237,48 @@ function pageOnboarding(){
           <div style="width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:${i<=o.step?'#fff':'var(--ink-faint)'};background:${i<=o.step?'var(--grad)':'rgba(255,255,255,.06)'};">${i<o.step?I('check',13):i+1}</div>`).join('')}
       </div>
       <div class="reveal center" style="margin-bottom:26px;">
-        <p class="eyebrow" style="margin-bottom:8px;">Étape ${o.step+1} / 4</p>
+        <p class="eyebrow" style="margin-bottom:8px;">Étape ${o.step+1} / 5</p>
         <h2 style="font-size:22px;font-weight:800;color:#fff;margin:0;font-family:var(--font-d);">${steps[o.step]}</h2>
       </div>
       <div class="glass reveal" style="border-radius:22px;padding:28px 26px;margin-bottom:20px;">
-        ${o.step===0 ? `<div style="display:flex;flex-direction:column;gap:10px;">
+        ${o.step===0 ? `<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px;">
           ${STATUTS.map(s=>`<button onclick="selectStatus('${s}')" style="display:flex;align-items:center;gap:12px;text-align:left;padding:14px 16px;border-radius:12px;border:${o.status===s?'1px solid var(--v1)':'1px solid rgba(255,255,255,.1)'};background:${o.status===s?'rgba(167,139,250,.08)':'rgba(255,255,255,.02)'};color:#fff;font-size:14.5px;cursor:pointer;font-family:inherit;">${I('briefcase',16)}${esc(s)}</button>`).join('')}
-        </div>` : ''}
-        ${o.step===1 ? FieldHtml('ob-income','Revenu mensuel (€)','number',o.income,null,'wallet') : ''}
+        </div>` + FieldHtml('ob-fonction','Ta fonction / ton métier (ex : infirmière, dev…)','text',o.fonction,null,'user') : ''}
+        ${o.step===1 ? FieldHtml('ob-income','Revenu mensuel net (€)','number',o.income,null,'wallet') : ''}
         ${o.step===2 ? FieldHtml('ob-rent','Loyer (€)','number',o.rent,null,'home') + FieldHtml('ob-charges','Charges fixes et abonnements (€)','number',o.charges,null,'creditCard') : ''}
-        ${o.step===3 ? `<p style="font-size:13px;color:var(--ink-dim);margin:0 0 16px;line-height:1.6;">Pour quoi économises-tu ? Chaque achat auquel tu résisteras fera avancer cet objectif.</p>`
+        ${o.step===3 ? `<p style="font-size:13px;color:var(--ink-dim);margin:0 0 14px;line-height:1.6;">Qu'est-ce qui te fait craquer ? Worthy s'en servira pour te poser les bonnes questions.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px;">
+            ${WEAKNESS_CATS.map(w=>`<button onclick="toggleWeakness('${w.replace(/'/g,"\\'")}')" class="filter-pill ${o.weaknesses.includes(w)?'active':''}">${esc(w)}</button>`).join('')}
+          </div>
+          <p style="font-size:13px;color:var(--ink-dim);margin:0 0 12px;">À quelle fréquence craques-tu pour un achat non prévu ?</p>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            ${IMPULSE_FREQS.map(f=>`<button onclick="selectFreq('${f}')" style="display:flex;align-items:center;gap:12px;text-align:left;padding:12px 16px;border-radius:12px;border:${o.impulseFreq===f?'1px solid var(--v1)':'1px solid rgba(255,255,255,.1)'};background:${o.impulseFreq===f?'rgba(167,139,250,.08)':'rgba(255,255,255,.02)'};color:#fff;font-size:14px;cursor:pointer;font-family:inherit;">${I('flame',15)}${esc(f)}</button>`).join('')}
+          </div>` : ''}
+        ${o.step===4 ? `<p style="font-size:13px;color:var(--ink-dim);margin:0 0 16px;line-height:1.6;">Pour quoi économises-tu ? Chaque achat auquel tu résisteras fera avancer cet objectif.</p>`
           + FieldHtml('ob-goal-name','Ton objectif (ex : Voyage, Permis…)','text',o.goalName,null,'target')
           + FieldHtml('ob-goal-target','Montant à atteindre (€)','number',o.goalTarget,null,'coins') : ''}
       </div>
       <div class="reveal" style="display:flex;gap:10px;">
         ${o.step>0?`<button onclick="onboardBack()" class="btn btn-ghost">${I('chevronLeft',16)} Retour</button>`:''}
-        <button onclick="onboardNext()" class="btn btn-neon" style="flex:1;">${o.step<3?'Continuer':'Créer mon dashboard'} ${I('chevronRight',16)}</button>
+        <button onclick="onboardNext()" class="btn btn-neon" style="flex:1;">${o.step<4?'Continuer':'Créer mon dashboard'} ${I('chevronRight',16)}</button>
       </div>
       <p class="reveal" style="font-size:11.5px;color:var(--ink-faint);text-align:center;margin:16px 0 0;">Stocké sur ton appareil uniquement. Aucune connexion bancaire.</p>
     </div>
   </section>`;
 }
 function selectStatus(s){ state.onboarding.status=s; render(); }
+function toggleWeakness(w){
+  const o=state.onboarding;
+  o.weaknesses = o.weaknesses.includes(w) ? o.weaknesses.filter(x=>x!==w) : [...o.weaknesses, w];
+  render();
+}
+function selectFreq(f){ state.onboarding.impulseFreq=f; render(); }
 function onboardBack(){ if(state.onboarding.step>0){ state.onboarding.step--; render(); } }
 function onboardNext(){
   const o=state.onboarding;
+  if(o.step===0){
+    o.fonction=document.getElementById('ob-fonction').value.trim();
+  }
   if(o.step===1){
     o.income=document.getElementById('ob-income').value;
     if(!(Number(o.income)>0)){ toast('Indique ton revenu mensuel pour continuer.','wallet'); return; }
@@ -1112,13 +1289,17 @@ function onboardNext(){
     if(o.rent==='' || o.charges===''){ toast('Indique ton loyer et tes charges (0 si aucun).','home'); return; }
   }
   if(o.step===3){
+    if(!o.impulseFreq){ toast('Choisis une fréquence pour continuer.','flame'); return; }
+  }
+  if(o.step===4){
     o.goalName=document.getElementById('ob-goal-name').value.trim();
     o.goalTarget=document.getElementById('ob-goal-target').value;
     if(!o.goalName || !(Number(o.goalTarget)>0)){ toast('Donne un nom et un montant à ton objectif.','target'); return; }
   }
-  if(o.step<3){ o.step++; render(); return; }
+  if(o.step<4){ o.step++; render(); return; }
   state.profile = {
-    status:o.status, nom:state.auth.nom,
+    status:o.status, nom:state.auth.nom, fonction:o.fonction||null,
+    weaknesses:o.weaknesses, impulseFreq:o.impulseFreq,
     income:Number(o.income), rent:Number(o.rent)||0, charges:Number(o.charges)||0,
   };
   state.goals = [{id:1, name:o.goalName, target:Number(o.goalTarget), current:0}];
@@ -1541,7 +1722,9 @@ function toggleAgent(){
 function agentContext(){
   const p = state.profile || NO_PROFILE_CTX;
   const b = computeBudget(p);
-  return {nom:(p.nom||'').trim()||null, statut:p.status, revenu:b.income, loyer:b.rent, charges:b.charges, reste:b.left,
+  return {nom:(p.nom||'').trim()||null, statut:p.status, fonction:p.fonction||null,
+          faiblesses:p.weaknesses||[], frequenceImpulsions:p.impulseFreq||null, langue:state.lang,
+          revenu:b.income, loyer:b.rent, charges:b.charges, reste:b.left,
           streak:state.streak, economise:state.savedTotal, objectifs:state.goals, premium:state.isPremium};
 }
 async function sendAgentMessage(text){

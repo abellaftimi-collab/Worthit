@@ -62,24 +62,60 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, 
     return res.status(400).send(`Webhook error: ${err.message}`);
   }
   if (!supa) return res.json({ received: true });
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object;
-    const userId = session.client_reference_id;
-    if (userId) {
-      await supa.from('profiles').update({
-        is_premium: true,
-        stripe_customer_id: session.customer || null,
-        stripe_subscription_id: session.subscription || null,
-      }).eq('id', userId);
-      console.log(`[stripe] premium activé pour ${userId}`);
+  try {
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object;
+      const userId = session.client_reference_id;
+      if (userId) {
+        const { error: updErr } = await supa.from('profiles').update({
+          is_premium: true,
+          stripe_customer_id: session.customer || null,
+          stripe_subscription_id: session.subscription || null,
+        }).eq('id', userId);
+        if (updErr) throw updErr;
+        console.log(`[stripe] premium activé pour ${userId}`);
+
+        // Parrainage : ce paiement consomme le code de parrainage (le cas échéant) et/ou les semaines en réserve.
+        const { data: paidProfile, error: selErr } = await supa.from('profiles')
+          .select('referred_by, referral_reward_given, pending_referral_days')
+          .eq('id', userId).maybeSingle();
+        if (selErr) throw selErr;
+        if (paidProfile) {
+          const updates = {};
+          if (paidProfile.referred_by && !paidProfile.referral_reward_given) {
+            updates.referral_reward_given = true;
+            const { data: referrer, error: refErr } = await supa.from('profiles')
+              .select('id, pending_referral_days')
+              .eq('referral_code', paidProfile.referred_by).maybeSingle();
+            if (refErr) throw refErr;
+            if (referrer) {
+              const { error: bankErr } = await supa.from('profiles')
+                .update({ pending_referral_days: (referrer.pending_referral_days || 0) + 1 })
+                .eq('id', referrer.id);
+              if (bankErr) throw bankErr;
+              console.log(`[parrainage] +1 semaine en réserve pour ${referrer.id} (a parrainé ${userId})`);
+            }
+          }
+          if (paidProfile.pending_referral_days > 0) updates.pending_referral_days = 0;
+          if (Object.keys(updates).length) {
+            const { error: upd2Err } = await supa.from('profiles').update(updates).eq('id', userId);
+            if (upd2Err) throw upd2Err;
+          }
+        }
+      }
     }
+    if (event.type === 'customer.subscription.deleted') {
+      const sub = event.data.object;
+      const { error } = await supa.from('profiles').update({ is_premium: false }).eq('stripe_subscription_id', sub.id);
+      if (error) throw error;
+      console.log(`[stripe] premium retiré (abonnement ${sub.id})`);
+    }
+    res.json({ received: true });
+  } catch (err) {
+    // Réponse non-2xx : Stripe réessaiera automatiquement ce webhook plus tard.
+    console.error('[webhook]', err.message);
+    res.status(500).json({ error: 'webhook_processing_failed' });
   }
-  if (event.type === 'customer.subscription.deleted') {
-    const sub = event.data.object;
-    await supa.from('profiles').update({ is_premium: false }).eq('stripe_subscription_id', sub.id);
-    console.log(`[stripe] premium retiré (abonnement ${sub.id})`);
-  }
-  res.json({ received: true });
 });
 
 app.use(express.json());
@@ -107,36 +143,58 @@ app.post('/api/sync', requireAuth(async (req, res) => {
   const { profile, goals, victories } = req.body || {};
   try {
     if (profile) {
-      await supa.from('profiles').upsert({ id: uid, ...profile, updated_at: new Date().toISOString() });
+      const base = { ...profile, id: uid, updated_at: new Date().toISOString() };
+      let { error } = await supa.from('profiles').upsert({ ...base, referral_code: uid.slice(0, 8) });
+      // Migration parrainage pas encore exécutée : on sauvegarde sans la colonne plutôt que d'échouer.
+      if (error && /referral_code/.test(error.message)) ({ error } = await supa.from('profiles').upsert(base));
+      if (error) throw error;
     }
     if (Array.isArray(goals)) {
-      await supa.from('goals').delete().eq('user_id', uid);
+      const { error: delErr } = await supa.from('goals').delete().eq('user_id', uid);
+      if (delErr) throw delErr;
       if (goals.length) {
-        await supa.from('goals').insert(goals.map(g => ({
+        const { error: insErr } = await supa.from('goals').insert(goals.map(g => ({
           user_id: uid, name: g.name, target: g.target, current: g.current || 0,
         })));
+        if (insErr) throw insErr;
       }
     }
     if (Array.isArray(victories)) {
-      await supa.from('victories').delete().eq('user_id', uid);
+      const { error: delErr2 } = await supa.from('victories').delete().eq('user_id', uid);
+      if (delErr2) throw delErr2;
       if (victories.length) {
-        await supa.from('victories').insert(victories.slice(0, 20).map(v => ({
+        const { error: insErr2 } = await supa.from('victories').insert(victories.slice(0, 20).map(v => ({
           user_id: uid, item: v.item, price: v.price, goal_name: v.goal || v.goal_name || null,
         })));
+        if (insErr2) throw insErr2;
       }
     }
     res.json({ ok: true });
   } catch (err) {
     console.error('[sync]', err.message);
-    res.status(500).json({ error: 'sync_error' });
+    res.status(500).json({ error: 'sync_error', detail: err.message });
   }
 }));
 
 /* ---------- Stripe Checkout (nécessite un compte connecté) ---------- */
 app.post('/api/create-checkout-session', requireAuth(async (req, res) => {
-  const { billing } = req.body || {};
+  const { billing, refCode } = req.body || {};
   if (!stripe) return res.json({ demo: true }); // pas de clé : le front reste en mode démo
   try {
+    const ownCode = req.user.id.slice(0, 8);
+    let trialDays = 0;
+    const { data: profile } = await supa.from('profiles').select('*').eq('id', req.user.id).maybeSingle();
+    if (profile) {
+      // Premier code de parrainage fourni par cet utilisateur : on l'enregistre définitivement.
+      if (refCode && !profile.referred_by && String(refCode).toLowerCase() !== ownCode) {
+        const code = String(refCode).toLowerCase();
+        const { error: refUpdErr } = await supa.from('profiles').update({ referred_by: code }).eq('id', req.user.id);
+        if (!refUpdErr) profile.referred_by = code;
+      }
+      // Semaine offerte pour avoir été parrainé (une seule fois), + semaines mises en réserve pour avoir parrainé d'autres.
+      if (profile.referred_by && !profile.referral_reward_given) trialDays += 7;
+      if (profile.pending_referral_days > 0) trialDays += profile.pending_referral_days * 7;
+    }
     const monthly = billing !== 'annuel';
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
@@ -151,6 +209,7 @@ app.post('/api/create-checkout-session', requireAuth(async (req, res) => {
           product_data: { name: 'Worthit Premium', description: "Agent IA personnalisé, dashboard perso, tournois entre amis" },
         },
       }],
+      ...(trialDays > 0 ? { subscription_data: { trial_period_days: trialDays } } : {}),
       success_url: `${req.protocol}://${req.get('host')}/?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.protocol}://${req.get('host')}/?checkout=cancel`,
     });

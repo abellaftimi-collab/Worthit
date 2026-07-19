@@ -294,6 +294,7 @@ a{color:inherit;}
 }
 </style>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </head>
 <body>
 <canvas id="bg-canvas"></canvas>
@@ -364,6 +365,72 @@ const CID = (function(){
     return c;
   }catch(e){ return 'anon'; }
 })();
+
+/* ---- comptes réels : Supabase Auth (chargé via CDN dans <head>, absent en mode artifact/démo) ---- */
+const SUPA_URL = 'https://rdvdsfunrinvwvltbojc.supabase.co';
+const SUPA_ANON_KEY = 'sb_publishable_WIDUf3lc96k8Sr0oKfQMjQ_kO1JqCPo';
+const sb = (typeof window !== 'undefined' && window.supabase && window.supabase.createClient)
+  ? window.supabase.createClient(SUPA_URL, SUPA_ANON_KEY)
+  : null;
+let authSession = null;
+
+async function authedApi(path, opts){
+  opts = opts || {};
+  const headers = Object.assign({}, opts.headers||{});
+  if(authSession) headers['Authorization'] = 'Bearer ' + authSession.access_token;
+  return api(path, Object.assign({}, opts, { headers }));
+}
+function translateAuthError(msg){
+  msg = String(msg||'');
+  if(/already registered|already exists/i.test(msg)) return "Un compte existe déjà avec cet e-mail.";
+  if(/invalid login credentials/i.test(msg)) return "E-mail ou mot de passe incorrect.";
+  if(/password should be at least/i.test(msg)) return "6 caractères minimum.";
+  if(/rate limit/i.test(msg)) return "Trop de tentatives — réessaie dans un instant.";
+  if(/email not confirmed/i.test(msg)) return "Confirme d'abord ton e-mail (lien envoyé à l'inscription).";
+  return "Une erreur est survenue. Réessaie.";
+}
+/* Charge le profil/objectifs/victoires depuis le serveur pour l'utilisateur connecté */
+async function syncFromServer(){
+  const r = await authedApi('/api/sync');
+  if(!r) return false;
+  if(r.profile){
+    state.profile = {
+      status:r.profile.status, nom:r.profile.nom, fonction:r.profile.fonction,
+      weaknesses:r.profile.weaknesses||[], impulseFreq:r.profile.impulse_freq,
+      income:Number(r.profile.income)||0, rent:Number(r.profile.rent)||0, charges:Number(r.profile.charges)||0,
+    };
+    state.isPremium = !!r.profile.is_premium;
+    state.streak = r.profile.streak||0;
+    state.savedTotal = Number(r.profile.saved_total)||0;
+    state.sous = r.profile.sous||0;
+    state.blockKeywords = r.profile.block_keywords||[];
+    state.priceLimit = Number(r.profile.price_limit)||'';
+    if(r.profile.lang && LANGS[r.profile.lang]) state.lang = r.profile.lang;
+  } else {
+    state.profile = null;
+  }
+  state.goals = (r.goals||[]).map(g=>({id:g.id, name:g.name, target:Number(g.target), current:Number(g.current)||0}));
+  state.victories = (r.victories||[]).map(v=>({item:v.item, price:Number(v.price), when:'', goal:v.goal_name||''}));
+  return true;
+}
+/* Pousse l'état courant vers le serveur (silencieux, ne bloque jamais l'UI) */
+async function syncToServer(){
+  if(!authSession || !state.profile) return;
+  authedApi('/api/sync', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      profile:{
+        nom:state.profile.nom||null, status:state.profile.status||null, fonction:state.profile.fonction||null,
+        income:state.profile.income||0, rent:state.profile.rent||0, charges:state.profile.charges||0,
+        weaknesses:state.profile.weaknesses||[], impulse_freq:state.profile.impulseFreq||null,
+        is_premium:state.isPremium, streak:state.streak, saved_total:state.savedTotal, sous:state.sous,
+        block_keywords:state.blockKeywords||[], price_limit:state.priceLimit||0, lang:state.lang,
+      },
+      goals: state.goals,
+      victories: state.victories,
+    }),
+  }).catch(()=>{});
+}
 
 /* ============================== DATA ============================== */
 const NAV_PAGES = [
@@ -625,6 +692,7 @@ function saveLocal(){
       agentFreeUsed:(typeof agent!=='undefined'?agent.freeUsed:0), agentFreeDate:(new Date()).toDateString(),
     }));
   }catch(e){}
+  if(typeof syncToServer==='function') syncToServer();
 }
 function loadLocal(){
   try{
@@ -744,7 +812,8 @@ function Navbar(){
           </div>
           <div class="nav-actions-desktop" style="display:flex;gap:10px;">
             ${hasProfile
-              ? `<button onclick="nav('dashboard')" class="btn btn-neon btn-sm">${I('flame',14)} ${esc(t('nav.dashboard'))}</button>`
+              ? `<button onclick="nav('dashboard')" class="btn btn-neon btn-sm">${I('flame',14)} ${esc(t('nav.dashboard'))}</button>
+                 ${authSession?`<button onclick="signOut()" class="btn btn-ghost btn-sm" aria-label="Se déconnecter" title="Se déconnecter" style="padding:8px 10px;">${I('x',14)}</button>`:''}`
               : `<button onclick="nav('connexion')" class="btn btn-ghost btn-sm">${esc(t('nav.login'))}</button>
                  <button onclick="nav('connexion')" class="btn btn-neon btn-sm">${esc(t('nav.try'))}</button>`}
           </div>
@@ -1066,14 +1135,15 @@ function setBilling(cycle){
 }
 async function subscribe(btn){
   if(state.isPremium){ toast('Ton abonnement Premium est déjà actif.', 'crown'); return; }
-  const r = await api('/api/create-checkout-session',{
+  if(!authSession){ toast('Crée ton compte pour passer Premium.','user'); nav('connexion'); return; }
+  const r = await authedApi('/api/create-checkout-session',{
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({cid:CID, billing:state.billing}),
+    body: JSON.stringify({billing:state.billing}),
   });
   if(r && r.url){ window.location.href = r.url; return; }
   // Pas de backend Stripe joignable : mode démo local
   state.isPremium=true;
-  saveLocal();
+  saveLocal(); syncToServer();
   confettiBurst(btn);
   toast('Bienvenue dans Premium ✨'+(r&&r.demo?' (mode démo)':''),'crown');
   renderAgent();
@@ -1234,8 +1304,8 @@ function pageConnexion(){
             <path d="M22 37 L32 47 L50 27" fill="none" stroke="var(--v1)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           <h2 style="font-size:22px;font-weight:800;color:#fff;margin:0 0 10px;">${a.mode==='connexion'?'Connecté':'Compte créé'}</h2>
-          <p style="font-size:14.5px;color:var(--ink-dim);margin:0 0 26px;">${a.mode==='connexion'?'À bientôt sur ton dashboard.':"Deux ou trois questions rapides, et ton dashboard est prêt."}</p>
-          <button onclick="${a.mode==='connexion'?"nav('dashboard')":"nav('onboarding')"}" class="btn btn-neon">${a.mode==='connexion'?'Voir mon dashboard':'Continuer'}</button>
+          <p style="font-size:14.5px;color:var(--ink-dim);margin:0 0 26px;">${state.profile?'À bientôt sur ton dashboard.':"Deux ou trois questions rapides, et ton dashboard est prêt."}</p>
+          <button onclick="${state.profile?"nav('dashboard')":"nav('onboarding')"}" class="btn btn-neon">${state.profile?'Voir mon dashboard':'Continuer'}</button>
         </div>
       </div>
     </section>`;
@@ -1261,14 +1331,14 @@ function pageConnexion(){
           <button onclick="toggleShowPass()" class="field-toggle" aria-label="Afficher">${I(a.showPass?'eyeOff':'eye',16)}</button>
           ${a.errors.pass?`<p class="field-error">${esc(a.errors.pass)}</p>`:''}
         </div>
-        <button onclick="submitAuth()" class="btn btn-neon btn-block" style="padding:15px;margin-top:4px;">${esc(a.mode==='connexion'?t('auth.btnLogin'):t('auth.btnJoin'))}</button>
+        <button onclick="submitAuth()" class="btn btn-neon btn-block" style="padding:15px;margin-top:4px;" ${a.loading?'disabled':''}>${a.loading?'…':esc(a.mode==='connexion'?t('auth.btnLogin'):t('auth.btnJoin'))}</button>
       </div>
     </div>
   </section>`;
 }
 function switchAuthMode(m){ state.auth.mode=m; state.auth.errors={}; render(); }
 function toggleShowPass(){ state.auth.showPass=!state.auth.showPass; render(); }
-function submitAuth(){
+async function submitAuth(){
   const a=state.auth;
   const nom = a.mode==='inscription' ? (document.getElementById('f-nom')?.value||'') : '';
   const email = document.getElementById('f-email').value;
@@ -1279,8 +1349,48 @@ function submitAuth(){
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) errors.email='E-mail invalide.';
   if(pass.length<6) errors.pass='6 caractères minimum.';
   a.errors=errors;
-  if(Object.keys(errors).length===0){ a.done=true; saveLocal(); }
+  if(Object.keys(errors).length){ render(); return; }
+
+  if(!sb){
+    // Pas de connexion à Supabase (mode démo hors-ligne / artifact) : on garde l'ancien comportement local.
+    a.done=true; saveLocal(); render();
+    return;
+  }
+
+  a.loading = true; render();
+  try{
+    let result;
+    if(a.mode==='inscription'){
+      result = await sb.auth.signUp({ email, password:pass, options:{ data:{ nom } } });
+    } else {
+      result = await sb.auth.signInWithPassword({ email, password:pass });
+    }
+    if(result.error) throw result.error;
+    authSession = result.data.session;
+    if(!authSession){
+      // Inscription avec confirmation e-mail activée : pas de session immédiate.
+      a.loading=false;
+      a.errors = { email: "Compte créé ! Vérifie ta boîte mail pour confirmer, puis connecte-toi." };
+      switchAuthMode('connexion');
+      return;
+    }
+    await syncFromServer();
+    a.loading=false; a.done=true; saveLocal();
+  }catch(err){
+    a.loading=false;
+    a.errors = { email: translateAuthError(err && err.message) };
+  }
   render();
+}
+async function signOut(){
+  if(sb) await sb.auth.signOut();
+  authSession = null;
+  state.profile=null; state.goals=[]; state.victories=[]; state.isPremium=false;
+  state.streak=0; state.savedTotal=0; state.sous=0; state.blockKeywords=[]; state.priceLimit='';
+  state.auth = {mode:'connexion',nom:'',email:'',pass:'',showPass:false,errors:{},done:false};
+  saveLocal();
+  toast('Déconnecté.','user');
+  nav('accueil');
 }
 
 function pageOnboarding(){
@@ -1988,16 +2098,26 @@ state.page = state.introDone ? 'accueil' : 'intro';
 render(false);
 renderAgent();
 
-/* Synchronisation avec le backend (statut premium + retour de Stripe Checkout) */
+/* Restaure la session Supabase existante (si l'utilisateur était déjà connecté) et synchronise. */
 (async function initServerSync(){
-  const me = await api('/api/me?cid='+encodeURIComponent(CID));
-  if(me && me.premium && !state.isPremium){ state.isPremium=true; render(false); }
+  if(sb){
+    try{
+      const { data } = await sb.auth.getSession();
+      if(data && data.session){
+        authSession = data.session;
+        await syncFromServer();
+        render(true);
+        renderAgent();
+      }
+    }catch(e){}
+  }
   let params;
   try{ params = new URLSearchParams(location.search); }catch(e){ return; }
   if(params.get('checkout')==='success' && params.get('session_id')){
-    const v = await api('/api/verify-session?session_id='+encodeURIComponent(params.get('session_id')));
+    const v = await authedApi('/api/verify-session?session_id='+encodeURIComponent(params.get('session_id')));
     if(v && v.premium){
       state.isPremium=true;
+      saveLocal();
       confettiBurst(null);
       toast('Paiement confirmé — bienvenue dans Premium ✨','crown');
       nav('dashboard');

@@ -1,16 +1,18 @@
 /*
  * Worthit — serveur backend
  * - Sert le site (public/)
+ * - Supabase : comptes utilisateurs (Auth) + base de données (profils, objectifs, victoires)
  * - /api/chat : agent IA Worthy (OpenAI si OPENAI_API_KEY est définie, sinon cerveau local)
  * - /api/create-checkout-session + /api/verify-session : abonnement Stripe Checkout
  * - /api/webhook : webhook Stripe (optionnel en local, recommandé en production)
  *
- * Les clés vivent dans .env (jamais dans le code, jamais côté front).
+ * Les clés vivent dans .env (jamais dans le code, jamais côté front, sauf l'anon key Supabase
+ * qui est conçue pour être publique et protégée par les policies RLS de la base).
  */
 require('dotenv').config();
 const express = require('express');
-const fs = require('fs');
 const path = require('path');
+const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,19 +22,33 @@ const stripe = STRIPE_KEY ? require('stripe')(STRIPE_KEY) : null;
 const OPENAI_KEY = process.env.OPENAI_API_KEY || '';
 const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 
-/* ---------- petit stockage JSON des abonnés premium (remplace par une vraie BDD en prod) ---------- */
-const DATA_DIR = path.join(__dirname, 'data');
-const STORE_FILE = path.join(DATA_DIR, 'premium.json');
-function loadStore() {
-  try { return JSON.parse(fs.readFileSync(STORE_FILE, 'utf8')); } catch { return {}; }
+const SUPABASE_URL = process.env.SUPABASE_URL || '';
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || '';
+const supa = (SUPABASE_URL && SUPABASE_SERVICE_KEY)
+  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } })
+  : null;
+
+/* ---------- identifie l'utilisateur connecté depuis le header Authorization: Bearer <token> ---------- */
+async function getUser(req) {
+  if (!supa) return null;
+  const auth = req.headers.authorization || '';
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
+  if (!token) return null;
+  const { data, error } = await supa.auth.getUser(token);
+  if (error || !data || !data.user) return null;
+  return data.user;
 }
-function saveStore(store) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.writeFileSync(STORE_FILE, JSON.stringify(store, null, 2));
+function requireAuth(handler) {
+  return async (req, res) => {
+    const user = await getUser(req);
+    if (!user) return res.status(401).json({ error: 'non_authentifie' });
+    req.user = user;
+    return handler(req, res);
+  };
 }
 
 /* ---------- webhook Stripe : DOIT être monté avant express.json() (corps brut requis) ---------- */
-app.post('/api/webhook', express.raw({ type: 'application/json' }), (req, res) => {
+app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   if (!stripe) return res.status(400).send('Stripe non configuré');
   const whSecret = process.env.STRIPE_WEBHOOK_SECRET;
   let event;
@@ -40,29 +56,28 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), (req, res) =
     if (whSecret) {
       event = stripe.webhooks.constructEvent(req.body, req.headers['stripe-signature'], whSecret);
     } else {
-      // Sans secret de webhook (dev local sans Stripe CLI), on fait confiance au corps.
       event = JSON.parse(req.body.toString());
     }
   } catch (err) {
     return res.status(400).send(`Webhook error: ${err.message}`);
   }
+  if (!supa) return res.json({ received: true });
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
-    const cid = session.client_reference_id;
-    if (cid) {
-      const store = loadStore();
-      store[cid] = { since: Date.now(), subscription: session.subscription || null };
-      saveStore(store);
-      console.log(`[stripe] premium activé pour ${cid}`);
+    const userId = session.client_reference_id;
+    if (userId) {
+      await supa.from('profiles').update({
+        is_premium: true,
+        stripe_customer_id: session.customer || null,
+        stripe_subscription_id: session.subscription || null,
+      }).eq('id', userId);
+      console.log(`[stripe] premium activé pour ${userId}`);
     }
   }
   if (event.type === 'customer.subscription.deleted') {
     const sub = event.data.object;
-    const store = loadStore();
-    for (const [cid, info] of Object.entries(store)) {
-      if (info.subscription === sub.id) { delete store[cid]; console.log(`[stripe] premium retiré pour ${cid}`); }
-    }
-    saveStore(store);
+    await supa.from('profiles').update({ is_premium: false }).eq('stripe_subscription_id', sub.id);
+    console.log(`[stripe] premium retiré (abonnement ${sub.id})`);
   }
   res.json({ received: true });
 });
@@ -70,22 +85,63 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), (req, res) =
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-/* ---------- statut premium ---------- */
-app.get('/api/me', (req, res) => {
-  const cid = req.query.cid;
-  const store = loadStore();
-  res.json({ premium: !!(cid && store[cid]) });
-});
+/* ---------- statut premium (public, sans auth : lecture seule via id) ---------- */
+app.get('/api/me', requireAuth(async (req, res) => {
+  const { data } = await supa.from('profiles').select('is_premium').eq('id', req.user.id).single();
+  res.json({ premium: !!(data && data.is_premium) });
+}));
 
-/* ---------- Stripe Checkout ---------- */
-app.post('/api/create-checkout-session', async (req, res) => {
-  const { cid, billing } = req.body || {};
+/* ---------- synchro profil complet : GET pour charger, POST pour sauvegarder ---------- */
+app.get('/api/sync', requireAuth(async (req, res) => {
+  const uid = req.user.id;
+  const [{ data: profile }, { data: goals }, { data: victories }] = await Promise.all([
+    supa.from('profiles').select('*').eq('id', uid).maybeSingle(),
+    supa.from('goals').select('*').eq('user_id', uid).order('created_at'),
+    supa.from('victories').select('*').eq('user_id', uid).order('created_at', { ascending: false }).limit(20),
+  ]);
+  res.json({ profile: profile || null, goals: goals || [], victories: victories || [] });
+}));
+
+app.post('/api/sync', requireAuth(async (req, res) => {
+  const uid = req.user.id;
+  const { profile, goals, victories } = req.body || {};
+  try {
+    if (profile) {
+      await supa.from('profiles').upsert({ id: uid, ...profile, updated_at: new Date().toISOString() });
+    }
+    if (Array.isArray(goals)) {
+      await supa.from('goals').delete().eq('user_id', uid);
+      if (goals.length) {
+        await supa.from('goals').insert(goals.map(g => ({
+          user_id: uid, name: g.name, target: g.target, current: g.current || 0,
+        })));
+      }
+    }
+    if (Array.isArray(victories)) {
+      await supa.from('victories').delete().eq('user_id', uid);
+      if (victories.length) {
+        await supa.from('victories').insert(victories.slice(0, 20).map(v => ({
+          user_id: uid, item: v.item, price: v.price, goal_name: v.goal || v.goal_name || null,
+        })));
+      }
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[sync]', err.message);
+    res.status(500).json({ error: 'sync_error' });
+  }
+}));
+
+/* ---------- Stripe Checkout (nécessite un compte connecté) ---------- */
+app.post('/api/create-checkout-session', requireAuth(async (req, res) => {
+  const { billing } = req.body || {};
   if (!stripe) return res.json({ demo: true }); // pas de clé : le front reste en mode démo
   try {
     const monthly = billing !== 'annuel';
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
-      client_reference_id: cid || undefined,
+      client_reference_id: req.user.id,
+      customer_email: req.user.email,
       line_items: [{
         quantity: 1,
         price_data: {
@@ -103,25 +159,27 @@ app.post('/api/create-checkout-session', async (req, res) => {
     console.error('[stripe]', err.message);
     res.status(500).json({ error: 'stripe_error' });
   }
-});
+}));
 
 /* Vérification au retour de Checkout (pratique en local, le webhook reste la source de vérité en prod) */
-app.get('/api/verify-session', async (req, res) => {
+app.get('/api/verify-session', requireAuth(async (req, res) => {
   if (!stripe) return res.json({ premium: false });
   try {
     const session = await stripe.checkout.sessions.retrieve(req.query.session_id);
     const paid = session && (session.payment_status === 'paid' || session.status === 'complete');
-    if (paid && session.client_reference_id) {
-      const store = loadStore();
-      store[session.client_reference_id] = { since: Date.now(), subscription: session.subscription || null };
-      saveStore(store);
+    if (paid && session.client_reference_id === req.user.id) {
+      await supa.from('profiles').update({
+        is_premium: true,
+        stripe_customer_id: session.customer || null,
+        stripe_subscription_id: session.subscription || null,
+      }).eq('id', req.user.id);
     }
     res.json({ premium: !!paid });
   } catch (err) {
     console.error('[stripe]', err.message);
     res.status(500).json({ error: 'stripe_error' });
   }
-});
+}));
 
 /* ---------- agent IA Worthy ---------- */
 const SYSTEM_PROMPT = `Tu es Worthy, l'assistant anti-achat-impulsif de l'application Worthit.
@@ -191,6 +249,7 @@ app.post('/api/chat', async (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Worthit démarré : http://localhost:${PORT}`);
+  console.log(`  Supabase : ${supa ? 'configuré (comptes + base de données réels)' : 'NON configuré (ajoute SUPABASE_URL/SUPABASE_SERVICE_KEY dans .env)'}`);
   console.log(`  Stripe : ${stripe ? 'configuré' : 'NON configuré (mode démo — ajoute STRIPE_SECRET_KEY dans .env)'}`);
   console.log(`  OpenAI : ${OPENAI_KEY ? 'configuré (' + OPENAI_MODEL + ')' : 'NON configuré (cerveau local — ajoute OPENAI_API_KEY dans .env)'}`);
 });

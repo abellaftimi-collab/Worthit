@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<style>
+  body{width:300px;margin:0;padding:18px;background:#0c0716;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;}
+  h1{display:flex;align-items:center;gap:8px;font-size:15px;margin:0 0 4px;}
+  h1 .dot{width:9px;height:9px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#7c3aed);box-shadow:0 0 10px rgba(167,139,250,.8);}
+  .sub{font-size:11px;color:rgba(255,255,255,.45);margin:0 0 16px;}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;font-size:13px;}
+  .switch{position:relative;width:38px;height:21px;flex-shrink:0;}
+  .switch input{opacity:0;width:0;height:0;}
+  .slider{position:absolute;inset:0;border-radius:99px;background:rgba(255,255,255,.15);transition:.25s;cursor:pointer;}
+  .slider:before{content:"";position:absolute;left:3px;top:3px;width:15px;height:15px;border-radius:50%;background:#fff;transition:.25s;}
+  input:checked + .slider{background:linear-gradient(135deg,#a78bfa,#7c3aed);}
+  input:checked + .slider:before{transform:translateX(17px);}
+  label.lbl{color:rgba(255,255,255,.8);}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 10px;}
+  .chip{display:inline-flex;align-items:center;gap:5px;background:rgba(167,139,250,.15);border:1px solid rgba(167,139,250,.4);color:#cbb8ff;font-size:11.5px;padding:4px 10px;border-radius:99px;}
+  .chip button{background:none;border:none;color:inherit;cursor:pointer;padding:0;font-size:12px;line-height:1;}
+  .add-row{display:flex;gap:6px;margin-bottom:14px;}
+  input[type=text],input[type=number]{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:9px;color:#fff;font-size:12.5px;padding:8px 10px;outline:none;flex:1;min-width:0;font-family:inherit;}
+  input:focus{border-color:rgba(167,139,250,.6);}
+  .btn{background:linear-gradient(135deg,#a78bfa,#7c3aed);border:none;border-radius:9px;color:#fff;font-size:12px;font-weight:700;padding:8px 12px;cursor:pointer;font-family:inherit;}
+  .price-row{display:flex;align-items:center;gap:8px;font-size:12.5px;color:rgba(255,255,255,.7);margin-bottom:16px;}
+  .price-row input{width:64px;flex:none;text-align:right;}
+  .foot{font-size:10.5px;color:rgba(255,255,255,.35);text-align:center;margin:0;}
+  .foot a{color:#a78bfa;text-decoration:none;}
+  .h{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.4);margin:14px 0 6px;}
+</style>
+</head>
+<body>
+  <h1><span class="dot"></span>worthit</h1>
+  <p class="sub">Du côté de l'acheteur, jamais du vendeur.</p>
+
+  <div class="row">
+    <label class="lbl" for="enabled">Protection active</label>
+    <span class="switch"><input type="checkbox" id="enabled" checked><span class="slider"></span></span>
+  </div>
+  <div class="row">
+    <label class="lbl" for="pauseAll">Pause sur tous les achats</label>
+    <span class="switch"><input type="checkbox" id="pauseAll" checked><span class="slider"></span></span>
+  </div>
+
+  <p class="h">Mots-clés bloqués</p>
+  <div class="chips" id="chips"></div>
+  <div class="add-row">
+    <input type="text" id="kw" placeholder="Ex : sneakers, gaming…">
+    <button class="btn" id="add">Bloquer</button>
+  </div>
+
+  <p class="h">Seuil de prix</p>
+  <div class="price-row">
+    <span>Pause imposée au-delà de</span>
+    <input type="number" id="priceLimit" min="0" placeholder="0">
+    <span>€</span>
+  </div>
+
+  <p class="foot">Astuce : 0 = pas de seuil. <a href="https://github.com/abellaftimi-collab/Worthit" target="_blank">Worthit</a></p>
+  <script src="popup.js"></script>
+</body>
+</html>

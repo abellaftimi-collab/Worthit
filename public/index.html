@@ -853,6 +853,8 @@ function saveLocal(){
       isPremiumDemo:state.isPremium, authNom:state.auth.nom, lang:state.lang,
       agentFreeUsed:(typeof agent!=='undefined'?agent.freeUsed:0), agentFreeDate:(new Date()).toDateString(),
     }));
+    // Canal de synchro avec l'extension Chrome : elle lit cette clé quand tu visites le site.
+    localStorage.setItem('worthit_ext_sync', JSON.stringify({keywords:state.blockKeywords||[], priceLimit:state.priceLimit||0, ts:Date.now()}));
   }catch(e){}
   if(typeof syncToServer==='function') syncToServer();
 }
@@ -1886,7 +1888,7 @@ function openFeature(i){
 function blocksCard(){
   return `<div class="glass reveal" style="border-radius:18px;padding:22px 20px;margin-bottom:16px;">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;"><span style="color:var(--v1);display:flex;">${I('shield',17)}</span><p style="font-size:13px;font-weight:700;color:#fff;margin:0;">Limites et blocages</p></div>
-    <p style="font-size:12.5px;color:var(--ink-dim);margin:0 0 16px;">Mots-clés sensibles et seuil de prix : au-delà, la pause de 24 h s'impose avant tout achat.</p>
+    <p style="font-size:12.5px;color:var(--ink-dim);margin:0 0 16px;">Mots-clés sensibles et seuil de prix : la pause de 24 h s'impose à l'achat, et l'extension Chrome <strong>masque les produits</strong> correspondants. Synchronisé automatiquement avec l'extension quand tu visites cette page.</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
       ${state.blockKeywords.length
         ? state.blockKeywords.map(w=>`<span class="filter-pill active" style="display:inline-flex;align-items:center;gap:6px;">${esc(w)}<button onclick="removeBlockKeyword('${w.replace(/'/g,"\\'")}')" style="background:none;border:none;cursor:pointer;color:inherit;display:flex;padding:0;" aria-label="Retirer ${esc(w)}">${I('x',12)}</button></span>`).join('')
@@ -2471,6 +2473,7 @@ function renderAgent(){
 }
 
 /* ============================== INIT ============================== */
+document.documentElement.dataset.worthitApp = '1'; // marqueur lu par l'extension Chrome (synchro + pas de blocage ici)
 loadLocal();
 state.page = state.introDone ? 'accueil' : 'intro';
 render(false);

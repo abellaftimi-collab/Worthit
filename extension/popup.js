@@ -1,5 +1,5 @@
 /* Worthit — popup de réglages (chrome.storage.sync) */
-let cfg = { enabled: true, pauseAll: true, keywords: [], priceLimit: 0 };
+let cfg = { enabled: true, pauseAll: true, hideResults: true, keywords: [], priceLimit: 0 };
 
 const $ = (id) => document.getElementById(id);
 
@@ -33,12 +33,14 @@ chrome.storage.sync.get(['worthitCfg'], (r) => {
   if (r && r.worthitCfg) cfg = Object.assign(cfg, r.worthitCfg);
   $('enabled').checked = cfg.enabled;
   $('pauseAll').checked = cfg.pauseAll;
+  $('hideResults').checked = cfg.hideResults !== false;
   $('priceLimit').value = cfg.priceLimit || '';
   renderChips();
 });
 
 $('enabled').addEventListener('change', (e) => { cfg.enabled = e.target.checked; save(); });
 $('pauseAll').addEventListener('change', (e) => { cfg.pauseAll = e.target.checked; save(); });
+$('hideResults').addEventListener('change', (e) => { cfg.hideResults = e.target.checked; save(); });
 $('priceLimit').addEventListener('change', (e) => { cfg.priceLimit = Math.max(0, +e.target.value || 0); save(); });
 function addKw() {
   const v = ($('kw').value || '').trim();

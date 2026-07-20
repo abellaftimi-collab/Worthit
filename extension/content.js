@@ -1,35 +1,101 @@
 /*
  * Worthit — content script
- * Intercepte les clics sur les boutons d'achat et impose l'écran de pause.
- * Réglages (mots-clés, seuil de prix, on/off) : via le popup de l'extension (chrome.storage.sync).
+ * 1) Intercepte les clics sur les boutons d'achat et impose l'écran de pause.
+ * 2) Masque (floute) les produits contenant tes mots-clés bloqués dans les pages de résultats.
+ * 3) Se synchronise automatiquement avec ton compte quand tu visites ton dashboard Worthit.
+ * Réglages : popup de l'extension (chrome.storage.sync) + synchro depuis le site.
  */
 (function () {
   'use strict';
 
   const BUY_WORDS = /(ajouter au panier|add to cart|add to bag|add to basket|buy now|acheter|payer maintenant|payer|commander|passer la commande|valider (ma |la )?commande|checkout|proceed to|place order|in den warenkorb|jetzt kaufen|zur kasse|comprar|añadir a la cesta|pagar|in winkelwagen|afrekenen|nu kopen|bestellen)/i;
 
-  let cfg = { enabled: true, pauseAll: true, keywords: [], priceLimit: 0 };
-
-  chrome.storage.sync.get(['worthitCfg'], (r) => {
-    if (r && r.worthitCfg) cfg = Object.assign(cfg, r.worthitCfg);
-  });
-  chrome.storage.onChanged.addListener((changes) => {
-    if (changes.worthitCfg && changes.worthitCfg.newValue) {
-      cfg = Object.assign(cfg, changes.worthitCfg.newValue);
-    }
-  });
+  let cfg = { enabled: true, pauseAll: true, hideResults: true, keywords: [], priceLimit: 0 };
 
   const allowKey = 'worthit_allow_' + location.hostname;
 
+  function isWorthitApp() {
+    return document.documentElement.dataset.worthitApp === '1';
+  }
+
+  /* ---------- 3) Synchronisation compte → extension (sur le site Worthit uniquement) ---------- */
+  function syncFromSite() {
+    if (!isWorthitApp()) return;
+    try {
+      const raw = localStorage.getItem('worthit_ext_sync');
+      if (!raw) return;
+      const d = JSON.parse(raw);
+      if (!d || typeof d !== 'object') return;
+      const nextKeywords = Array.isArray(d.keywords) ? d.keywords.map(String).slice(0, 50) : cfg.keywords;
+      const nextLimit = Math.max(0, +d.priceLimit || 0);
+      if (JSON.stringify(nextKeywords) !== JSON.stringify(cfg.keywords) || nextLimit !== cfg.priceLimit) {
+        cfg.keywords = nextKeywords;
+        cfg.priceLimit = nextLimit;
+        chrome.storage.sync.set({ worthitCfg: cfg });
+      }
+    } catch (e) {}
+  }
+  setTimeout(syncFromSite, 1200);
+  setInterval(syncFromSite, 4000);
+
+  /* ---------- 2) Masquage des produits contenant un mot-clé bloqué ---------- */
+  let styleInjected = false;
+  function injectStyle() {
+    if (styleInjected) return;
+    styleInjected = true;
+    const st = document.createElement('style');
+    st.textContent = '.worthit-masked{filter:blur(10px) grayscale(.65) !important;opacity:.4 !important;pointer-events:none !important;user-select:none !important;transition:filter .3s ease;}';
+    document.documentElement.appendChild(st);
+  }
+  let maskedCount = 0;
+  function maskProducts() {
+    if (!cfg.enabled || !cfg.hideResults || !(cfg.keywords || []).length) return;
+    if (isWorthitApp()) return;
+    const kws = cfg.keywords.map(k => String(k).toLowerCase()).filter(Boolean);
+    if (!kws.length) return;
+    injectStyle();
+    const links = document.querySelectorAll('a:not([data-worthit-checked])');
+    let checked = 0;
+    for (const a of links) {
+      if (checked++ > 500) break;
+      a.setAttribute('data-worthit-checked', '1');
+      const t = (a.innerText || '').slice(0, 300).toLowerCase();
+      if (!t) continue;
+      const hit = kws.find(k => t.includes(k));
+      if (!hit) continue;
+      const card = a.closest('li,article,[class*="product" i],[class*="item" i],[class*="card" i]') || a;
+      if (card.dataset.worthitMasked) continue;
+      const r = card.getBoundingClientRect();
+      // garde-fou : ne jamais flouter un conteneur qui couvre presque toute la page
+      if (r.width > window.innerWidth * 0.92 && r.height > window.innerHeight * 0.7) continue;
+      card.dataset.worthitMasked = '1';
+      card.classList.add('worthit-masked');
+      card.title = 'Masqué par Worthit (mot-clé « ' + hit + ' »)';
+      if (++maskedCount > 80) return; // limite de sécurité par page
+    }
+  }
+  let maskTimer = null;
+  const mo = new MutationObserver(() => {
+    clearTimeout(maskTimer);
+    maskTimer = setTimeout(maskProducts, 500);
+  });
+  if (document.body) mo.observe(document.body, { childList: true, subtree: true });
+  document.addEventListener('DOMContentLoaded', () => {
+    if (document.body) mo.observe(document.body, { childList: true, subtree: true });
+    maskProducts();
+  });
+  setTimeout(maskProducts, 1500);
+
+  /* ---------- 1) Pause à l'achat ---------- */
   function detectPrice(el) {
-    const re = /(\d{1,4}(?:[  .,]\d{3})*(?:[.,]\d{2})?)\s?(?:€|EUR)|(?:€|EUR)\s?(\d{1,4}(?:[.,]\d{2})?)/;
+    const re = /(\d{1,4}(?:[  .,]\d{3})*(?:[.,]\d{2})?)\s?(?:€|EUR)|(?:€|EUR)\s?(\d{1,4}(?:[.,]\d{2})?)/;
     let node = el;
     for (let d = 0; d < 6 && node; d++, node = node.parentElement) {
       const m = (node.innerText || '').match(re);
-      if (m) return parseFloat((m[1] || m[2]).replace(/[  ]/g, '').replace(',', '.')) || 0;
+      if (m) return parseFloat((m[1] || m[2]).replace(/[  ]/g, '').replace(',', '.')) || 0;
     }
     const m = (document.body.innerText || '').match(re);
-    return m ? parseFloat((m[1] || m[2]).replace(/[  ]/g, '').replace(',', '.')) || 0 : 0;
+    return m ? parseFloat((m[1] || m[2]).replace(/[  ]/g, '').replace(',', '.')) || 0 : 0;
   }
 
   function overlayHtml(price, kwHit) {
@@ -80,7 +146,7 @@
   }
 
   document.addEventListener('click', (e) => {
-    if (!cfg.enabled) return;
+    if (!cfg.enabled || isWorthitApp()) return;
     const btn = e.target && e.target.closest && e.target.closest('button, a, input[type="submit"], [role="button"]');
     if (!btn) return;
     const label = ((btn.innerText || btn.value || btn.getAttribute('aria-label') || '') + '').slice(0, 140);
@@ -101,4 +167,16 @@
     e.stopImmediatePropagation();
     showOverlay(btn, price, kwHit);
   }, true);
+
+  /* ---------- chargement des réglages (en dernier : toutes les fonctions sont prêtes) ---------- */
+  chrome.storage.sync.get(['worthitCfg'], (r) => {
+    if (r && r.worthitCfg) cfg = Object.assign(cfg, r.worthitCfg);
+    maskProducts();
+  });
+  chrome.storage.onChanged.addListener((changes) => {
+    if (changes.worthitCfg && changes.worthitCfg.newValue) {
+      cfg = Object.assign(cfg, changes.worthitCfg.newValue);
+      maskProducts();
+    }
+  });
 })();

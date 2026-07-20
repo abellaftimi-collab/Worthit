@@ -21,6 +21,8 @@ const STRIPE_KEY = process.env.STRIPE_SECRET_KEY || '';
 const stripe = STRIPE_KEY ? require('stripe')(STRIPE_KEY) : null;
 const OPENAI_KEY = process.env.OPENAI_API_KEY || '';
 const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+// Surchargeable pour les tests, ou pour viser une API compatible OpenAI.
+const OPENAI_BASE = (process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(/\/+$/, '');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || '';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || '';
@@ -51,13 +53,15 @@ function requireAuth(handler) {
 app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   if (!stripe) return res.status(400).send('Stripe non configuré');
   const whSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  // Sans secret, impossible de vérifier que l'événement vient bien de Stripe : n'importe qui
+  // pourrait poster un faux « checkout.session.completed » et s'offrir le Premium. On refuse.
+  if (!whSecret) {
+    console.error('[webhook] rejeté : STRIPE_WEBHOOK_SECRET absent du .env');
+    return res.status(500).send('Webhook non configuré');
+  }
   let event;
   try {
-    if (whSecret) {
-      event = stripe.webhooks.constructEvent(req.body, req.headers['stripe-signature'], whSecret);
-    } else {
-      event = JSON.parse(req.body.toString());
-    }
+    event = stripe.webhooks.constructEvent(req.body, req.headers['stripe-signature'], whSecret);
   } catch (err) {
     return res.status(400).send(`Webhook error: ${err.message}`);
   }
@@ -118,7 +122,8 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, 
   }
 });
 
-app.use(express.json());
+app.set('trust proxy', 1); // derrière le proxy Render : req.ip = vraie IP client, pas celle du proxy
+app.use(express.json({ limit: '256kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 /* ---------- statut premium (public, sans auth : lecture seule via id) ---------- */
@@ -275,23 +280,51 @@ function localBrain(raw, ctx) {
   return "Dis-m'en plus : c'est quoi, et ça coûte combien ? Donne-moi un prix et je te montre ce que ça représente sur ton mois.";
 }
 
+/* Quota IA par IP : /api/chat est public (la démo doit marcher sans compte), donc sans garde-fou
+ * n'importe qui peut faire tourner la facture OpenAI. Au-delà du quota on ne bloque pas
+ * l'utilisateur — le cerveau local répond, gratuitement. */
+const CHAT_WINDOW_MS = 5 * 60 * 1000;
+const CHAT_MAX_AI = 15;          // appels OpenAI autorisés par IP et par fenêtre
+const MAX_MESSAGE_LEN = 2000;
+const chatHits = new Map();      // ip -> { count, resetAt }
+
+function aiQuotaAvailable(ip) {
+  const now = Date.now();
+  const hit = chatHits.get(ip);
+  if (!hit || now > hit.resetAt) {
+    chatHits.set(ip, { count: 1, resetAt: now + CHAT_WINDOW_MS });
+    return true;
+  }
+  hit.count++;
+  return hit.count <= CHAT_MAX_AI;
+}
+// purge des entrées expirées pour que la Map ne grossisse pas indéfiniment
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, hit] of chatHits) if (now > hit.resetAt) chatHits.delete(ip);
+}, CHAT_WINDOW_MS).unref();
+
 app.post('/api/chat', async (req, res) => {
   const { message, history, context } = req.body || {};
   if (!message || typeof message !== 'string') return res.status(400).json({ error: 'message manquant' });
+  if (message.length > MAX_MESSAGE_LEN) return res.status(400).json({ error: 'message_trop_long' });
 
   if (!OPENAI_KEY) {
     return res.json({ reply: localBrain(message, context), source: 'local' });
+  }
+  if (!aiQuotaAvailable(req.ip)) {
+    return res.json({ reply: localBrain(message, context), source: 'local-quota' });
   }
   try {
     const messages = [
       { role: 'system', content: SYSTEM_PROMPT + '\n\nContexte utilisateur (JSON) :\n' + JSON.stringify(context || {}) },
       ...(Array.isArray(history) ? history.slice(-10).map(m => ({
         role: m.who === 'user' ? 'user' : 'assistant',
-        content: String(m.text || ''),
+        content: String(m.text || '').slice(0, MAX_MESSAGE_LEN),
       })) : []),
       { role: 'user', content: message },
     ];
-    const r = await fetch('https://api.openai.com/v1/chat/completions', {
+    const r = await fetch(`${OPENAI_BASE}/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
       body: JSON.stringify({ model: OPENAI_MODEL, messages, max_tokens: 350, temperature: 0.7 }),
@@ -306,9 +339,20 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
+/* ---------- fallback SPA : /tarifs, /a-propos… renvoient l'app (le routing se fait côté client) ---------- */
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api/')) return next();
+  if (path.extname(req.path)) return next(); // fichier réellement introuvable : vrai 404
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 app.listen(PORT, () => {
   console.log(`Worthit démarré : http://localhost:${PORT}`);
   console.log(`  Supabase : ${supa ? 'configuré (comptes + base de données réels)' : 'NON configuré (ajoute SUPABASE_URL/SUPABASE_SERVICE_KEY dans .env)'}`);
   console.log(`  Stripe : ${stripe ? 'configuré' : 'NON configuré (mode démo — ajoute STRIPE_SECRET_KEY dans .env)'}`);
+  if (stripe && !process.env.STRIPE_WEBHOOK_SECRET) {
+    console.warn('  ⚠ Webhook : STRIPE_WEBHOOK_SECRET absent — /api/webhook refuse tout appel.');
+    console.warn('    En local : `stripe listen --forward-to localhost:3000/api/webhook` puis colle le whsec_… dans .env');
+  }
   console.log(`  OpenAI : ${OPENAI_KEY ? 'configuré (' + OPENAI_MODEL + ')' : 'NON configuré (cerveau local — ajoute OPENAI_API_KEY dans .env)'}`);
 });

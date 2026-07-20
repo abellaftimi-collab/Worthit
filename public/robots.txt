@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: https://worthit-bi9e.onrender.com/sitemap.xml

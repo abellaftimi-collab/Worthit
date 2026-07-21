@@ -1099,6 +1099,7 @@ function toggleLangMenu(e){
 function setLang(code){
   state.lang = code;
   state.langMenuOpen = false;
+  document.documentElement.lang = code; // sinon lecteurs d'écran et moteurs de recherche restent sur le français
   saveLocal();
   // Le message d'accueil de Worthy est déjà dans l'historique : on le retraduit
   // sur place, sans toucher à une conversation éventuellement en cours.
@@ -1466,8 +1467,13 @@ async function loadFriends(force){
 
 function copierMonId(){
   if(!friendsState.monId) return;
-  try{ navigator.clipboard.writeText(friendsState.monId); toast('Identifiant copié — envoie-le à ton ami.','link'); }
-  catch(e){ toast('Copie impossible, note-le à la main.','link'); }
+  // writeText() renvoie une Promise : sans l'attendre, un échec (permission refusée,
+  // contexte non sécurisé) passait inaperçu et le toast annonçait un succès mensonger.
+  const ok = () => toast('Identifiant copié — envoie-le à ton ami.','link');
+  const echec = () => toast('Copie impossible, note-le à la main.','link');
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(friendsState.monId).then(ok).catch(echec);
+  } else echec();
 }
 async function envoyerDemandeAmi(){
   const input = document.getElementById('friend-id-input');
@@ -2757,6 +2763,7 @@ function renderAgent(){
 /* ============================== INIT ============================== */
 document.documentElement.dataset.worthitApp = '1'; // marqueur lu par l'extension Chrome (synchro + pas de blocage ici)
 loadLocal();
+document.documentElement.lang = state.lang; // reflète la langue déjà choisie dès le premier rendu, pas juste après un clic
 /* L'URL d'arrivée gagne (lien partagé, F5, favori). Sur la racine seulement,
  * une première visite passe par l'intro. */
 const bootPage = pageForPath(location.pathname);

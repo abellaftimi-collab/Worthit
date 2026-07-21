@@ -10,7 +10,7 @@
 
   const BUY_WORDS = /(ajouter au panier|add to cart|add to bag|add to basket|buy now|acheter|payer maintenant|payer|commander|passer la commande|valider (ma |la )?commande|checkout|proceed to|place order|in den warenkorb|jetzt kaufen|zur kasse|comprar|añadir a la cesta|pagar|in winkelwagen|afrekenen|nu kopen|bestellen)/i;
 
-  let cfg = { enabled: true, pauseAll: true, hideResults: true, keywords: [], priceLimit: 0 };
+  let cfg = { enabled: true, pauseAll: true, hideResults: true, blockSearch: true, keywords: [], priceLimit: 0 };
 
   const allowKey = 'worthit_allow_' + location.hostname;
 
@@ -92,7 +92,7 @@
   let maskTimer = null;
   const mo = new MutationObserver(() => {
     clearTimeout(maskTimer);
-    maskTimer = setTimeout(maskProducts, 500);
+    maskTimer = setTimeout(() => { checkBlockedSearch(); maskProducts(); }, 500);
   });
   if (document.body) mo.observe(document.body, { childList: true, subtree: true });
   document.addEventListener('DOMContentLoaded', () => {
@@ -100,6 +100,92 @@
     maskProducts();
   });
   setTimeout(maskProducts, 1500);
+
+  /* ---------- 2 bis) Blocage de la recherche elle-même ----------
+   * Plus fort que le floutage : si la requête tapée contient un mot-clé bloqué,
+   * on masque toute la page de résultats derrière un écran de pause. */
+  const SEARCH_PARAMS = ['q', 'k', 'query', 'search', 'search_text', 'searchterm', 'search_query',
+    'keyword', 'keywords', 'text', 'term', '_nkw', 'searchtext', 'wd'];
+  const searchAllowKey = 'worthit_search_allow_' + location.hostname;
+
+  function currentSearchQuery() {
+    try {
+      const p = new URLSearchParams(location.search);
+      for (const key of SEARCH_PARAMS) {
+        const v = p.get(key);
+        if (v && v.trim()) return v.trim();
+      }
+    } catch (e) {}
+    // Certains sites mettent la recherche dans le chemin : /search/nike, /recherche/nike
+    const m = location.pathname.match(/\/(?:search|recherche|catalogsearch\/result)\/([^/?#]+)/i);
+    if (m) { try { return decodeURIComponent(m[1]).replace(/[-+_]/g, ' '); } catch (e) {} }
+    const el = document.querySelector('input[type="search"],input[name="q"],input[name="k"]');
+    return el && el.value ? el.value.trim() : '';
+  }
+
+  function searchAllowedNow() {
+    try { return Date.now() < (+sessionStorage.getItem(searchAllowKey) || 0); } catch (e) { return false; }
+  }
+
+  function showSearchBlock(hit, query) {
+    if (document.getElementById('worthit-search-block')) return;
+    const host = document.createElement('div');
+    host.id = 'worthit-search-host';
+    host.innerHTML = `
+      <div id="worthit-search-block" style="position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(5,3,10,.94);backdrop-filter:blur(14px);font-family:'Segoe UI',system-ui,sans-serif;">
+        <div style="max-width:430px;width:100%;background:linear-gradient(165deg,#1a102c,#0c0716);border:1px solid rgba(167,139,250,.35);border-radius:22px;padding:32px 28px;box-shadow:0 40px 90px rgba(0,0,0,.6),0 0 50px rgba(124,58,237,.2);animation:worthitPop .45s cubic-bezier(.34,1.56,.64,1) both;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;">
+            <span style="width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#7c3aed);box-shadow:0 0 12px rgba(167,139,250,.8);"></span>
+            <span style="color:#fff;font-size:16px;font-weight:800;letter-spacing:-.02em;">worthit</span>
+            <span style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.4);">Recherche bloquée</span>
+          </div>
+          <h2 style="color:#fff;font-size:20px;font-weight:800;margin:0 0 12px;line-height:1.35;">Tu cherches « ${esc(query)} ».</h2>
+          <p style="color:rgba(255,255,255,.62);font-size:14px;line-height:1.6;margin:0 0 24px;">
+            Tu as toi-même bloqué <strong style="color:rgba(255,255,255,.85);">« ${esc(hit)} »</strong> un jour où tu avais les idées claires.<br/>
+            Rien n'a changé depuis, à part l'envie du moment.
+          </p>
+          <div style="display:flex;flex-direction:column;gap:9px;">
+            <button id="worthit-sb-leave" style="padding:14px;border-radius:13px;border:none;cursor:pointer;background:linear-gradient(135deg,#a78bfa,#7c3aed);color:#fff;font-size:14.5px;font-weight:700;font-family:inherit;">💪 Je fais autre chose</button>
+            <button id="worthit-sb-stay" style="padding:12px;border-radius:13px;border:1px solid rgba(255,255,255,.18);cursor:pointer;background:transparent;color:rgba(255,255,255,.75);font-size:13px;font-family:inherit;">Voir quand même (5 min)</button>
+          </div>
+          <p style="font-size:10.5px;color:rgba(255,255,255,.3);margin:18px 0 0;text-align:center;">Worthit est du côté de l'acheteur, jamais du vendeur.</p>
+        </div>
+      </div>
+      <style>@keyframes worthitPop{from{opacity:0;transform:scale(.6) translateY(30px);}to{opacity:1;transform:scale(1) translateY(0);}}</style>`;
+    document.documentElement.appendChild(host);
+    const prevOverflow = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = 'hidden';
+    const close = () => { host.remove(); document.documentElement.style.overflow = prevOverflow; };
+    document.getElementById('worthit-sb-leave').addEventListener('click', () => {
+      close();
+      if (history.length > 1) history.back(); else location.href = 'about:blank';
+    });
+    document.getElementById('worthit-sb-stay').addEventListener('click', () => {
+      try { sessionStorage.setItem(searchAllowKey, String(Date.now() + 5 * 60 * 1000)); } catch (e) {}
+      close();
+    });
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g,
+      (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  function checkBlockedSearch() {
+    if (!cfg.enabled || cfg.blockSearch === false || isWorthitApp()) return;
+    if (!(cfg.keywords || []).length) return;
+    if (searchAllowedNow()) return;
+    const q = currentSearchQuery().toLowerCase();
+    if (!q) return;
+    const hit = (cfg.keywords || []).find((k) => k && q.includes(String(k).toLowerCase()));
+    if (hit) showSearchBlock(hit, currentSearchQuery());
+  }
+
+  // Google & co changent l'URL sans recharger la page : on surveille aussi les changements d'URL.
+  let lastUrl = location.href;
+  setInterval(() => {
+    if (location.href !== lastUrl) { lastUrl = location.href; checkBlockedSearch(); }
+  }, 800);
 
   /* ---------- 1) Pause à l'achat ---------- */
   function detectPrice(el) {
@@ -186,11 +272,13 @@
   /* ---------- chargement des réglages (en dernier : toutes les fonctions sont prêtes) ---------- */
   chrome.storage.sync.get(['worthitCfg'], (r) => {
     if (r && r.worthitCfg) cfg = Object.assign(cfg, r.worthitCfg);
+    checkBlockedSearch();
     maskProducts();
   });
   chrome.storage.onChanged.addListener((changes) => {
     if (changes.worthitCfg && changes.worthitCfg.newValue) {
       cfg = Object.assign(cfg, changes.worthitCfg.newValue);
+      checkBlockedSearch();
       maskProducts();
     }
   });

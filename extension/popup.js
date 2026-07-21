@@ -1,5 +1,5 @@
 /* Worthit — popup de réglages (chrome.storage.sync) */
-let cfg = { enabled: true, pauseAll: true, hideResults: true, keywords: [], priceLimit: 0 };
+let cfg = { enabled: true, pauseAll: true, hideResults: true, blockSearch: true, keywords: [], priceLimit: 0 };
 
 const $ = (id) => document.getElementById(id);
 
@@ -34,6 +34,7 @@ chrome.storage.sync.get(['worthitCfg'], (r) => {
   $('enabled').checked = cfg.enabled;
   $('pauseAll').checked = cfg.pauseAll;
   $('hideResults').checked = cfg.hideResults !== false;
+  $('blockSearch').checked = cfg.blockSearch !== false;
   $('priceLimit').value = cfg.priceLimit || '';
   renderChips();
 });
@@ -41,6 +42,7 @@ chrome.storage.sync.get(['worthitCfg'], (r) => {
 $('enabled').addEventListener('change', (e) => { cfg.enabled = e.target.checked; save(); });
 $('pauseAll').addEventListener('change', (e) => { cfg.pauseAll = e.target.checked; save(); });
 $('hideResults').addEventListener('change', (e) => { cfg.hideResults = e.target.checked; save(); });
+$('blockSearch').addEventListener('change', (e) => { cfg.blockSearch = e.target.checked; save(); });
 $('priceLimit').addEventListener('change', (e) => { cfg.priceLimit = Math.max(0, +e.target.value || 0); save(); });
 function addKw() {
   const v = ($('kw').value || '').trim();

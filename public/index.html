@@ -448,7 +448,8 @@ async function syncFromServer(){
       weaknesses:r.profile.weaknesses||[], impulseFreq:r.profile.impulse_freq,
       income:Number(r.profile.income)||0, rent:Number(r.profile.rent)||0, charges:Number(r.profile.charges)||0,
     };
-    state.isPremium = !!r.profile.is_premium;
+    // Le serveur fait foi : abonnement Stripe OU semaine offerte encore valable.
+    state.isPremium = (r.premium !== undefined) ? !!r.premium : !!r.profile.is_premium;
     state.streak = r.profile.streak||0;
     state.savedTotal = Number(r.profile.saved_total)||0;
     state.sous = r.profile.sous||0;
@@ -474,8 +475,10 @@ async function syncToServer(){
         nom:state.profile.nom||null, status:state.profile.status||null, fonction:state.profile.fonction||null,
         income:state.profile.income||0, rent:state.profile.rent||0, charges:state.profile.charges||0,
         weaknesses:state.profile.weaknesses||[], impulse_freq:state.profile.impulseFreq||null,
-        is_premium:state.isPremium, streak:state.streak, saved_total:state.savedTotal, sous:state.sous,
+        streak:state.streak, saved_total:state.savedTotal, sous:state.sous,
         block_keywords:state.blockKeywords||[], price_limit:state.priceLimit||0, lang:state.lang,
+        // Total de la semaine, pour le classement du tournoi (le serveur l'horodate au lundi courant).
+        week_saved:(state.week||[]).reduce((s,d)=>s+(Number(d.amount)||0),0),
       },
       goals: state.goals,
       victories: state.victories,
@@ -505,7 +508,7 @@ const FEATURES = [
   {icon:'target',title:'Dashboard perso',desc:"Objectifs, récompenses et simulateur, en un seul endroit.",tier:'premium',
    long:"Objectifs avec barres de progression, victoires enregistrées, graphique de ta semaine, récompenses à débloquer : tout ton combat contre l'achat impulsif, visualisé au même endroit."},
   {icon:'users',title:'Tournois entre amis',desc:"Classement hebdo, badges, profils à débloquer.",tier:'premium',
-   long:"Un classement hebdomadaire entre amis : top économie, plus grosse progression, plus longue série. Trois badges chaque lundi, et les sous gagnés se dépensent en boutique."},
+   long:"Un classement hebdomadaire entre amis : top économie, plus grosse progression, plus longue série. Trois badges chaque lundi, et les crans gagnés se dépensent en boutique."},
 ];
 
 const FAQ = [
@@ -541,11 +544,15 @@ const QUIZ = [
    explain:"Compte à rebours, stock « limité », urgence artificielle… le e-commerce est une machine conçue pour te faire craquer."},
 ];
 
+/* Nom de la monnaie du jeu. Un seul endroit à changer si tu veux en essayer un autre.
+ * « cran » : monter d'un cran (progresser) et avoir du cran (résister). */
+const MONNAIE = {un:'cran', plur:'crans'};
+const crans = (n) => `${n} ${n>1||n<-1 ? MONNAIE.plur : MONNAIE.un}`;
+
 const SHOP_AVATARS = [
-  {id:'av1',label:'A',grad:'linear-gradient(135deg,#a78bfa,#7c3aed)',price:0},
-  {id:'av2',label:'B',grad:'linear-gradient(135deg,#f0abfc,#a855f7)',price:40},
-  {id:'av3',label:'C',grad:'linear-gradient(135deg,#93c5fd,#7c3aed)',price:60},
-  {id:'av4',label:'D',grad:'linear-gradient(135deg,#fbbf24,#a855f7)',price:100},
+  // Gratuits — disponibles dès le départ
+  // Sans icône volontairement : celui-ci affiche ton initiale.
+  {id:'av1',name:'Ton initiale',label:'W',grad:'linear-gradient(135deg,#a78bfa,#7c3aed)',price:0},
   {id:'avf',name:'Renard',icon:'avFox',grad:'linear-gradient(135deg,#fdba74,#ea580c)',price:0},
   {id:'avc',name:'Chat',icon:'avCat',grad:'linear-gradient(135deg,#c4b5fd,#7c3aed)',price:0},
   {id:'avo',name:'Hibou',icon:'avOwl',grad:'linear-gradient(135deg,#a5b4fc,#4f46e5)',price:0},
@@ -553,6 +560,18 @@ const SHOP_AVATARS = [
   {id:'avl',name:'Feuille',icon:'avLeaf',grad:'linear-gradient(135deg,#86efac,#16a34a)',price:0},
   {id:'avs',name:'Étoile',icon:'avStar',grad:'linear-gradient(135deg,#fde68a,#eab308)',price:0},
   {id:'avm',name:'Lune',icon:'avMoon',grad:'linear-gradient(135deg,#cbd5e1,#64748b)',price:0},
+  // À débloquer avec tes crans
+  {id:'av2',name:'Bouclier',icon:'shield',grad:'linear-gradient(135deg,#f0abfc,#a855f7)',price:40},
+  {id:'av3',name:'Flamme',icon:'flame',grad:'linear-gradient(135deg,#fca5a5,#dc2626)',price:60},
+  {id:'av4',name:'Cible',icon:'target',grad:'linear-gradient(135deg,#fbbf24,#a855f7)',price:100},
+  {id:'av5',name:'Éclair',icon:'zap',grad:'linear-gradient(135deg,#fde047,#ca8a04)',price:80},
+  {id:'av6',name:'Sang-froid',icon:'brain',grad:'linear-gradient(135deg,#f9a8d4,#be185d)',price:120},
+  {id:'av7',name:'Horizon',icon:'globe',grad:'linear-gradient(135deg,#67e8f9,#0e7490)',price:140},
+  {id:'av8',name:'Astre',icon:'star',grad:'linear-gradient(135deg,#fef08a,#f59e0b)',price:160},
+  {id:'av9',name:'Gemme',icon:'gem',grad:'linear-gradient(135deg,#a5f3fc,#0891b2)',price:180},
+  {id:'av10',name:'Médaille',icon:'medal',grad:'linear-gradient(135deg,#fcd34d,#b45309)',price:220},
+  {id:'av11',name:'Couronne',icon:'crown',grad:'linear-gradient(135deg,#fbcd6b,#e4a11b)',price:250},
+  {id:'av12',name:'Trophée',icon:'trophy',grad:'linear-gradient(135deg,#e9d5ff,#7e22ce)',price:300},
 ];
 const SHOP_THEMES = [
   {id:'th1',name:'Violet nuit',c1:'#a78bfa',c2:'#7c3aed',price:0},
@@ -563,25 +582,45 @@ const SHOP_THEMES = [
   {id:'thp2',name:'Océan',c1:'#7dd3fc',c2:'#0284c7',price:0,tier:'premium'},
   {id:'thp3',name:'Ambre solaire',c1:'#fdba74',c2:'#c2410c',price:0,tier:'premium'},
 ];
-const SHOP_RARE = [
-  {id:'r1',name:'Premier mois tenu',rarity:'Rare',price:150},
-  {id:'r2',name:'Série de 30 jours',rarity:'Épique',price:300},
-  {id:'r3',name:'1000 € économisés',rarity:'Légendaire',price:500},
-];
-const FRIENDS = {
-  'Léa':{c1:'#f472b6',c2:'#a78bfa',items:['Premier mois tenu','Série de 30 jours']},
-  'Tom':{c1:'#34d399',c2:'#7c3aed',items:['Premier mois tenu']},
-  'Nora':{c1:'#a78bfa',c2:'#7c3aed',items:[]},
-  'Max':{c1:'#a78bfa',c2:'#7c3aed',items:[]},
+/* Objets rares : ils ne s'achètent pas, ils se méritent. Chacun a une condition
+ * mesurable sur ta progression réelle — c'est ce qui leur donne de la valeur.
+ * Ordre : du plus facile au plus difficile. */
+const RARE_MESURES = {
+  refus:     {label:(n)=>`${n} achat${n>1?'s':''} évité${n>1?'s':''}`, valeur:()=>state.victoryCount||0},
+  serie:     {label:(n)=>`${n} jour${n>1?'s':''} de série`,            valeur:()=>state.streak||0},
+  economise: {label:(n)=>`${n} € économisés`,                          valeur:()=>Math.round(state.savedTotal||0)},
 };
-const WEEK_DAYS = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
-const LEADERBOARD = [
-  {rank:1,name:'Léa',amount:'42 €',badge:'Top économie'},
-  {rank:2,name:'Toi',amount:'31 €',badge:'Plus grosse progression',me:true},
-  {rank:3,name:'Tom',amount:'18 €',badge:'Plus longue série'},
-  {rank:4,name:'Nora',amount:'14 €',badge:null},
-  {rank:5,name:'Max',amount:'9 €',badge:null},
+const SHOP_RARE = [
+  {id:'r1', name:'Premier réflexe',      rarity:'Commun',      icon:'shield',  mesure:'refus',     cible:1},
+  {id:'r2', name:'Trois d’affilée',      rarity:'Commun',      icon:'flame',   mesure:'serie',     cible:3},
+  {id:'r3', name:'Premiers 50 €',        rarity:'Commun',      icon:'coins',   mesure:'economise', cible:50},
+  {id:'r4', name:'La dizaine',           rarity:'Peu commun',  icon:'bag',     mesure:'refus',     cible:10},
+  {id:'r5', name:'Semaine tenue',        rarity:'Peu commun',  icon:'check',   mesure:'serie',     cible:7},
+  {id:'r6', name:'Le premier billet',    rarity:'Peu commun',  icon:'wallet',  mesure:'economise', cible:100},
+  {id:'r7', name:'Quinzaine',            rarity:'Rare',        icon:'target',  mesure:'serie',     cible:15},
+  {id:'r8', name:'Demi-millier',         rarity:'Rare',        icon:'gem',     mesure:'economise', cible:500},
+  {id:'r9', name:'Vingt-cinq refus',     rarity:'Rare',        icon:'medal',   mesure:'refus',     cible:25},
+  {id:'r10',name:'Le cap du mois',       rarity:'Épique',      icon:'trophy',  mesure:'serie',     cible:30},
+  {id:'r11',name:'Le millier',           rarity:'Épique',      icon:'crown',   mesure:'economise', cible:1000},
+  {id:'r12',name:'Cinquante fois non',   rarity:'Épique',      icon:'brain',   mesure:'refus',     cible:50},
+  {id:'r13',name:'Cent jours',           rarity:'Légendaire',  icon:'zap',     mesure:'serie',     cible:100},
+  {id:'r14',name:'Cinq mille',           rarity:'Légendaire',  icon:'star',    mesure:'economise', cible:5000},
+  {id:'r15',name:'Deux cents refus',     rarity:'Légendaire',  icon:'globe',   mesure:'refus',     cible:200},
+  {id:'r16',name:'Une année entière',    rarity:'Mythique',    icon:'sparkles',mesure:'serie',     cible:365},
+  {id:'r17',name:'Dix mille',            rarity:'Mythique',    icon:'gem',     mesure:'economise', cible:10000},
 ];
+const RARE_COULEURS = {
+  'Commun':'#94a3b8', 'Peu commun':'#34d399', 'Rare':'#60a5fa',
+  'Épique':'#a78bfa', 'Légendaire':'#fbcd6b', 'Mythique':'#f472b6',
+};
+/* Où en es-tu sur cet objet ? */
+function rareProgres(item){
+  const m = RARE_MESURES[item.mesure];
+  const actuel = m ? m.valeur() : 0;
+  return {actuel, cible:item.cible, atteint: actuel >= item.cible,
+          texte: m ? m.label(item.cible) : ''};
+}
+const WEEK_DAYS = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
 const SHOWCASE_ITEMS = [
   {cat:'Extension',title:'Popup checkout',desc:"La question du jour, au bon moment.",icon:'cursorClick'},
   {cat:'IA',title:'Question personnalisée',desc:"Générée pour toi, jamais recyclée.",icon:'brain'},
@@ -857,6 +896,7 @@ const state = {
   onboarding:{step:0,status:'Salarié',fonction:'',income:'',rent:'',charges:'',weaknesses:[],impulseFreq:'',goalName:'',goalTarget:''},
   profile:null,
   goals:[], streak:0, savedTotal:0, sous:0, sousToday:0,
+  victoryCount:0, // total d'achats évités depuis le début (la liste victories est tronquée, elle ne peut pas servir de compteur)
   week:WEEK_DAYS.map(d=>({day:d,amount:0})), victories:[],
   blockKeywords:[], priceLimit:'', userEmail:'', pendingReferralDays:0, settingsTab:'profil',
   owned:['av1','th1'], activeAvatar:'av1', activeTheme:'th1',
@@ -871,7 +911,7 @@ function saveLocal(){
     localStorage.setItem('worthit_v1', JSON.stringify({
       introDone:state.introDone, profile:state.profile, goals:state.goals,
       streak:state.streak, savedTotal:state.savedTotal, sous:state.sous,
-      week:state.week, victories:state.victories,
+      week:state.week, victories:state.victories, victoryCount:state.victoryCount,
       blockKeywords:state.blockKeywords, priceLimit:state.priceLimit,
       owned:state.owned, activeAvatar:state.activeAvatar, activeTheme:state.activeTheme,
       isPremiumDemo:state.isPremium, authNom:state.auth.nom, lang:state.lang,
@@ -892,6 +932,8 @@ function loadLocal(){
     state.streak = d.streak||0; state.savedTotal = d.savedTotal||0; state.sous = d.sous||0;
     if(Array.isArray(d.week) && d.week.length===7) state.week = d.week;
     state.victories = Array.isArray(d.victories)?d.victories:[];
+    // Comptes créés avant l'ajout du compteur : on repart au moins du nombre de victoires connues.
+    state.victoryCount = Number(d.victoryCount) || state.victories.length;
     if(Array.isArray(d.blockKeywords)) state.blockKeywords = d.blockKeywords;
     if(d.priceLimit!==undefined) state.priceLimit = d.priceLimit;
     if(Array.isArray(d.owned)) state.owned = d.owned;
@@ -1404,34 +1446,153 @@ function downgrade(){
   render(true);
 }
 
+/* État des amis, chargé depuis le serveur (aucune donnée fictive). */
+const friendsState = {monId:null, amis:[], demandesRecues:[], demandesEnvoyees:[], classement:[],
+                      semainesOffertesRestantes:0, loaded:false, loading:false, erreur:null};
+
+async function loadFriends(force){
+  if(friendsState.loading) return;
+  if(friendsState.loaded && !force) return;
+  if(!authSession){ friendsState.loaded=true; return; }
+  friendsState.loading = true;
+  try{
+    const r = await authedApi('/api/friends');
+    if(r && !r.error) Object.assign(friendsState, r, {erreur:null});
+    else friendsState.erreur = "Impossible de charger tes amis pour l'instant.";
+  }catch(e){ friendsState.erreur = "Impossible de charger tes amis pour l'instant."; }
+  friendsState.loaded = true; friendsState.loading = false;
+  if(state.page==='classement') render();
+}
+
+function copierMonId(){
+  if(!friendsState.monId) return;
+  try{ navigator.clipboard.writeText(friendsState.monId); toast('Identifiant copié — envoie-le à ton ami.','link'); }
+  catch(e){ toast('Copie impossible, note-le à la main.','link'); }
+}
+async function envoyerDemandeAmi(){
+  const input = document.getElementById('friend-id-input');
+  if(!input) return;
+  const code = (input.value||'').replace(/\D/g,'');
+  if(code.length!==8){ toast('Un identifiant fait 8 chiffres.','users'); return; }
+  const r = await authedApi('/api/friends/request', {
+    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({friendId:code}),
+  });
+  const messages = {introuvable:"Aucun compte avec cet identifiant.", soi_meme:"C'est ton propre identifiant 🙂",
+                    deja_ami:"Vous êtes déjà amis.", demande_en_cours:"Une demande est déjà en cours.",
+                    identifiant_invalide:"Un identifiant fait 8 chiffres."};
+  if(r && r.ok){ input.value=''; toast(`Demande envoyée à ${r.nom}.`,'users'); await loadFriends(true); render(); }
+  else toast(messages[r && r.error] || "Échec de l'envoi.", 'users');
+}
+async function accepterAmi(lien){
+  const r = await authedApi('/api/friends/accept', {
+    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({lien}),
+  });
+  if(r && r.ok){
+    if(r.semaineOfferte){ state.isPremium = true; saveLocal(); confettiBurst(null); toast('Ami ajouté — 1 semaine Premium offerte ✨','crown'); }
+    else toast('Ami ajouté.','users');
+    await loadFriends(true); render();
+  } else toast("Impossible d'accepter cette demande.",'users');
+}
+async function retirerAmi(lien){
+  const r = await authedApi('/api/friends/remove', {
+    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({lien}),
+  });
+  if(r && r.ok){ await loadFriends(true); render(); }
+}
+
+function ligneAmi(u, i, total){
+  const initiale = (u.nom||'?').trim()[0].toUpperCase();
+  return `<div style="display:flex;align-items:center;gap:14px;padding:16px 14px;border-bottom:${i<total-1?'1px solid var(--line-soft)':'none'};background:${u.moi?'rgba(167,139,250,.06)':'transparent'};border-radius:${u.moi?'14px':'0'};">
+    <span style="width:26px;text-align:center;font-size:14px;font-weight:700;color:${u.rang<=3?'var(--v1)':'var(--ink-faint)'};">${u.rang}</span>
+    <div style="width:34px;height:34px;border-radius:50%;background:${u.moi?'var(--grad)':'rgba(255,255,255,.08)'};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;">${esc(initiale)}</div>
+    <span style="flex:1;font-size:14.5px;font-weight:${u.moi?700:400};color:#fff;">${esc(u.nom)}${u.moi?' (toi)':''}</span>
+    ${u.streak>0?`<span class="glass pill" style="font-size:11px;color:var(--ink-dim);">${I('flame',11)}${u.streak} j</span>`:''}
+    <span class="tabular" style="font-size:14.5px;font-weight:700;color:#fff;min-width:52px;text-align:right;">${Math.round(u.semaine)} €</span>
+  </div>`;
+}
+
 function pageClassement(){
+  const f = friendsState;
+  if(state.profile && !f.loaded && !f.loading) loadFriends();
+
+  if(!state.profile){
+    return `<section class="section" style="min-height:100vh;background:var(--void);">
+      <div class="container" style="max-width:520px;text-align:center;">
+        <p class="eyebrow">Tournois</p>
+        <h2 class="h2" style="margin-bottom:14px;">Cette semaine, entre amis</h2>
+        <p class="lede" style="margin-bottom:26px;">Crée ton compte pour obtenir ton identifiant et ajouter tes amis.</p>
+        <button onclick="nav('connexion')" class="btn btn-neon">${esc(t('hero.ctaStart'))} ${I('arrowRight',16)}</button>
+      </div>
+    </section>`;
+  }
+
+  /* Identifiant + demandes : accessibles à tous, même sans Premium — sinon un ami
+   * sans abonnement ne pourrait jamais accepter, ni recevoir sa semaine offerte. */
+  const blocAmis = `
+    <div class="glass reveal" style="border-radius:20px;padding:22px;margin-bottom:18px;">
+      <p style="font-size:12.5px;color:var(--ink-dim);margin:0 0 8px;">Ton identifiant — partage-le pour qu'on t'ajoute</p>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <span class="tabular" style="font-size:27px;font-weight:800;color:#fff;letter-spacing:.14em;">${f.monId?esc(f.monId):'········'}</span>
+        <button onclick="copierMonId()" class="btn btn-ghost btn-sm">${I('link',13)} Copier</button>
+      </div>
+    </div>
+
+    <div class="glass reveal" style="border-radius:20px;padding:22px;margin-bottom:18px;">
+      <p style="font-size:12.5px;color:var(--ink-dim);margin:0 0 12px;">Ajouter un ami avec son identifiant</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <input id="friend-id-input" inputmode="numeric" maxlength="8" placeholder="12345678"
+          style="flex:1;min-width:150px;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;padding:12px 14px;color:#fff;font-family:inherit;font-size:15px;letter-spacing:.1em;"/>
+        <button onclick="envoyerDemandeAmi()" class="btn btn-neon btn-sm">${I('users',14)} Envoyer</button>
+      </div>
+      <p style="font-size:11.5px;color:var(--ink-faint);margin:12px 0 0;line-height:1.55;">
+        Ton ami reçoit une demande à accepter. S'il n'a pas Premium, il gagne <strong style="color:var(--gold-1);">1 semaine offerte</strong> en acceptant.
+        ${f.semainesOffertesRestantes>0?`Il t'en reste ${f.semainesOffertesRestantes} à offrir.`:`Tu as utilisé tes semaines à offrir.`}
+      </p>
+    </div>
+
+    ${f.demandesRecues.length?`<div class="glass reveal" style="border-radius:20px;padding:18px 20px;margin-bottom:18px;">
+      <p style="font-size:12.5px;color:var(--ink-dim);margin:0 0 12px;">Demandes reçues</p>
+      ${f.demandesRecues.map(d=>`<div style="display:flex;align-items:center;gap:12px;padding:8px 0;">
+        <span style="flex:1;font-size:14px;color:#fff;">${esc(d.nom)}<span style="color:var(--ink-faint);font-size:12px;"> · ${esc(d.friendId||'')}</span></span>
+        <button onclick="accepterAmi('${d.lien}')" class="btn btn-neon btn-sm">Accepter</button>
+        <button onclick="retirerAmi('${d.lien}')" class="btn btn-ghost btn-sm">Refuser</button>
+      </div>`).join('')}
+    </div>`:''}
+
+    ${f.demandesEnvoyees.length?`<div class="glass reveal" style="border-radius:20px;padding:18px 20px;margin-bottom:18px;">
+      <p style="font-size:12.5px;color:var(--ink-dim);margin:0 0 10px;">En attente de réponse</p>
+      ${f.demandesEnvoyees.map(d=>`<div style="display:flex;align-items:center;gap:12px;padding:6px 0;">
+        <span style="flex:1;font-size:13.5px;color:var(--ink-dim);">${esc(d.nom)} · ${esc(d.friendId||'')}</span>
+        <button onclick="retirerAmi('${d.lien}')" class="btn btn-ghost btn-sm">Annuler</button>
+      </div>`).join('')}
+    </div>`:''}`;
+
   const locked = !state.isPremium;
-  const body = `<div class="glass reveal" style="display:flex;align-items:center;justify-content:center;gap:10px;padding:12px 18px;border-radius:999px;margin:0 auto 30px;width:fit-content;">
-      ${I('coins',16)}<span style="font-size:13.5px;color:#fff;">${state.sousToday>0?`+${state.sousToday} sous gagnés aujourd'hui`:'Résiste à un achat pour gagner des sous'}</span>
-    </div>
-    <p class="reveal" style="font-size:11.5px;color:var(--ink-faint);text-align:center;margin:0 0 18px;">Aperçu démo — bientôt, tes vrais amis ici.</p>
-    <div class="glass reveal" style="border-radius:20px;padding:10px;margin-bottom:20px;">
-      ${LEADERBOARD.map((u,i)=>`<button ${u.name!=='Toi'?`onclick="openFriend('${u.name}')"`:''} style="display:flex;align-items:center;gap:14px;padding:16px 14px;width:100%;text-align:left;border:none;cursor:${u.name!=='Toi'?'pointer':'default'};font-family:inherit;border-bottom:${i<LEADERBOARD.length-1?'1px solid var(--line-soft)':'none'};background:${u.me?'rgba(167,139,250,.06)':'transparent'};border-radius:${u.me?'14px':'0'};">
-        <span style="width:26px;text-align:center;font-size:14px;font-weight:700;color:${u.rank<=3?'var(--v1)':'var(--ink-faint)'};">${u.rank}</span>
-        <div style="width:34px;height:34px;border-radius:50%;background:${u.me?'var(--grad)':(FRIENDS[u.name]?`linear-gradient(135deg,${FRIENDS[u.name].c1},${FRIENDS[u.name].c2})`:'rgba(255,255,255,.08)')};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;">${u.name[0]}</div>
-        <span style="flex:1;font-size:14.5px;font-weight:${u.me?700:400};color:#fff;">${esc(u.name)}</span>
-        ${u.badge?`<span class="glass pill" style="font-size:11px;color:var(--ink-dim);">${I('medal',11)}${esc(u.badge)}</span>`:''}
-        <span class="tabular" style="font-size:14.5px;font-weight:700;color:#fff;min-width:46px;text-align:right;">${u.amount}</span>
-      </button>`).join('')}
-    </div>
-    <div class="reveal" style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
-      ${['Top économie','Plus grosse progression','Plus longue série'].map(b=>`<div class="glass pill">${I('trophy',14)}<span style="color:var(--ink-dim);">${b}</span></div>`).join('')}
-    </div>`;
+  const classement = f.classement || [];
+  const corpsClassement = f.loading
+    ? `<p class="reveal" style="text-align:center;color:var(--ink-faint);font-size:13px;padding:26px 0;">Chargement…</p>`
+    : (classement.length<=1
+      ? `<div class="glass reveal" style="border-radius:20px;padding:30px 22px;text-align:center;">
+           <div style="color:var(--ink-faint);margin-bottom:10px;display:flex;justify-content:center;">${I('users',26)}</div>
+           <p style="font-size:14px;color:#fff;margin:0 0 6px;font-weight:600;">Pas encore d'amis</p>
+           <p style="font-size:13px;color:var(--ink-dim);margin:0;line-height:1.6;">Partage ton identifiant ci-dessus : le classement se remplira dès qu'une demande sera acceptée.</p>
+         </div>`
+      : `<div class="glass reveal" style="border-radius:20px;padding:10px;">
+           ${classement.map((u,i)=>ligneAmi(u,i,classement.length)).join('')}
+         </div>`);
+
   return `<section class="section" style="min-height:100vh;background:radial-gradient(800px 500px at 20% 15%,rgba(124,58,237,.08),transparent 60%),var(--void);">
     <div class="container" style="max-width:640px;">
       <div class="reveal center" style="margin-bottom:30px;">
         <p class="eyebrow">Tournois</p>
         <h2 class="h2">Cette semaine, entre amis</h2>
-        <p class="lede" style="margin-top:12px;">Se réinitialise chaque lundi. Trois badges, chaque semaine.</p>
+        <p class="lede" style="margin-top:12px;">Classement des économies de la semaine. Remise à zéro chaque lundi.</p>
       </div>
+      ${f.erreur?`<div class="glass reveal" style="border-radius:14px;padding:14px 18px;margin-bottom:18px;"><p style="margin:0;font-size:13px;color:var(--ink-dim);">${esc(f.erreur)}</p></div>`:''}
+      ${blocAmis}
       <div class="locked-wrap">
-        <div class="${locked?'locked-blur':''}">${body}</div>
-        ${locked ? LockCTA('Tournois entre amis','Débloque le classement, les badges et les profils de tes amis avec Premium.') : ''}
+        <div class="${locked?'locked-blur':''}">${corpsClassement}</div>
+        ${locked ? LockCTA('Classement des amis','Le classement hebdomadaire est réservé au Premium — ou offert 1 semaine si un ami t\'ajoute.') : ''}
       </div>
     </div>
   </section>`;
@@ -1443,19 +1604,6 @@ function LockCTA(title,desc){
       <h3 style="font-size:17px;font-weight:700;color:#fff;margin:0 0 8px;">${esc(title)}</h3>
       <p style="font-size:13.5px;color:var(--ink-dim);margin:0 0 22px;line-height:1.6;">${esc(desc)}</p>
       <button onclick="nav('tarifs')" class="btn btn-gold">${I('crown',15)} Débloquer — 2,99 €/mois</button>
-    </div>
-  </div>`;
-}
-function openFriend(name){
-  const f = FRIENDS[name];
-  document.getElementById('modal-root').innerHTML = `<div class="modal-backdrop" onclick="if(event.target===this)closeModal()">
-    <div class="glass modal-card check-pop">
-      <div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,${f.c1},${f.c2});margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;">${name[0]}</div>
-      <h3 style="font-size:19px;font-weight:800;color:#fff;margin:0 0 4px;">${esc(name)}</h3>
-      <p style="font-size:12.5px;color:var(--ink-faint);margin:0 0 22px;">Collection d'objets rares</p>
-      ${f.items.length ? `<div style="display:flex;flex-direction:column;gap:8px;">${f.items.map(it=>`<div class="glass" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;">${I('gem',15)}<span style="font-size:13px;color:#fff;">${esc(it)}</span></div>`).join('')}</div>`
-        : `<p style="font-size:13px;color:var(--ink-faint);">Aucun objet rare débloqué pour l'instant.</p>`}
-      <button onclick="closeModal()" class="btn btn-ghost btn-sm" style="margin-top:22px;">Fermer</button>
     </div>
   </div>`;
 }
@@ -1755,7 +1903,7 @@ function onboardNext(){
     income:Number(o.income), rent:Number(o.rent)||0, charges:Number(o.charges)||0,
   };
   if(o.editMode){
-    // On modifie un profil existant : on garde la progression (streak, sous, victoires), on ajuste juste l'objectif visé.
+    // On modifie un profil existant : on garde la progression (streak, crans, victoires), on ajuste juste l'objectif visé.
     const existingGoal = state.goals[0];
     state.goals = [{id:(existingGoal&&existingGoal.id)||1, name:o.goalName, target:Number(o.goalTarget), current:(existingGoal&&existingGoal.current)||0}];
     saveLocal();
@@ -1769,7 +1917,7 @@ function onboardNext(){
     state.week = WEEK_DAYS.map(d=>({day:d,amount:0}));
     state.victories = [];
     saveLocal();
-    toast('Profil créé — 20 sous de bienvenue !','coins');
+    toast('Profil créé — 20 crans de bienvenue !','coins');
     nav('dashboard');
   }
 }
@@ -1897,7 +2045,7 @@ function pageDashboard(){
             <div style="color:${unlocked?'var(--v1)':'var(--ink-faint)'};margin:0 auto 6px;display:flex;justify-content:center;">${I('trophy',18)}</div><span style="font-size:11px;color:var(--ink-dim);">${t} €</span></div>`;}).join('')}
         </div>
         <button onclick="nav('boutique')" class="glass" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:14px 18px;border-radius:14px;border:1px solid var(--line-soft);cursor:pointer;">
-          <span style="display:flex;align-items:center;gap:10px;font-size:13.5px;color:#fff;">${I('bag',16)} Dépenser tes sous à la boutique</span>
+          <span style="display:flex;align-items:center;gap:10px;font-size:13.5px;color:#fff;">${I('bag',16)} Dépenser tes crans à la boutique</span>
           <span style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-dim);">${I('coins',13)} ${state.sous} ${I('chevronRight',14)}</span>
         </button>
       </div>
@@ -2030,7 +2178,7 @@ function addVictory(){
     <div class="glass modal-card check-pop">
       <div style="width:48px;height:48px;border-radius:14px;background:var(--grad);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:#fff;">${I('shield',20)}</div>
       <h3 style="font-size:18px;font-weight:800;color:#fff;margin:0 0 6px;">À quoi as-tu résisté ?</h3>
-      <p style="font-size:12.5px;color:var(--ink-dim);margin:0 0 20px;">Ce montant part vers ton objectif, et tu gagnes des sous.</p>
+      <p style="font-size:12.5px;color:var(--ink-dim);margin:0 0 20px;">Ce montant part vers ton objectif, et tu gagnes des crans.</p>
       ${FieldHtml('vic-item','L’achat évité (ex : sneakers…)','text','',null,'bag')}
       ${FieldHtml('vic-price','Son prix (€)','number','',null,'coins')}
       <button class="btn btn-neon btn-block" onclick="saveVictory()" style="margin-top:4px;">Enregistrer ma victoire</button>
@@ -2047,11 +2195,12 @@ function saveVictory(){
   if(goal) goal.current = Math.min(goal.target, goal.current + price);
   const gained = Math.max(5, Math.round(price/10));
   state.sous += gained; state.sousToday += gained;
+  state.victoryCount = (state.victoryCount||0) + 1;
   state.victories.unshift({item, price, when:"Aujourd'hui", goal: goal ? goal.name : 'ton objectif'});
   state.victories = state.victories.slice(0,6);
   closeModal(); saveLocal();
   confettiBurst(null);
-  toast(`+${price} € gardés, +${gained} sous !`,'trophy');
+  toast(`+${price} € gardés, +${crans(gained)} !`,'trophy');
   render();
 }
 
@@ -2061,7 +2210,19 @@ function pageBoutique(){
     <div class="container" style="max-width:800px;">
       <div class="reveal" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;margin-bottom:34px;">
         <div><p class="eyebrow">Boutique</p><h2 style="font-size:clamp(1.8rem,4vw,2.4rem);font-weight:800;letter-spacing:-.02em;color:#fff;margin:0;font-family:var(--font-d);">Personnalise ton appli</h2></div>
-        <div class="glass pill"><span style="color:var(--v1);">${I('coins',16)}</span><span id="shop-sous" style="font-size:14px;font-weight:700;color:#fff;">${state.sous} sous</span></div>
+        <div class="glass pill"><span style="color:var(--v1);">${I('coins',16)}</span><span id="shop-sous" style="font-size:14px;font-weight:700;color:#fff;">${crans(state.sous)}</span></div>
+      </div>
+      <div class="glass reveal" style="border-radius:18px;padding:18px 20px;margin-bottom:22px;">
+        <p style="font-size:13px;font-weight:700;color:#fff;margin:0 0 8px;display:flex;align-items:center;gap:7px;">
+          <span style="color:var(--v1);">${I('coins',15)}</span> Comment gagner des ${MONNAIE.plur} ?
+        </p>
+        <p style="font-size:12.5px;color:var(--ink-dim);line-height:1.65;margin:0;">
+          À chaque achat que tu renonces à faire, tu enregistres ta victoire depuis le dashboard :
+          tu gagnes <strong style="color:#fff;">1 ${MONNAIE.un} par tranche de 10 €</strong> non dépensés,
+          avec un minimum de ${crans(5)}. Un refus à 80 € rapporte donc ${crans(8)}.
+          Les ${MONNAIE.plur} servent ici à débloquer photos de profil et thèmes.
+          <strong style="color:#fff;">Les objets rares, eux, ne s'achètent pas</strong> — ils se méritent à force de constance.
+        </p>
       </div>
       <div class="reveal" style="display:flex;gap:10px;margin-bottom:28px;flex-wrap:wrap;">
         ${tabs.map(t=>`<button onclick="setShopTab('${t.id}')" class="filter-pill ${state.shopTab===t.id?'active':''}" data-tab="${t.id}">${I(t.icon,14)} ${esc(t.label)}</button>`).join('')}
@@ -2081,13 +2242,36 @@ function shopGridHtml(tab){
     const isEquipped = (tab==='avatars' && state.activeAvatar===item.id) || (tab==='themes' && state.activeTheme===item.id);
     const canAfford = state.sous>=item.price;
     let visual='';
-    if(tab==='avatars') visual = `<div style="width:52px;height:52px;border-radius:50%;background:${item.grad};margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;">${item.icon?I(item.icon,24,1.6):item.label}</div>`;
+    if(tab==='avatars'){
+      // L'avatar « Ton initiale » n'a pas d'icône : on prévisualise la vraie initiale.
+      const initiale = ((state.profile&&state.profile.nom)||'').trim()[0];
+      visual = `<div style="width:52px;height:52px;border-radius:50%;background:${item.grad};margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;">${item.icon?I(item.icon,24,1.6):esc((initiale||item.label||'W').toUpperCase())}</div>`;
+    }
     if(tab==='themes') visual = `<div style="width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,${item.c1},${item.c2});margin:0 auto 14px;position:relative;">${item.tier==='premium'?`<span style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--grad-gold);display:flex;align-items:center;justify-content:center;color:#1a1206;">${I('crown',10)}</span>`:''}</div>`;
-    if(tab==='rare') visual = `<div style="width:52px;height:52px;border-radius:14px;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.3);color:var(--v1);">${I('gem',22)}</div>`;
+    /* Les objets rares se méritent : on montre la progression, pas un prix. */
+    if(tab==='rare'){
+      const p = rareProgres(item);
+      const couleur = RARE_COULEURS[item.rarity] || 'var(--v1)';
+      const pct = Math.min(100, Math.round((p.actuel / p.cible) * 100));
+      return `<div class="glass tilt" style="border-radius:18px;padding:20px 16px;text-align:center;opacity:${p.atteint?1:.82};">
+        <div style="width:52px;height:52px;border-radius:14px;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;background:${p.atteint?`linear-gradient(135deg,${couleur},rgba(0,0,0,.25))`:'rgba(255,255,255,.04)'};border:1px solid ${p.atteint?couleur:'var(--line)'};color:${p.atteint?'#fff':'var(--ink-faint)'};">
+          ${p.atteint ? I(item.icon||'gem',22) : I('lock',20)}
+        </div>
+        <p style="font-size:13.5px;font-weight:600;color:${p.atteint?'#fff':'var(--ink-dim)'};margin:0 0 3px;">${esc(item.name)}</p>
+        <p style="font-size:11px;color:${couleur};margin:0 0 9px;font-weight:600;">${esc(item.rarity)}</p>
+        <p style="font-size:11.5px;color:var(--ink-faint);margin:0 0 8px;">${esc(p.texte)}</p>
+        ${p.atteint
+          ? `<span style="font-size:12px;color:${couleur};display:flex;align-items:center;justify-content:center;gap:5px;font-weight:600;">${I('check',13)} Obtenu</span>`
+          : `<div style="height:5px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden;margin-bottom:6px;">
+               <div style="height:100%;width:${pct}%;background:${couleur};border-radius:99px;transition:width .5s var(--ease);"></div>
+             </div>
+             <p class="tabular" style="font-size:11px;color:var(--ink-faint);margin:0;">${p.actuel} / ${p.cible}</p>`}
+      </div>`;
+    }
     return `<div class="glass tilt" style="border-radius:18px;padding:20px 16px;text-align:center;">
       ${visual}
-      <p style="font-size:13.5px;font-weight:600;color:#fff;margin:0 0 4px;">${esc(item.name||('Avatar '+item.label))}</p>
-      ${item.rarity?`<p style="font-size:11px;color:var(--v1);margin:0 0 10px;">${esc(item.rarity)}</p>`:`<div style="margin-bottom:10px;"></div>`}
+      <p style="font-size:13.5px;font-weight:600;color:#fff;margin:0 0 4px;">${esc(item.name)}</p>
+      <div style="margin-bottom:10px;"></div>
       ${isPremiumLocked ? `<button onclick="nav('tarifs')" class="btn btn-gold btn-sm btn-block">${I('crown',12)} Premium</button>`
         : isEquipped ? `<span style="font-size:12px;color:var(--v1);display:flex;align-items:center;justify-content:center;gap:5px;">${I('check',13)} Actif</span>`
         : isOwned ? `<button onclick="equipItem('${tab}','${item.id}')" class="btn btn-ghost btn-sm btn-block">Équiper</button>`
@@ -2106,7 +2290,7 @@ function buyItem(tab,id,price,btn){
   state.sous -= price;
   state.owned.push(id);
   saveLocal();
-  document.getElementById('shop-sous').textContent = state.sous + ' sous';
+  document.getElementById('shop-sous').textContent = crans(state.sous);
   confettiBurst(btn);
   toast('Objet débloqué !','gem');
   const grid=document.getElementById('shop-grid');
@@ -2209,7 +2393,7 @@ function pageParametres(){
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(48px,1fr));gap:10px;">
         ${cuteAvatars.map(a=>`<button onclick="equipAvatarQuick('${a.id}')" title="${esc(a.name)}" aria-label="${esc(a.name)}" style="background:${a.grad};border:${state.activeAvatar===a.id?'2px solid #fff':'2px solid transparent'};border-radius:50%;width:48px;height:48px;display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;padding:0;">${I(a.icon,21,1.6)}</button>`).join('')}
       </div>
-      <p style="font-size:11.5px;color:var(--ink-faint);margin:12px 0 0;">D'autres avatars à débloquer avec tes sous dans la <button onclick="nav('boutique')" style="background:none;border:none;cursor:pointer;color:var(--v1);font-family:inherit;font-size:inherit;padding:0;">Boutique</button>.</p>
+      <p style="font-size:11.5px;color:var(--ink-faint);margin:12px 0 0;">D'autres avatars à débloquer avec tes crans dans la <button onclick="nav('boutique')" style="background:none;border:none;cursor:pointer;color:var(--v1);font-family:inherit;font-size:inherit;padding:0;">Boutique</button>.</p>
     </div>
     <div class="glass reveal" style="border-radius:18px;padding:24px 22px;">
       <p style="font-size:15px;font-weight:700;color:#fff;margin:0 0 4px;display:flex;align-items:center;gap:8px;">${I('palette',16)} Thèmes ${state.isPremium?`<span class="badge-premium">${I('crown',9)} Premium</span>`:''}</p>

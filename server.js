@@ -126,10 +126,40 @@ app.set('trust proxy', 1); // derrière le proxy Render : req.ip = vraie IP clie
 app.use(express.json({ limit: '256kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-/* ---------- statut premium (public, sans auth : lecture seule via id) ---------- */
+/* ---------- Premium : abonnement Stripe OU semaine offerte encore valable ---------- */
+function isPremium(profile) {
+  if (!profile) return false;
+  if (profile.is_premium) return true;
+  return !!(profile.premium_until && new Date(profile.premium_until) > new Date());
+}
+
+/* Identifiant public à 8 chiffres, celui qu'on donne à un ami pour être ajouté. */
+async function ensureFriendId(uid) {
+  const { data } = await supa.from('profiles').select('friend_id').eq('id', uid).maybeSingle();
+  if (data && data.friend_id) return data.friend_id;
+  for (let essai = 0; essai < 6; essai++) {
+    const candidat = String(Math.floor(10000000 + Math.random() * 90000000));
+    const { error } = await supa.from('profiles').update({ friend_id: candidat }).eq('id', uid);
+    if (!error) return candidat;           // collision improbable : on retente
+  }
+  return null;
+}
+
+/* Lundi de la semaine en cours, au format YYYY-MM-DD (le tournoi se remet à zéro le lundi). */
+function lundiCourant() {
+  const d = new Date();
+  const jour = (d.getUTCDay() + 6) % 7;    // 0 = lundi
+  d.setUTCDate(d.getUTCDate() - jour);
+  return d.toISOString().slice(0, 10);
+}
+
 app.get('/api/me', requireAuth(async (req, res) => {
-  const { data } = await supa.from('profiles').select('is_premium').eq('id', req.user.id).single();
-  res.json({ premium: !!(data && data.is_premium) });
+  const { data } = await supa.from('profiles').select('*').eq('id', req.user.id).maybeSingle();
+  res.json({
+    premium: isPremium(data),
+    premiumUntil: (data && data.premium_until) || null,
+    friendId: (data && data.friend_id) || await ensureFriendId(req.user.id),
+  });
 }));
 
 /* ---------- synchro profil complet : GET pour charger, POST pour sauvegarder ---------- */
@@ -140,7 +170,11 @@ app.get('/api/sync', requireAuth(async (req, res) => {
     supa.from('goals').select('*').eq('user_id', uid).order('created_at'),
     supa.from('victories').select('*').eq('user_id', uid).order('created_at', { ascending: false }).limit(20),
   ]);
-  res.json({ profile: profile || null, goals: goals || [], victories: victories || [] });
+  if (profile && !profile.friend_id) profile.friend_id = await ensureFriendId(uid);
+  res.json({
+    profile: profile || null, goals: goals || [], victories: victories || [],
+    premium: isPremium(profile), friendId: profile ? profile.friend_id : null,
+  });
 }));
 
 app.post('/api/sync', requireAuth(async (req, res) => {
@@ -148,7 +182,17 @@ app.post('/api/sync', requireAuth(async (req, res) => {
   const { profile, goals, victories } = req.body || {};
   try {
     if (profile) {
-      const base = { ...profile, id: uid, updated_at: new Date().toISOString() };
+      /* Liste blanche stricte : le navigateur ne doit JAMAIS pouvoir s'accorder le Premium
+       * (is_premium, premium_until) ni modifier son identifiant public ou son parrainage. */
+      const CHAMPS_CLIENT = ['nom', 'status', 'fonction', 'income', 'rent', 'charges', 'weaknesses',
+        'impulse_freq', 'streak', 'saved_total', 'sous', 'block_keywords', 'price_limit', 'lang'];
+      const base = { id: uid, updated_at: new Date().toISOString() };
+      for (const champ of CHAMPS_CLIENT) if (profile[champ] !== undefined) base[champ] = profile[champ];
+      // Montant de la semaine (tournoi) : horodaté au lundi courant pour la remise à zéro.
+      if (profile.week_saved !== undefined) {
+        base.week_saved = Math.max(0, Number(profile.week_saved) || 0);
+        base.week_start = lundiCourant();
+      }
       let { error } = await supa.from('profiles').upsert({ ...base, referral_code: uid.slice(0, 8) });
       // Migration parrainage pas encore exécutée : on sauvegarde sans la colonne plutôt que d'échouer.
       if (error && /referral_code/.test(error.message)) ({ error } = await supa.from('profiles').upsert(base));
@@ -180,6 +224,161 @@ app.post('/api/sync', requireAuth(async (req, res) => {
     res.status(500).json({ error: 'sync_error', detail: err.message });
   }
 }));
+
+/* ================= AMIS & TOURNOI =================
+ * Amitié en deux temps : une demande, puis une acceptation. Personne n'apparaît
+ * dans le classement de quelqu'un sans y avoir consenti. */
+
+const MAX_SEMAINES_OFFERTES = 3;   // combien de semaines Premium un utilisateur peut offrir
+const DUREE_SEMAINE_MS = 7 * 24 * 60 * 60 * 1000;
+
+/* Le montant hebdo n'est valable que pour la semaine en cours : sinon le classement
+ * afficherait encore les scores de la semaine dernière. */
+function montantSemaine(profile) {
+  if (!profile || profile.week_start !== lundiCourant()) return 0;
+  return Number(profile.week_saved) || 0;
+}
+
+async function amitiesDe(uid) {
+  const { data, error } = await supa.from('friendships')
+    .select('*').or(`requester_id.eq.${uid},addressee_id.eq.${uid}`);
+  if (error) throw error;
+  return data || [];
+}
+
+async function profilsPar(ids) {
+  if (!ids.length) return {};
+  const { data, error } = await supa.from('profiles')
+    .select('id, nom, friend_id, streak, week_saved, week_start, saved_total').in('id', ids);
+  if (error) throw error;
+  const map = {};
+  for (const p of data || []) map[p.id] = p;
+  return map;
+}
+
+/* Vue complète : mon identifiant, mes amis, les demandes, et le classement de la semaine. */
+app.get('/api/friends', requireAuth(async (req, res) => {
+  const uid = req.user.id;
+  try {
+    const { data: moi } = await supa.from('profiles').select('*').eq('id', uid).maybeSingle();
+    const monId = (moi && moi.friend_id) || await ensureFriendId(uid);
+
+    const liens = await amitiesDe(uid);
+    const autreId = (l) => (l.requester_id === uid ? l.addressee_id : l.requester_id);
+    const profils = await profilsPar([...new Set(liens.map(autreId))]);
+    const vue = (l) => {
+      const p = profils[autreId(l)] || {};
+      return { lien: l.id, nom: p.nom || 'Sans nom', friendId: p.friend_id || null,
+               streak: p.streak || 0, semaine: montantSemaine(p) };
+    };
+
+    const acceptes = liens.filter((l) => l.status === 'accepted');
+    const classement = [
+      ...acceptes.map(vue),
+      { lien: null, nom: (moi && moi.nom) || 'Toi', friendId: monId,
+        streak: (moi && moi.streak) || 0, semaine: montantSemaine(moi), moi: true },
+    ].sort((a, b) => b.semaine - a.semaine).map((u, i) => ({ ...u, rang: i + 1 }));
+
+    res.json({
+      monId,
+      semainesOffertesRestantes: Math.max(0, MAX_SEMAINES_OFFERTES - ((moi && moi.free_weeks_sent) || 0)),
+      premiumJusquA: (moi && moi.premium_until) || null,
+      amis: acceptes.map(vue),
+      demandesRecues: liens.filter((l) => l.status === 'pending' && l.addressee_id === uid).map(vue),
+      demandesEnvoyees: liens.filter((l) => l.status === 'pending' && l.requester_id === uid).map(vue),
+      classement,
+    });
+  } catch (err) {
+    console.error('[friends]', err.message);
+    res.status(500).json({ error: 'friends_error' });
+  }
+}));
+
+/* Envoyer une demande à partir de l'identifiant à 8 chiffres. */
+app.post('/api/friends/request', requireAuth(async (req, res) => {
+  const uid = req.user.id;
+  const code = String((req.body && req.body.friendId) || '').trim();
+  if (!/^\d{8}$/.test(code)) return res.status(400).json({ error: 'identifiant_invalide' });
+  try {
+    const { data: cible } = await supa.from('profiles').select('id, nom').eq('friend_id', code).maybeSingle();
+    if (!cible) return res.status(404).json({ error: 'introuvable' });
+    if (cible.id === uid) return res.status(400).json({ error: 'soi_meme' });
+
+    const existant = (await amitiesDe(uid))
+      .find((l) => l.requester_id === cible.id || l.addressee_id === cible.id);
+    if (existant) {
+      return res.status(409).json({ error: existant.status === 'accepted' ? 'deja_ami' : 'demande_en_cours' });
+    }
+    const { error } = await supa.from('friendships')
+      .insert({ requester_id: uid, addressee_id: cible.id, status: 'pending' });
+    if (error) throw error;
+    res.json({ ok: true, nom: cible.nom || 'Sans nom' });
+  } catch (err) {
+    console.error('[friends/request]', err.message);
+    res.status(500).json({ error: 'friends_error' });
+  }
+}));
+
+/* Accepter une demande reçue. C'est ici que la semaine Premium peut être offerte. */
+app.post('/api/friends/accept', requireAuth(async (req, res) => {
+  const uid = req.user.id;
+  const lien = String((req.body && req.body.lien) || '');
+  try {
+    const { data: f } = await supa.from('friendships').select('*').eq('id', lien).maybeSingle();
+    // Seul le destinataire peut accepter : on ne s'ajoute pas soi-même chez les autres.
+    if (!f || f.addressee_id !== uid || f.status !== 'pending') {
+      return res.status(404).json({ error: 'demande_introuvable' });
+    }
+    const { error } = await supa.from('friendships').update({ status: 'accepted' }).eq('id', lien);
+    if (error) throw error;
+
+    const offerte = await offrirSemaine(f.requester_id, uid);
+    res.json({ ok: true, semaineOfferte: offerte });
+  } catch (err) {
+    console.error('[friends/accept]', err.message);
+    res.status(500).json({ error: 'friends_error' });
+  }
+}));
+
+/* Refuser une demande, ou retirer un ami. */
+app.post('/api/friends/remove', requireAuth(async (req, res) => {
+  const uid = req.user.id;
+  const lien = String((req.body && req.body.lien) || '');
+  try {
+    const { data: f } = await supa.from('friendships').select('*').eq('id', lien).maybeSingle();
+    if (!f || (f.requester_id !== uid && f.addressee_id !== uid)) {
+      return res.status(404).json({ error: 'introuvable' });
+    }
+    const { error } = await supa.from('friendships').delete().eq('id', lien);
+    if (error) throw error;
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[friends/remove]', err.message);
+    res.status(500).json({ error: 'friends_error' });
+  }
+}));
+
+/* Offre 7 jours de Premium au nouvel ami, sans carte bancaire.
+ * Garde-fous : une seule fois par bénéficiaire, et un quota par offreur. */
+async function offrirSemaine(offreurId, beneficiaireId) {
+  const { data: beneficiaire } = await supa.from('profiles')
+    .select('is_premium, premium_until, free_week_received').eq('id', beneficiaireId).maybeSingle();
+  if (!beneficiaire || beneficiaire.free_week_received || isPremium(beneficiaire)) return false;
+
+  const { data: offreur } = await supa.from('profiles')
+    .select('free_weeks_sent').eq('id', offreurId).maybeSingle();
+  const dejaOffertes = (offreur && offreur.free_weeks_sent) || 0;
+  if (dejaOffertes >= MAX_SEMAINES_OFFERTES) return false;
+
+  const { error } = await supa.from('profiles').update({
+    premium_until: new Date(Date.now() + DUREE_SEMAINE_MS).toISOString(),
+    free_week_received: true,
+  }).eq('id', beneficiaireId);
+  if (error) throw error;
+  await supa.from('profiles').update({ free_weeks_sent: dejaOffertes + 1 }).eq('id', offreurId);
+  console.log(`[amis] semaine Premium offerte à ${beneficiaireId} par ${offreurId}`);
+  return true;
+}
 
 /* ---------- Stripe Checkout (nécessite un compte connecté) ---------- */
 app.post('/api/create-checkout-session', requireAuth(async (req, res) => {

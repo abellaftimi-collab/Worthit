@@ -127,6 +127,10 @@ test('les routes privées exigent une authentification', async () => {
     ['POST', '/api/sync'],
     ['POST', '/api/create-checkout-session'],
     ['GET', '/api/verify-session?session_id=cs_test'],
+    ['GET', '/api/friends'],
+    ['POST', '/api/friends/request'],
+    ['POST', '/api/friends/accept'],
+    ['POST', '/api/friends/remove'],
   ];
   for (const [method, route] of routes) {
     const r = await fetch(BASE + route, {

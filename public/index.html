@@ -1564,7 +1564,7 @@ function pageConnexion(){
         <div class="field">
           <input id="f-pass" type="${a.showPass?'text':'password'}" value="${esc(a.pass)}" placeholder=" " class="${a.errors.pass?'error':''}"/>
           <label for="f-pass">${esc(t('auth.fPass'))}</label>
-          <button onclick="toggleShowPass()" class="field-toggle" aria-label="Afficher">${I(a.showPass?'eyeOff':'eye',16)}</button>
+          <button type="button" onclick="toggleShowPass()" class="field-toggle" aria-label="${a.showPass?'Masquer le mot de passe':'Afficher le mot de passe'}">${I(a.showPass?'eyeOff':'eye',16)}</button>
           ${a.errors.pass?`<p class="field-error">${esc(a.errors.pass)}</p>`:''}
         </div>
         <button onclick="submitAuth()" class="btn btn-neon btn-block" style="padding:15px;margin-top:4px;" ${a.loading?'disabled':''}>${a.loading?'…':esc(a.mode==='connexion'?t('auth.btnLogin'):t('auth.btnJoin'))}</button>
@@ -1572,8 +1572,33 @@ function pageConnexion(){
     </div>
   </section>`;
 }
-function switchAuthMode(m){ state.auth.mode=m; state.auth.errors={}; render(); }
-function toggleShowPass(){ state.auth.showPass=!state.auth.showPass; render(); }
+/* Récupère ce qui est tapé dans les champs avant tout re-rendu : sans ça,
+ * changer d'onglet efface ce que l'utilisateur vient de saisir. */
+function captureAuthFields(){
+  const v = id => { const el = document.getElementById(id); return el ? el.value : null; };
+  const nom = v('f-nom'), email = v('f-email'), pass = v('f-pass');
+  if(nom !== null) state.auth.nom = nom;
+  if(email !== null) state.auth.email = email;
+  if(pass !== null) state.auth.pass = pass;
+}
+function switchAuthMode(m){ captureAuthFields(); state.auth.mode=m; state.auth.errors={}; render(); }
+/* Afficher/masquer le mot de passe se fait sur place : re-rendre toute la page
+ * ferait clignoter l'écran, perdrait le focus et effacerait la saisie. */
+function toggleShowPass(){
+  const a = state.auth;
+  a.showPass = !a.showPass;
+  const input = document.getElementById('f-pass');
+  if(!input){ render(); return; }
+  const pos = input.selectionStart;
+  input.type = a.showPass ? 'text' : 'password';
+  const btn = input.parentElement && input.parentElement.querySelector('.field-toggle');
+  if(btn){
+    btn.innerHTML = I(a.showPass?'eyeOff':'eye',16);
+    btn.setAttribute('aria-label', a.showPass ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
+  }
+  input.focus();
+  try{ input.setSelectionRange(pos, pos); }catch(e){}
+}
 async function submitAuth(){
   const a=state.auth;
   const nom = a.mode==='inscription' ? (document.getElementById('f-nom')?.value||'') : '';
@@ -1669,14 +1694,26 @@ function pageOnboarding(){
     </div>
   </section>`;
 }
-function selectStatus(s){ state.onboarding.status=s; render(); }
+/* Mémorise les champs de l'étape courante avant un re-rendu (clic sur une puce,
+ * retour en arrière) : sans ça, la saisie en cours est effacée. */
+function captureOnboardingFields(){
+  const o = state.onboarding;
+  const champs = { 'ob-fonction':'fonction', 'ob-income':'income', 'ob-rent':'rent',
+                   'ob-charges':'charges', 'ob-goal-name':'goalName', 'ob-goal-target':'goalTarget' };
+  for(const id in champs){
+    const el = document.getElementById(id);
+    if(el) o[champs[id]] = el.value;
+  }
+}
+function selectStatus(s){ captureOnboardingFields(); state.onboarding.status=s; render(); }
 function toggleWeakness(w){
+  captureOnboardingFields();
   const o=state.onboarding;
   o.weaknesses = o.weaknesses.includes(w) ? o.weaknesses.filter(x=>x!==w) : [...o.weaknesses, w];
   render();
 }
-function selectFreq(f){ state.onboarding.impulseFreq=f; render(); }
-function onboardBack(){ if(state.onboarding.step>0){ state.onboarding.step--; render(); } }
+function selectFreq(f){ captureOnboardingFields(); state.onboarding.impulseFreq=f; render(); }
+function onboardBack(){ captureOnboardingFields(); if(state.onboarding.step>0){ state.onboarding.step--; render(); } }
 function onboardNext(){
   const o=state.onboarding;
   if(o.step===0){

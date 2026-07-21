@@ -1209,13 +1209,15 @@ function pageAccueil(){
           </h1>
           <p class="lede hero-up" style="font-size:17px;margin:0 0 32px;max-width:430px;animation-delay:.23s;">${esc(t('hero.lede'))}</p>
           <div class="hero-up hero-cta" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:28px;animation-delay:.32s;">
-            <button onclick="nav('connexion')" class="btn btn-neon" style="padding:15px 26px;font-size:15px;">${esc(t('hero.ctaStart'))} ${I('arrowRight',16)}</button>
+            ${state.profile
+              ? `<button onclick="nav('dashboard')" class="btn btn-neon" style="padding:15px 26px;font-size:15px;">${esc(t('nav.menuDash'))} ${I('arrowRight',16)}</button>`
+              : `<button onclick="nav('connexion')" class="btn btn-neon" style="padding:15px 26px;font-size:15px;">${esc(t('hero.ctaStart'))} ${I('arrowRight',16)}</button>`}
             <button onclick="openExtModal()" class="btn btn-ghost" style="padding:15px 22px;font-size:15px;border-color:rgba(167,139,250,.4);">${chromeIcon(17)} ${esc(t('ext.cta'))}</button>
-            <button onclick="nav('tarifs')" class="btn btn-ghost" style="padding:15px 22px;font-size:15px;">${I('crown',15)} ${esc(t('hero.ctaPremium'))}</button>
+            ${state.isPremium ? '' : `<button onclick="nav('tarifs')" class="btn btn-ghost" style="padding:15px 22px;font-size:15px;">${I('crown',15)} ${esc(t('hero.ctaPremium'))}</button>`}
           </div>
-          <div class="hero-up hero-trust" style="display:flex;gap:20px;flex-wrap:wrap;animation-delay:.41s;">
+          ${state.profile ? '' : `<div class="hero-up hero-trust" style="display:flex;gap:20px;flex-wrap:wrap;animation-delay:.41s;">
             ${[t('hero.t1'),t('hero.t2'),t('hero.t3')].map(x=>`<span style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-faint);">${I('check',13)}${esc(x)}</span>`).join('')}
-          </div>
+          </div>`}
         </div>
         ${HeroScene()}
       </div>

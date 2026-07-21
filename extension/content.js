@@ -47,20 +47,35 @@
     st.textContent = '.worthit-masked{filter:blur(10px) grayscale(.65) !important;opacity:.4 !important;pointer-events:none !important;user-select:none !important;transition:filter .3s ease;}';
     document.documentElement.appendChild(st);
   }
-  let maskedCount = 0;
+  const MASK_LIMIT = 80; // garde-fou : jamais plus de 80 éléments masqués sur une même page
+  /* Texte représentatif d'un lien. Beaucoup de fiches produit ne contiennent qu'une image :
+   * sans aria-label / title / alt, elles seraient totalement invisibles pour le filtre. */
+  function linkText(a) {
+    let t = (a.innerText || '').trim();
+    if (!t) {
+      const img = a.querySelector('img[alt]');
+      t = (a.getAttribute('aria-label') || a.getAttribute('title') ||
+           (img && img.getAttribute('alt')) || '').trim();
+    }
+    return t.slice(0, 300).toLowerCase();
+  }
   function maskProducts() {
     if (!cfg.enabled || !cfg.hideResults || !(cfg.keywords || []).length) return;
     if (isWorthitApp()) return;
     const kws = cfg.keywords.map(k => String(k).toLowerCase()).filter(Boolean);
     if (!kws.length) return;
     injectStyle();
+    // budget recalculé à chaque passage : le masquage ne s'épuise plus définitivement
+    let budget = MASK_LIMIT - document.querySelectorAll('.worthit-masked').length;
+    if (budget <= 0) return;
     const links = document.querySelectorAll('a:not([data-worthit-checked])');
     let checked = 0;
     for (const a of links) {
       if (checked++ > 500) break;
-      a.setAttribute('data-worthit-checked', '1');
-      const t = (a.innerText || '').slice(0, 300).toLowerCase();
+      const t = linkText(a);
+      // Pas encore de texte (chargement différé) : on ne le marque pas, on le rejugera au prochain passage.
       if (!t) continue;
+      a.setAttribute('data-worthit-checked', '1');
       const hit = kws.find(k => t.includes(k));
       if (!hit) continue;
       const card = a.closest('li,article,[class*="product" i],[class*="item" i],[class*="card" i]') || a;
@@ -71,7 +86,7 @@
       card.dataset.worthitMasked = '1';
       card.classList.add('worthit-masked');
       card.title = 'Masqué par Worthit (mot-clé « ' + hit + ' »)';
-      if (++maskedCount > 80) return; // limite de sécurité par page
+      if (--budget <= 0) return;
     }
   }
   let maskTimer = null;

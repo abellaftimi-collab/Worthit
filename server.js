@@ -332,7 +332,10 @@ app.post('/api/friends/accept', requireAuth(async (req, res) => {
     const { error } = await supa.from('friendships').update({ status: 'accepted' }).eq('id', lien);
     if (error) throw error;
 
-    const offerte = await offrirSemaine(f.requester_id, uid);
+    // Celui qui a envoyé la demande (en utilisant l'identifiant de l'autre) est celui qui
+    // rejoint : c'est lui le bénéficiaire. Celui qui accepte (le propriétaire de l'identifiant
+    // partagé) est l'offreur — c'est son quota de semaines offertes qui est entamé.
+    const offerte = await offrirSemaine(uid, f.requester_id);
     res.json({ ok: true, semaineOfferte: offerte });
   } catch (err) {
     console.error('[friends/accept]', err.message);

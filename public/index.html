@@ -1494,7 +1494,8 @@ async function accepterAmi(lien){
     method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({lien}),
   });
   if(r && r.ok){
-    if(r.semaineOfferte){ state.isPremium = true; saveLocal(); confettiBurst(null); toast('Ami ajouté — 1 semaine Premium offerte ✨','crown'); }
+    // C'est celui qui a envoyé la demande qui reçoit la semaine offerte, pas nous qui acceptons.
+    if(r.semaineOfferte){ confettiBurst(null); toast('Ami ajouté — il reçoit 1 semaine Premium offerte ✨','crown'); }
     else toast('Ami ajouté.','users');
     await loadFriends(true); render();
   } else toast("Impossible d'accepter cette demande.",'users');

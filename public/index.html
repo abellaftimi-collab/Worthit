@@ -1522,10 +1522,14 @@ async function retirerAmi(lien){
 
 function ligneAmi(u, i, total){
   const initiale = (u.nom||'?').trim()[0].toUpperCase();
+  const badges = u.badges || [];
   return `<div style="display:flex;align-items:center;gap:14px;padding:16px 14px;border-bottom:${i<total-1?'1px solid var(--line-soft)':'none'};background:${u.moi?'rgba(167,139,250,.06)':'transparent'};border-radius:${u.moi?'14px':'0'};">
     <span style="width:26px;text-align:center;font-size:14px;font-weight:700;color:${u.rang<=3?'var(--v1)':'var(--ink-faint)'};">${u.rang}</span>
     <div style="width:34px;height:34px;border-radius:50%;background:${u.moi?'var(--grad)':'rgba(255,255,255,.08)'};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;">${esc(initiale)}</div>
-    <span style="flex:1;font-size:14.5px;font-weight:${u.moi?700:400};color:#fff;">${esc(u.nom)}${u.moi?' (toi)':''}</span>
+    <div style="flex:1;min-width:0;">
+      <span style="font-size:14.5px;font-weight:${u.moi?700:400};color:#fff;">${esc(u.nom)}${u.moi?' (toi)':''}</span>
+      ${badges.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">${badges.map(b=>`<span class="glass pill" style="font-size:10px;color:var(--gold-1);">${I('medal',10)}${esc(b)}</span>`).join('')}</div>`:''}
+    </div>
     ${u.streak>0?`<span class="glass pill" style="font-size:11px;color:var(--ink-dim);">${I('flame',11)}${u.streak} j</span>`:''}
     <span class="tabular" style="font-size:14.5px;font-weight:700;color:#fff;min-width:52px;text-align:right;">${Math.round(u.semaine)} €</span>
   </div>`;

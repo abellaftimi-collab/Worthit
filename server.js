@@ -207,18 +207,33 @@ app.post('/api/sync', requireAuth(async (req, res) => {
         'impulse_freq', 'saved_total', 'sous', 'block_keywords', 'price_limit', 'lang'];
       const base = { id: uid, updated_at: new Date().toISOString() };
       for (const champ of CHAMPS_CLIENT) if (profile[champ] !== undefined) base[champ] = profile[champ];
-      // Montant de la semaine (tournoi) : horodaté au lundi courant pour la remise à zéro.
-      if (profile.week_saved !== undefined) {
-        base.week_saved = Math.max(0, Number(profile.week_saved) || 0);
-        base.week_start = lundiCourant();
-      }
+
+      const { data: courant } = await supa.from('profiles')
+        .select('streak, last_active_date, week_saved, week_start').eq('id', uid).maybeSingle();
+
       // Streak : un jour d'activité de plus s'ajoute au plus une fois par jour calendaire (UTC).
-      const { data: courant } = await supa.from('profiles').select('streak, last_active_date').eq('id', uid).maybeSingle();
       Object.assign(base, prochainStreak(courant && courant.streak, courant && courant.last_active_date));
+
+      // Montant de la semaine (tournoi) : horodaté au lundi courant pour la remise à zéro.
+      // Si une semaine nouvelle démarre, l'ancien montant est conservé dans week_saved_prev —
+      // c'est lui qui permet de calculer le badge « Plus grosse progression ».
+      if (profile.week_saved !== undefined) {
+        const aujourdhui = lundiCourant();
+        if (courant && courant.week_start && courant.week_start !== aujourdhui) {
+          base.week_saved_prev = Number(courant.week_saved) || 0;
+        }
+        base.week_saved = Math.max(0, Number(profile.week_saved) || 0);
+        base.week_start = aujourdhui;
+      }
+
       let { error } = await supa.from('profiles').upsert({ ...base, referral_code: uid.slice(0, 8) });
       // Colonnes d'une migration pas encore exécutée : on sauvegarde sans elles plutôt que d'échouer
       // (mieux vaut perdre le streak du jour que casser toute la synchro du profil).
       if (error && /referral_code/.test(error.message)) ({ error } = await supa.from('profiles').upsert(base));
+      if (error && /week_saved_prev/.test(error.message)) {
+        const { week_saved_prev, ...sansPrev } = base;
+        ({ error } = await supa.from('profiles').upsert({ ...sansPrev, referral_code: uid.slice(0, 8) }));
+      }
       if (error && /last_active_date|column "streak"/.test(error.message)) {
         const { streak, last_active_date, ...sansStreak } = base;
         ({ error } = await supa.from('profiles').upsert({ ...sansStreak, referral_code: uid.slice(0, 8) }));
@@ -323,6 +338,37 @@ function montantSemaine(profile) {
   return Number(profile.week_saved) || 0;
 }
 
+/* Amélioration par rapport à la semaine précédente, pour le badge « Plus grosse progression ».
+ * Sans semaine précédente connue, la progression n'est pas mesurable (pas un badge à 0 par défaut). */
+function progressionSemaine(profile) {
+  if (!profile || profile.week_start !== lundiCourant()) return null;
+  const precedent = profile.week_saved_prev;
+  if (precedent === null || precedent === undefined) return null;
+  return (Number(profile.week_saved) || 0) - Number(precedent);
+}
+
+/* Les trois badges promis sur la page Fonctionnalités, calculés sur le vrai classement.
+ * En cas d'égalité, le premier de la liste (déjà triée par montant) l'emporte.
+ * PAS_DE_GAGNANT (et non null) : le champ "lien" de "moi" vaut déjà null, donc "personne
+ * n'a de badge" et "c'est moi qui l'ai" seraient sinon indiscernables côté client. */
+const PAS_DE_GAGNANT = '(aucun)';
+function calculerBadges(classement) {
+  const meilleur = (fn) => classement.reduce((top, u) => {
+    const v = fn(u);
+    return (v !== null && (!top || v > top.valeur)) ? { id: u.lien, valeur: v } : top;
+  }, null);
+  // Cherche le maximum explicitement plutôt que de supposer que "classement" est déjà trié
+  // par montant : plus robuste si cette fonction est un jour appelée sur une liste non triée.
+  const topEconomie = meilleur(u => u.semaine > 0 ? u.semaine : null);
+  const topProgression = meilleur(u => u.progression);
+  const topSerie = meilleur(u => u.streak > 0 ? u.streak : null);
+  return {
+    topEconomieId: topEconomie ? topEconomie.id : PAS_DE_GAGNANT,
+    topProgressionId: (topProgression && topProgression.valeur > 0) ? topProgression.id : PAS_DE_GAGNANT,
+    topSerieId: topSerie ? topSerie.id : PAS_DE_GAGNANT,
+  };
+}
+
 async function amitiesDe(uid) {
   const { data, error } = await supa.from('friendships')
     .select('*').or(`requester_id.eq.${uid},addressee_id.eq.${uid}`);
@@ -332,8 +378,14 @@ async function amitiesDe(uid) {
 
 async function profilsPar(ids) {
   if (!ids.length) return {};
-  const { data, error } = await supa.from('profiles')
-    .select('id, nom, friend_id, streak, week_saved, week_start, saved_total').in('id', ids);
+  let { data, error } = await supa.from('profiles')
+    .select('id, nom, friend_id, streak, week_saved, week_start, week_saved_prev, saved_total').in('id', ids);
+  // Migration des badges pas encore exécutée : le classement reste utilisable, juste sans
+  // le badge "Plus grosse progression" (progressionSemaine gère déjà l'absence du champ).
+  if (error && /week_saved_prev/.test(error.message)) {
+    ({ data, error } = await supa.from('profiles')
+      .select('id, nom, friend_id, streak, week_saved, week_start, saved_total').in('id', ids));
+  }
   if (error) throw error;
   const map = {};
   for (const p of data || []) map[p.id] = p;
@@ -353,15 +405,26 @@ app.get('/api/friends', requireAuth(async (req, res) => {
     const vue = (l) => {
       const p = profils[autreId(l)] || {};
       return { lien: l.id, nom: p.nom || 'Sans nom', friendId: p.friend_id || null,
-               streak: p.streak || 0, semaine: montantSemaine(p) };
+               streak: p.streak || 0, semaine: montantSemaine(p), progression: progressionSemaine(p) };
     };
 
     const acceptes = liens.filter((l) => l.status === 'accepted');
-    const classement = [
+    let classement = [
       ...acceptes.map(vue),
-      { lien: null, nom: (moi && moi.nom) || 'Toi', friendId: monId,
-        streak: (moi && moi.streak) || 0, semaine: montantSemaine(moi), moi: true },
+      { lien: null, nom: (moi && moi.nom) || 'Toi', friendId: monId, streak: (moi && moi.streak) || 0,
+        semaine: montantSemaine(moi), progression: progressionSemaine(moi), moi: true },
     ].sort((a, b) => b.semaine - a.semaine).map((u, i) => ({ ...u, rang: i + 1 }));
+
+    // Les trois badges hebdomadaires : chaque entrée du classement sait si elle en détient un.
+    const badges = calculerBadges(classement);
+    classement = classement.map(u => ({
+      ...u,
+      badges: [
+        u.lien === badges.topEconomieId ? 'Top économie' : null,
+        u.lien === badges.topProgressionId ? 'Plus grosse progression' : null,
+        u.lien === badges.topSerieId ? 'Plus longue série' : null,
+      ].filter(Boolean),
+    }));
 
     res.json({
       monId,

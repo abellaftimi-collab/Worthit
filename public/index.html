@@ -903,6 +903,19 @@ const state = {
   demoQuestion:null, showcaseFilter:'Tous', shopTab:'avatars', selectedFriend:null,
   toasts:[],
 };
+/* Supabase détecte automatiquement le lien de réinitialisation (paramètres dans l'URL) et
+ * émet cet événement : on bascule alors sur l'écran « nouveau mot de passe ». */
+if(sb){
+  sb.auth.onAuthStateChange((event, session) => {
+    if(event === 'PASSWORD_RECOVERY'){
+      authSession = session;
+      state.auth.recoveryMode = true;
+      state.page = 'connexion';
+      try{ history.replaceState({page:'connexion'}, '', pathForPage('connexion')); }catch(e){}
+      render();
+    }
+  });
+}
 const quiz = {i:0, picked:null, revealed:false, score:0, finished:false};
 
 /* ---- persistance locale : le profil de CHAQUE utilisateur, pas des données démo ---- */
@@ -1697,6 +1710,7 @@ function FieldHtml(id,label,type,val,err,iconName,extraAttrs){
 
 function pageConnexion(){
   const a = state.auth;
+  if(a.recoveryMode) return pageResetMotDePasse();
   if(a.done){
     return `<section class="section" style="min-height:100vh;display:flex;align-items:center;background:radial-gradient(800px 500px at 50% 20%,rgba(124,58,237,.09),transparent 60%),var(--void);">
       <div class="container" style="max-width:420px;">
@@ -1734,9 +1748,62 @@ function pageConnexion(){
           ${a.errors.pass?`<p class="field-error">${esc(a.errors.pass)}</p>`:''}
         </div>
         <button onclick="submitAuth()" class="btn btn-neon btn-block" style="padding:15px;margin-top:4px;" ${a.loading?'disabled':''}>${a.loading?'…':esc(a.mode==='connexion'?t('auth.btnLogin'):t('auth.btnJoin'))}</button>
+        ${a.mode==='connexion'?`<button type="button" onclick="demanderResetMotDePasse()" style="background:none;border:none;cursor:pointer;color:var(--ink-faint);font-size:12.5px;font-family:inherit;margin-top:14px;width:100%;text-align:center;">Mot de passe oublié ?</button>`:''}
       </div>
     </div>
   </section>`;
+}
+/* Écran affiché quand on arrive via le lien reçu par e-mail après « Mot de passe oublié ». */
+function pageResetMotDePasse(){
+  return `<section class="section" style="min-height:100vh;display:flex;align-items:center;background:radial-gradient(800px 500px at 50% 20%,rgba(124,58,237,.09),transparent 60%),var(--void);">
+    <div class="container" style="max-width:420px;">
+      <div class="reveal center" style="margin-bottom:34px;">
+        <span style="width:40px;height:40px;border-radius:12px;background:var(--grad);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;">${I('lock',18,2)}</span>
+        <h2 style="font-size:26px;font-weight:800;color:#fff;margin:0 0 6px;letter-spacing:-.02em;font-family:var(--font-d);">Nouveau mot de passe</h2>
+        <p style="font-size:14px;color:var(--ink-dim);margin:0;">Choisis un mot de passe pour ton compte.</p>
+      </div>
+      <div class="glass reveal" style="border-radius:22px;padding:30px 26px;">
+        ${FieldHtml('reset-pass','Nouveau mot de passe','password','',state.auth.errors.pass,'lock')}
+        <button onclick="confirmerNouveauMotDePasse()" class="btn btn-neon btn-block" style="padding:15px;margin-top:4px;">Enregistrer</button>
+      </div>
+    </div>
+  </section>`;
+}
+function demanderResetMotDePasse(){
+  captureAuthFields();
+  document.getElementById('modal-root').innerHTML = `<div class="modal-backdrop" onclick="if(event.target===this)closeModal()">
+    <div class="glass modal-card check-pop">
+      <div style="width:48px;height:48px;border-radius:14px;background:var(--grad);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:#fff;">${I('mail',20)}</div>
+      <h3 style="font-size:18px;font-weight:800;color:#fff;margin:0 0 6px;">Mot de passe oublié</h3>
+      <p style="font-size:12.5px;color:var(--ink-dim);margin:0 0 20px;">On t'envoie un lien pour en choisir un nouveau.</p>
+      ${FieldHtml('reset-email','E-mail','email',state.auth.email||'',null,'mail')}
+      <button onclick="envoyerLienReset()" class="btn btn-neon btn-block" style="margin-top:4px;">Envoyer le lien</button>
+    </div></div>`;
+}
+async function envoyerLienReset(){
+  const email = document.getElementById('reset-email').value.trim();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){ toast('E-mail invalide.','mail'); return; }
+  if(!sb){ toast('Fonction indisponible hors ligne.','mail'); return; }
+  try{
+    await sb.auth.resetPasswordForEmail(email, {redirectTo: location.origin + '/connexion'});
+  }catch(e){}
+  // Toujours le même message, qu'un compte existe ou non avec cet e-mail :
+  // révéler l'existence d'un compte à partir d'un e-mail est une fuite d'information classique.
+  closeModal();
+  toast('Si un compte existe avec cet e-mail, un lien vient d\'être envoyé.','mail');
+}
+async function confirmerNouveauMotDePasse(){
+  const pass = document.getElementById('reset-pass').value;
+  if(pass.length<6){ state.auth.errors={pass:'6 caractères minimum.'}; render(); return; }
+  if(!sb){ toast('Fonction indisponible hors ligne.','lock'); return; }
+  const { error } = await sb.auth.updateUser({password:pass});
+  if(error){ toast('Échec, réessaie ou redemande un lien.','lock'); return; }
+  state.auth.recoveryMode = false; state.auth.errors={};
+  authSession = (await sb.auth.getSession()).data.session;
+  if(authSession) state.userEmail = authSession.user.email;
+  await syncFromServer();
+  toast('Mot de passe mis à jour.','check');
+  nav(state.profile?'dashboard':'onboarding');
 }
 /* Récupère ce qui est tapé dans les champs avant tout re-rendu : sans ça,
  * changer d'onglet efface ce que l'utilisateur vient de saisir. */
@@ -1809,6 +1876,41 @@ async function submitAuth(){
     a.errors = { email: translateAuthError(err && err.message) };
   }
   render();
+}
+/* ============================== RGPD : EXPORT ET SUPPRESSION ============================== */
+async function exporterMesDonnees(){
+  toast('Préparation de ton export…','link');
+  const data = await authedApi('/api/export');
+  if(!data || data.error){ toast("Échec de l'export, réessaie.",'link'); return; }
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'worthit-mes-donnees.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  toast('Export téléchargé.','link');
+}
+function confirmerSuppressionCompte(){
+  document.getElementById('modal-root').innerHTML = `<div class="modal-backdrop" onclick="if(event.target===this)closeModal()">
+    <div class="glass modal-card check-pop">
+      <div style="width:48px;height:48px;border-radius:14px;background:rgba(248,113,113,.15);border:1px solid rgba(248,113,113,.3);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:#f87171;">${I('x',20)}</div>
+      <h3 style="font-size:18px;font-weight:800;color:#fff;margin:0 0 6px;">Supprimer ton compte ?</h3>
+      <p style="font-size:12.5px;color:var(--ink-dim);margin:0 0 20px;line-height:1.6;">Action définitive et irréversible : profil, objectifs, victoires, amis et abonnement seront tous supprimés. Pour confirmer, tape <strong style="color:#fff;">SUPPRIMER</strong> ci-dessous.</p>
+      ${FieldHtml('confirm-delete','Tape SUPPRIMER','text','',null,'x')}
+      <button onclick="supprimerCompteDefinitivement()" class="btn btn-block" style="margin-top:4px;background:#dc2626;color:#fff;border:none;padding:14px;border-radius:13px;cursor:pointer;font-weight:700;">Supprimer définitivement</button>
+      <button onclick="closeModal()" class="btn btn-ghost btn-sm btn-block" style="margin-top:8px;">Annuler</button>
+    </div></div>`;
+}
+async function supprimerCompteDefinitivement(){
+  const champ = document.getElementById('confirm-delete');
+  if(!champ || champ.value.trim().toUpperCase()!=='SUPPRIMER'){ toast('Tape SUPPRIMER pour confirmer.','x'); return; }
+  const r = await authedApi('/api/account', {method:'DELETE'});
+  if(!r || r.error){ toast('Échec de la suppression, réessaie.','x'); return; }
+  closeModal();
+  if(sb) await sb.auth.signOut();
+  localStorage.clear();
+  toast('Compte supprimé.','check');
+  location.href = '/';
 }
 async function signOut(){
   if(sb) await sb.auth.signOut();
@@ -1914,9 +2016,11 @@ function onboardNext(){
     income:Number(o.income), rent:Number(o.rent)||0, charges:Number(o.charges)||0,
   };
   if(o.editMode){
-    // On modifie un profil existant : on garde la progression (streak, crans, victoires), on ajuste juste l'objectif visé.
+    // On modifie un profil existant : on garde la progression (streak, crans, victoires), on ajuste
+    // juste le PREMIER objectif — sans écraser ceux ajoutés depuis le dashboard (state.goals[1], [2]…).
     const existingGoal = state.goals[0];
-    state.goals = [{id:(existingGoal&&existingGoal.id)||1, name:o.goalName, target:Number(o.goalTarget), current:(existingGoal&&existingGoal.current)||0}];
+    const premier = {id:(existingGoal&&existingGoal.id)||1, name:o.goalName, target:Number(o.goalTarget), current:(existingGoal&&existingGoal.current)||0};
+    state.goals = [premier, ...state.goals.slice(1)];
     saveLocal();
     toast('Profil mis à jour','check');
     nav('parametres');
@@ -2036,6 +2140,8 @@ function pageDashboard(){
               <p style="font-size:11.5px;color:var(--ink-faint);margin:0;">${esc(v.when)} · vers « ${esc(v.goal)} »</p>
             </div>
             <span class="tabular grad-text" style="font-size:14px;font-weight:800;font-family:var(--font-d);flex-shrink:0;">+${v.price} €</span>
+            <button onclick="editVictory(${i})" aria-label="Corriger cette victoire" style="background:none;border:none;cursor:pointer;color:var(--ink-faint);padding:2px;display:flex;flex-shrink:0;">${I('settings',13)}</button>
+            <button onclick="supprimerVictoire(${i})" aria-label="Supprimer cette victoire" style="background:none;border:none;cursor:pointer;color:var(--ink-faint);padding:2px;display:flex;flex-shrink:0;">${I('x',13)}</button>
           </div>`).join('')}
         </div>`}
         <button onclick="addVictory()" class="btn btn-ghost btn-sm" style="margin-top:14px;">${I('shield',14)} J'ai résisté à un achat</button>
@@ -2044,10 +2150,17 @@ function pageDashboard(){
         <p style="font-size:13px;font-weight:700;color:#fff;margin:0 0 12px;">Tes objectifs</p>
         <div style="display:grid;gap:12px;">
           ${state.goals.map(g=>{const pct=Math.min(100,Math.round((g.current/g.target)*100));return `<div class="glass" style="border-radius:16px;padding:16px 18px;">
-            <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="font-size:14px;font-weight:600;color:#fff;">${esc(g.name)}</span><span class="tabular" style="font-size:12.5px;color:var(--ink-dim);">${g.current} / ${g.target} €</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px;">
+              <span style="font-size:14px;font-weight:600;color:#fff;">${esc(g.name)}</span>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span class="tabular" style="font-size:12.5px;color:var(--ink-dim);">${g.current} / ${g.target} €</span>
+                ${state.goals.length>1?`<button onclick="deleteGoal(${g.id})" aria-label="Supprimer cet objectif" style="background:none;border:none;cursor:pointer;color:var(--ink-faint);padding:2px;display:flex;">${I('x',14)}</button>`:''}
+              </div>
+            </div>
             <div class="progress-track"><div class="progress-fill" style="width:${pct}%;"></div></div>
           </div>`;}).join('')}
         </div>
+        <button onclick="addGoal()" class="btn btn-ghost btn-sm" style="margin-top:12px;">${I('target',14)} Ajouter un objectif</button>
       </div>
       <div class="reveal" style="margin-bottom:16px;">
         <p style="font-size:13px;font-weight:700;color:#fff;margin:0 0 12px;">Récompenses</p>
@@ -2185,6 +2298,7 @@ function setPriceLimit(v){
 }
 
 function addVictory(){
+  const plusieurs = state.goals.length>1;
   document.getElementById('modal-root').innerHTML = `<div class="modal-backdrop" onclick="if(event.target===this)closeModal()">
     <div class="glass modal-card check-pop">
       <div style="width:48px;height:48px;border-radius:14px;background:var(--grad);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:#fff;">${I('shield',20)}</div>
@@ -2192,6 +2306,9 @@ function addVictory(){
       <p style="font-size:12.5px;color:var(--ink-dim);margin:0 0 20px;">Ce montant part vers ton objectif, et tu gagnes des crans.</p>
       ${FieldHtml('vic-item','L’achat évité (ex : sneakers…)','text','',null,'bag')}
       ${FieldHtml('vic-price','Son prix (€)','number','',null,'coins')}
+      ${plusieurs?`<div class="field"><select id="vic-goal" style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;padding:14px;color:#fff;font-family:inherit;font-size:14px;">
+        ${state.goals.map(g=>`<option value="${g.id}">${esc(g.name)}</option>`).join('')}
+      </select></div>`:''}
       <button class="btn btn-neon btn-block" onclick="saveVictory()" style="margin-top:4px;">Enregistrer ma victoire</button>
     </div></div>`;
 }
@@ -2202,7 +2319,8 @@ function saveVictory(){
   const dayIdx = (new Date().getDay()+6)%7; // lundi = 0
   state.week[dayIdx].amount += price;
   state.savedTotal += price;
-  const goal = state.goals[0];
+  const selecteur = document.getElementById('vic-goal');
+  const goal = selecteur ? state.goals.find(g=>String(g.id)===selecteur.value) : state.goals[0];
   if(goal) goal.current = Math.min(goal.target, goal.current + price);
   const gained = Math.max(5, Math.round(price/10));
   state.sous += gained; state.sousToday += gained;
@@ -2212,6 +2330,93 @@ function saveVictory(){
   closeModal(); saveLocal();
   confettiBurst(null);
   toast(`+${price} € gardés, +${crans(gained)} !`,'trophy');
+  render();
+}
+
+/* ============================== CORRECTION D'UNE VICTOIRE ============================== */
+/* Retire les effets d'une victoire (montant, crans, objectif) sans jamais passer en négatif —
+ * utilisé à la fois par la suppression et par la modification (qui retire puis réapplique). */
+function retirerEffetsVictoire(v){
+  state.savedTotal = Math.max(0, state.savedTotal - v.price);
+  state.sous = Math.max(0, state.sous - Math.max(5, Math.round(v.price/10)));
+  const goal = state.goals.find(g=>g.name===v.goal);
+  if(goal) goal.current = Math.max(0, goal.current - v.price);
+}
+function appliquerEffetsVictoire(item, price, goal){
+  state.savedTotal += price;
+  state.sous += Math.max(5, Math.round(price/10));
+  if(goal) goal.current = Math.min(goal.target, goal.current + price);
+}
+function supprimerVictoire(i){
+  const v = state.victories[i];
+  if(!v) return;
+  retirerEffetsVictoire(v);
+  state.victoryCount = Math.max(0, (state.victoryCount||0) - 1);
+  state.victories.splice(i,1);
+  saveLocal();
+  toast('Victoire supprimée.','x');
+  render();
+}
+function editVictory(i){
+  const v = state.victories[i];
+  if(!v) return;
+  const plusieurs = state.goals.length>1;
+  document.getElementById('modal-root').innerHTML = `<div class="modal-backdrop" onclick="if(event.target===this)closeModal()">
+    <div class="glass modal-card check-pop">
+      <div style="width:48px;height:48px;border-radius:14px;background:var(--grad);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:#fff;">${I('settings',20)}</div>
+      <h3 style="font-size:18px;font-weight:800;color:#fff;margin:0 0 6px;">Corriger cette victoire</h3>
+      <p style="font-size:12.5px;color:var(--ink-dim);margin:0 0 20px;">Les montants déjà comptés sont réajustés automatiquement.</p>
+      ${FieldHtml('evic-item','L’achat évité','text',v.item,null,'bag')}
+      ${FieldHtml('evic-price','Son prix (€)','number',v.price,null,'coins')}
+      ${plusieurs?`<div class="field"><select id="evic-goal" style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;padding:14px;color:#fff;font-family:inherit;font-size:14px;">
+        ${state.goals.map(g=>`<option value="${g.id}" ${g.name===v.goal?'selected':''}>${esc(g.name)}</option>`).join('')}
+      </select></div>`:''}
+      <button class="btn btn-neon btn-block" onclick="saveEditVictory(${i})" style="margin-top:4px;">Enregistrer</button>
+    </div></div>`;
+}
+function saveEditVictory(i){
+  const v = state.victories[i];
+  if(!v) return;
+  const item = document.getElementById('evic-item').value.trim();
+  const price = Number(document.getElementById('evic-price').value);
+  if(!item || !(price>0)){ toast("Indique l'achat et son prix.",'bag'); return; }
+  const selecteur = document.getElementById('evic-goal');
+  const goal = selecteur ? state.goals.find(g=>String(g.id)===selecteur.value) : state.goals.find(g=>g.name===v.goal);
+  retirerEffetsVictoire(v);               // annule l'ancien montant/crans/objectif
+  appliquerEffetsVictoire(item, price, goal); // réapplique avec les nouvelles valeurs
+  v.item = item; v.price = price; v.goal = goal ? goal.name : v.goal;
+  closeModal(); saveLocal();
+  toast('Victoire mise à jour.','check');
+  render();
+}
+
+/* ============================== OBJECTIFS MULTIPLES ============================== */
+function addGoal(){
+  document.getElementById('modal-root').innerHTML = `<div class="modal-backdrop" onclick="if(event.target===this)closeModal()">
+    <div class="glass modal-card check-pop">
+      <div style="width:48px;height:48px;border-radius:14px;background:var(--grad);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:#fff;">${I('target',20)}</div>
+      <h3 style="font-size:18px;font-weight:800;color:#fff;margin:0 0 6px;">Nouvel objectif</h3>
+      <p style="font-size:12.5px;color:var(--ink-dim);margin:0 0 20px;">Tu peux avoir plusieurs objectifs en même temps.</p>
+      ${FieldHtml('goal-name','Nom (ex : Permis, Appart…)','text','',null,'target')}
+      ${FieldHtml('goal-target','Montant à atteindre (€)','number','',null,'coins')}
+      <button class="btn btn-neon btn-block" onclick="saveNewGoal()" style="margin-top:4px;">Créer l'objectif</button>
+    </div></div>`;
+}
+function saveNewGoal(){
+  const name = document.getElementById('goal-name').value.trim();
+  const target = Number(document.getElementById('goal-target').value);
+  if(!name || !(target>0)){ toast('Donne un nom et un montant.','target'); return; }
+  const idLibre = state.goals.reduce((max,g)=>Math.max(max, Number(g.id)||0), 0) + 1;
+  state.goals.push({id:idLibre, name, target, current:0});
+  closeModal(); saveLocal();
+  toast('Objectif ajouté.','target');
+  render();
+}
+function deleteGoal(id){
+  if(state.goals.length<=1) return; // toujours garder au moins un objectif
+  state.goals = state.goals.filter(g=>g.id!==id);
+  saveLocal();
+  toast('Objectif supprimé.','x');
   render();
 }
 
@@ -2432,6 +2637,12 @@ function pageParametres(){
         ? `<button onclick="downgrade()" class="btn btn-ghost btn-sm btn-block" style="margin-bottom:10px;">Repasser en Gratuit</button>`
         : `<button onclick="nav('tarifs')" class="btn btn-gold btn-sm btn-block" style="margin-bottom:10px;">${I('crown',13)} Passer Premium — 2,99 €/mois</button>`}
       <button onclick="signOut()" class="btn btn-ghost btn-block">${I('x',14)} Se déconnecter</button>
+    </div>
+    <div class="glass reveal" style="border-radius:18px;padding:24px 22px;margin-top:16px;">
+      <p style="font-size:13px;font-weight:700;color:#fff;margin:0 0 6px;display:flex;align-items:center;gap:8px;">${I('shield',15)} Tes données</p>
+      <p style="font-size:12.5px;color:var(--ink-dim);margin:0 0 16px;line-height:1.6;">Conformément à la politique de confidentialité : accès, export et suppression totale, à tout moment.</p>
+      <button onclick="exporterMesDonnees()" class="btn btn-ghost btn-sm btn-block" style="margin-bottom:10px;">${I('link',13)} Exporter mes données (JSON)</button>
+      <button onclick="confirmerSuppressionCompte()" class="btn btn-ghost btn-sm btn-block" style="color:#f87171;border-color:rgba(248,113,113,.3);">${I('x',13)} Supprimer mon compte définitivement</button>
     </div>`;
   }
 

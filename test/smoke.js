@@ -131,6 +131,8 @@ test('les routes privées exigent une authentification', async () => {
     ['POST', '/api/friends/request'],
     ['POST', '/api/friends/accept'],
     ['POST', '/api/friends/remove'],
+    ['GET', '/api/export'],
+    ['DELETE', '/api/account'],
   ];
   for (const [method, route] of routes) {
     const r = await fetch(BASE + route, {

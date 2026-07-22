@@ -153,6 +153,24 @@ function lundiCourant() {
   return d.toISOString().slice(0, 10);
 }
 
+const jourUTC = (offset) => {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + (offset || 0));
+  return d.toISOString().slice(0, 10);
+};
+
+/* Le streak avance d'un jour par jour d'activité consécutif, calculé côté serveur pour qu'il
+ * ne puisse pas être manipulé depuis le navigateur (comme is_premium avant lui).
+ * - même jour que la dernière activité connue -> inchangé
+ * - jour suivant -> +1
+ * - un jour a été sauté (ou premier jour) -> repart à 1 */
+function prochainStreak(streakActuel, derniereActivite) {
+  const aujourdhui = jourUTC(0);
+  if (derniereActivite === aujourdhui) return { streak: streakActuel || 1, last_active_date: aujourdhui };
+  if (derniereActivite === jourUTC(-1)) return { streak: (streakActuel || 0) + 1, last_active_date: aujourdhui };
+  return { streak: 1, last_active_date: aujourdhui };
+}
+
 app.get('/api/me', requireAuth(async (req, res) => {
   const { data } = await supa.from('profiles').select('*').eq('id', req.user.id).maybeSingle();
   res.json({
@@ -183,9 +201,10 @@ app.post('/api/sync', requireAuth(async (req, res) => {
   try {
     if (profile) {
       /* Liste blanche stricte : le navigateur ne doit JAMAIS pouvoir s'accorder le Premium
-       * (is_premium, premium_until) ni modifier son identifiant public ou son parrainage. */
+       * (is_premium, premium_until) ni modifier son identifiant public, son parrainage ou son
+       * streak (sinon il suffirait d'envoyer {streak: 9999} pour débloquer tous les paliers). */
       const CHAMPS_CLIENT = ['nom', 'status', 'fonction', 'income', 'rent', 'charges', 'weaknesses',
-        'impulse_freq', 'streak', 'saved_total', 'sous', 'block_keywords', 'price_limit', 'lang'];
+        'impulse_freq', 'saved_total', 'sous', 'block_keywords', 'price_limit', 'lang'];
       const base = { id: uid, updated_at: new Date().toISOString() };
       for (const champ of CHAMPS_CLIENT) if (profile[champ] !== undefined) base[champ] = profile[champ];
       // Montant de la semaine (tournoi) : horodaté au lundi courant pour la remise à zéro.
@@ -193,9 +212,17 @@ app.post('/api/sync', requireAuth(async (req, res) => {
         base.week_saved = Math.max(0, Number(profile.week_saved) || 0);
         base.week_start = lundiCourant();
       }
+      // Streak : un jour d'activité de plus s'ajoute au plus une fois par jour calendaire (UTC).
+      const { data: courant } = await supa.from('profiles').select('streak, last_active_date').eq('id', uid).maybeSingle();
+      Object.assign(base, prochainStreak(courant && courant.streak, courant && courant.last_active_date));
       let { error } = await supa.from('profiles').upsert({ ...base, referral_code: uid.slice(0, 8) });
-      // Migration parrainage pas encore exécutée : on sauvegarde sans la colonne plutôt que d'échouer.
+      // Colonnes d'une migration pas encore exécutée : on sauvegarde sans elles plutôt que d'échouer
+      // (mieux vaut perdre le streak du jour que casser toute la synchro du profil).
       if (error && /referral_code/.test(error.message)) ({ error } = await supa.from('profiles').upsert(base));
+      if (error && /last_active_date|column "streak"/.test(error.message)) {
+        const { streak, last_active_date, ...sansStreak } = base;
+        ({ error } = await supa.from('profiles').upsert({ ...sansStreak, referral_code: uid.slice(0, 8) }));
+      }
       if (error) throw error;
     }
     if (Array.isArray(goals)) {
@@ -222,6 +249,63 @@ app.post('/api/sync', requireAuth(async (req, res) => {
   } catch (err) {
     console.error('[sync]', err.message);
     res.status(500).json({ error: 'sync_error', detail: err.message });
+  }
+}));
+
+/* ================= RGPD : export et suppression =================
+ * La politique de confidentialité promet l'accès, l'export et la suppression totale des
+ * données à tout moment (droits RGPD) — ces deux routes tiennent cette promesse. */
+
+/* Export complet, lisible, au format JSON téléchargeable. */
+app.get('/api/export', requireAuth(async (req, res) => {
+  const uid = req.user.id;
+  try {
+    const [{ data: profile }, { data: goals }, { data: victories }, { data: amities }] = await Promise.all([
+      supa.from('profiles').select('*').eq('id', uid).maybeSingle(),
+      supa.from('goals').select('*').eq('user_id', uid),
+      supa.from('victories').select('*').eq('user_id', uid),
+      supa.from('friendships').select('*').or(`requester_id.eq.${uid},addressee_id.eq.${uid}`),
+    ]);
+    const paquet = {
+      export_genere_le: new Date().toISOString(),
+      compte: { email: req.user.email, id_utilisateur: uid },
+      profil: profile || null,
+      objectifs: goals || [],
+      victoires: victories || [],
+      amities: amities || [],
+    };
+    res.setHeader('Content-Disposition', 'attachment; filename="worthit-mes-donnees.json"');
+    res.json(paquet);
+  } catch (err) {
+    console.error('[export]', err.message);
+    res.status(500).json({ error: 'export_error' });
+  }
+}));
+
+/* Suppression totale et définitive du compte. */
+app.delete('/api/account', requireAuth(async (req, res) => {
+  const uid = req.user.id;
+  try {
+    // Résilie l'abonnement Stripe s'il y en a un : sinon la suppression du compte
+    // laisserait un prélèvement récurrent tourner sans compte pour le voir ni l'arrêter.
+    if (stripe) {
+      const { data: profile } = await supa.from('profiles').select('stripe_subscription_id').eq('id', uid).maybeSingle();
+      if (profile && profile.stripe_subscription_id) {
+        try { await stripe.subscriptions.cancel(profile.stripe_subscription_id); }
+        catch (err) { console.error('[account/delete] annulation Stripe échouée :', err.message); }
+      }
+    }
+    // Les lignes goals/victories/friendships ont "on delete cascade" vers profiles/auth.users :
+    // supprimer le compte Auth suffit, mais on nettoie explicitement profiles au cas où
+    // la contrainte de cascade manquerait sur une base pas entièrement migrée.
+    await supa.from('profiles').delete().eq('id', uid);
+    const { error } = await supa.auth.admin.deleteUser(uid);
+    if (error) throw error;
+    console.log(`[compte] supprimé définitivement : ${uid}`);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[account/delete]', err.message);
+    res.status(500).json({ error: 'delete_error' });
   }
 }));
 

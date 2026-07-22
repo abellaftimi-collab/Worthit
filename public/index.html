@@ -1816,6 +1816,10 @@ async function signOut(){
   state.profile=null; state.goals=[]; state.victories=[]; state.isPremium=false;
   state.streak=0; state.savedTotal=0; state.sous=0; state.blockKeywords=[]; state.priceLimit=''; state.userEmail='';
   state.auth = {mode:'connexion',nom:'',email:'',pass:'',showPass:false,errors:{},done:false};
+  // friendsState est global et survit à nav() : sans ce reset, un nouveau compte connecté sur le
+  // même appareil verrait encore les amis/demandes de la session précédente (loaded bloque le refetch).
+  Object.assign(friendsState, {monId:null, amis:[], demandesRecues:[], demandesEnvoyees:[], classement:[],
+                                semainesOffertesRestantes:0, loaded:false, loading:false, erreur:null});
   saveLocal();
   toast('Déconnecté.','user');
   nav('accueil');

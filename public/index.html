@@ -900,7 +900,7 @@ const state = {
   week:WEEK_DAYS.map(d=>({day:d,amount:0})), victories:[],
   blockKeywords:[], priceLimit:'', userEmail:'', pendingReferralDays:0, settingsTab:'profil',
   owned:['av1','th1'], activeAvatar:'av1', activeTheme:'th1',
-  demoQuestion:null, showcaseFilter:'Tous', shopTab:'avatars', selectedFriend:null,
+  demoQuestion:null, showcaseFilter:'Tous', shopTab:'avatars',
   toasts:[],
 };
 /* Supabase détecte automatiquement le lien de réinitialisation (paramètres dans l'URL) et
@@ -1958,7 +1958,7 @@ function pageOnboarding(){
           <div style="display:flex;flex-direction:column;gap:8px;">
             ${IMPULSE_FREQS.map(f=>`<button onclick="selectFreq('${f}')" style="display:flex;align-items:center;gap:12px;text-align:left;padding:12px 16px;border-radius:12px;border:${o.impulseFreq===f?'1px solid var(--v1)':'1px solid rgba(255,255,255,.1)'};background:${o.impulseFreq===f?'rgba(167,139,250,.08)':'rgba(255,255,255,.02)'};color:#fff;font-size:14px;cursor:pointer;font-family:inherit;">${I('flame',15)}${esc(f)}</button>`).join('')}
           </div>` : ''}
-        ${o.step===4 ? `<p style="font-size:13px;color:var(--ink-dim);margin:0 0 16px;line-height:1.6;">Pour quoi économises-tu ? Chaque achat auquel tu résisteras fera avancer cet objectif.</p>`
+        ${o.step===4 ? `<p style="font-size:13px;color:var(--ink-dim);margin:0 0 16px;line-height:1.6;">Pour quoi économises-tu ? Chaque achat auquel tu résisteras fera avancer cet objectif.${o.editMode && state.goals.length>1?` Tes ${state.goals.length-1} autre${state.goals.length>2?'s':''} objectif${state.goals.length>2?'s':''} ne seront pas modifiés — gère-les depuis le dashboard.`:''}</p>`
           + FieldHtml('ob-goal-name','Ton objectif (ex : Voyage, Permis…)','text',o.goalName,null,'target')
           + FieldHtml('ob-goal-target','Montant à atteindre (€)','number',o.goalTarget,null,'coins') : ''}
       </div>

@@ -71,10 +71,21 @@ public/index.html   Le site complet (un seul fichier, fonts incluses)
 public/og.png       Image de partage (réseaux sociaux) — régénérable, voir plus bas
 server.js           Express : statique + /api/chat + /api/sync + /api/me
                     + /api/create-checkout-session + /api/verify-session + /api/webhook
-supabase/*.sql      Schéma de la base (profils, objectifs, victoires, parrainage)
+supabase/*.sql      Schéma de la base — à exécuter dans l'ordre, une seule fois chacune
 extension/          L'extension Chrome (installation manuelle pour l'instant)
 test/smoke.js       Tests de fumée des routes API (`npm test`)
 ```
+
+### Migrations Supabase
+
+À exécuter dans **Project → SQL Editor → New query**, dans cet ordre (chacune est idempotente,
+sans risque de la relancer par erreur) :
+
+1. `schema.sql` — profils, objectifs, victoires
+2. `schema_referrals.sql` — parrainage
+3. `schema_friends.sql` — amis, tournoi hebdomadaire, semaine Premium offerte
+4. `schema_streak.sql` — streak calculé côté serveur
+5. `schema_badges.sql` — badges hebdomadaires du tournoi
 
 Les comptes et les données vivent dans **Supabase** : le front s'authentifie avec l'anon key,
 le serveur vérifie le jeton `Authorization: Bearer …` à chaque appel protégé, et c'est l'`id`

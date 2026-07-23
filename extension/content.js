@@ -10,7 +10,7 @@
 
   const BUY_WORDS = /(ajouter au panier|add to cart|add to bag|add to basket|buy now|acheter|payer maintenant|payer|commander|passer la commande|valider (ma |la )?commande|checkout|proceed to|place order|in den warenkorb|jetzt kaufen|zur kasse|comprar|añadir a la cesta|pagar|in winkelwagen|afrekenen|nu kopen|bestellen)/i;
 
-  let cfg = { enabled: true, pauseAll: true, hideResults: true, blockSearch: true, pauseSeconds: 60, strictMode: false, pin: '', keywords: [], priceLimit: 0 };
+  let cfg = { enabled: true, pauseAll: true, hideResults: true, blockSearch: true, pauseSeconds: 60, strictMode: false, pin: '', premium: false, apiBase: '', lang: 'fr', ctx: null, keywords: [], priceLimit: 0 };
 
   /* Mode strict : le seul moyen de passer un blocage est le code PIN fixé à l'avance.
    * (Friction volontaire, pas un coffre-fort : une extension reste désinstallable.) */
@@ -59,10 +59,22 @@
       const nextLimit = Math.max(0, +d.priceLimit || 0);
       // Durée du minuteur : bornée 0–600 s pour éviter toute valeur aberrante venue du site.
       const nextPause = (d.pauseSeconds === undefined) ? cfg.pauseSeconds : Math.min(600, Math.max(0, +d.pauseSeconds || 0));
-      if (JSON.stringify(nextKeywords) !== JSON.stringify(cfg.keywords) || nextLimit !== cfg.priceLimit || nextPause !== cfg.pauseSeconds) {
+      // Contexte pour Worthy : statut Premium, URL du serveur, langue, et snapshot budgétaire.
+      const nextPremium = (d.premium === undefined) ? cfg.premium : !!d.premium;
+      const nextApiBase = (typeof d.apiBase === 'string') ? d.apiBase : cfg.apiBase;
+      const nextLang = (typeof d.lang === 'string') ? d.lang : cfg.lang;
+      const nextCtx = (d.ctx && typeof d.ctx === 'object') ? d.ctx : cfg.ctx;
+      const change = JSON.stringify(nextKeywords) !== JSON.stringify(cfg.keywords) || nextLimit !== cfg.priceLimit
+        || nextPause !== cfg.pauseSeconds || nextPremium !== cfg.premium || nextApiBase !== cfg.apiBase
+        || nextLang !== cfg.lang || JSON.stringify(nextCtx) !== JSON.stringify(cfg.ctx);
+      if (change) {
         cfg.keywords = nextKeywords;
         cfg.priceLimit = nextLimit;
         cfg.pauseSeconds = nextPause;
+        cfg.premium = nextPremium;
+        cfg.apiBase = nextApiBase;
+        cfg.lang = nextLang;
+        cfg.ctx = nextCtx;
         chrome.storage.sync.set({ worthitCfg: cfg });
       }
     } catch (e) {}
@@ -241,23 +253,109 @@
     return m ? parseFloat((m[1] || m[2]).replace(/[  ]/g, '').replace(',', '.')) || 0 : 0;
   }
 
-  function overlayHtml(price, kwHit, wait, strict) {
+  /* Worthy n'est disponible que pour les Premium, et seulement si le site a déjà synchronisé
+   * le contexte budgétaire + l'URL du serveur (donc après une visite connectée sur Worthit). */
+  function worthyActive() {
+    return !!(cfg.premium && cfg.apiBase && cfg.ctx);
+  }
+
+  /* Anime le mini-échange dans l'overlay : Worthy pose une question personnalisée,
+   * l'utilisateur répond, Worthy relance une fois. Deux tours de Worthy au maximum. */
+  function runWorthy(price, kwHit) {
+    const thread = document.getElementById('ww-thread');
+    const input = document.getElementById('ww-input');
+    const send = document.getElementById('ww-send');
+    if (!thread || !input || !send) return;
+    const history = [];
+    let tours = 0;
+    const MAX = 2;
+
+    const bulle = (who, text) => {
+      const div = document.createElement('div');
+      const bot = who === 'bot';
+      div.style.cssText = 'max-width:88%;padding:9px 12px;border-radius:13px;font-size:13px;line-height:1.5;white-space:pre-wrap;' + (bot
+        ? 'align-self:flex-start;background:rgba(167,139,250,.14);border:1px solid rgba(167,139,250,.3);color:#fff;'
+        : 'align-self:flex-end;background:rgba(255,255,255,.08);color:rgba(255,255,255,.85);');
+      div.textContent = text;
+      thread.appendChild(div);
+      thread.scrollTop = thread.scrollHeight;
+      return div;
+    };
+
+    const ask = (message) => new Promise((resolve) => {
+      chrome.runtime.sendMessage({
+        type: 'worthy-nudge', apiBase: cfg.apiBase,
+        body: { message, history: history.slice(-8), context: cfg.ctx },
+      }, (res) => {
+        if (chrome.runtime.lastError || !res || res.error || !res.reply) return resolve(null);
+        resolve(res.reply);
+      });
+    });
+
+    const item = kwHit || (document.title || '').slice(0, 60) || 'cet achat';
+    const premierMsg = price > 0
+      ? `Je m'apprête à acheter « ${item} » à ${price} €. Pose-moi une question qui m'aide à décider.`
+      : `Je m'apprête à acheter « ${item} ». Pose-moi une question qui m'aide à décider.`;
+
+    const loading = bulle('bot', 'Worthy réfléchit…');
+    ask(premierMsg).then((reply) => {
+      history.push({ who: 'user', text: premierMsg });
+      // Repli hors-ligne : si l'IA ne répond pas, Worthy garde une question honnête générique.
+      loading.textContent = reply || 'Besoin réel, ou envie du moment ? Dans une semaine, tu y penseras encore ?';
+      if (reply) history.push({ who: 'bot', text: reply });
+      tours = 1;
+      input.disabled = false;
+      input.placeholder = 'Ta réponse à Worthy…';
+      input.focus();
+    });
+
+    const repondre = () => {
+      if (input.disabled) return;
+      const v = (input.value || '').trim();
+      if (!v || tours >= MAX) return;
+      bulle('user', v);
+      history.push({ who: 'user', text: v });
+      input.value = ''; input.disabled = true; input.placeholder = 'Worthy réfléchit…';
+      const l2 = bulle('bot', 'Worthy réfléchit…');
+      ask(v).then((reply) => {
+        l2.textContent = reply || 'Tu connais déjà la réponse, au fond. Prends la nuit.';
+        if (reply) history.push({ who: 'bot', text: reply });
+        tours++;
+        if (tours < MAX) { input.disabled = false; input.placeholder = 'Ta réponse à Worthy…'; input.focus(); }
+        else { input.placeholder = 'Worthy a dit l\'essentiel.'; send.disabled = true; send.style.opacity = '.4'; send.style.cursor = 'default'; }
+      });
+    };
+    send.addEventListener('click', repondre);
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); repondre(); } });
+  }
+
+  function overlayHtml(price, kwHit, wait, strict, worthy) {
     const priceTxt = price > 0 ? `<strong>${price.toLocaleString('fr-FR')} €</strong>` : 'cet achat';
     const reason = kwHit
       ? `Tu as toi-même bloqué le mot-clé <strong>« ${kwHit} »</strong> un jour où tu avais les idées claires.`
       : (cfg.priceLimit > 0 && price >= cfg.priceLimit
         ? `C'est au-dessus de ton seuil de <strong>${cfg.priceLimit} €</strong>.`
         : `L'envie dure moins de 20 minutes. Le regret, lui, revient à chaque relevé de compte.`);
+    // Premium : au lieu du texte figé, un vrai échange avec Worthy (rempli en asynchrone).
+    const corps = worthy
+      ? `<div id="worthit-worthy" style="margin:0 0 20px;">
+           <div id="ww-thread" style="display:flex;flex-direction:column;gap:8px;max-height:210px;overflow-y:auto;margin-bottom:10px;"></div>
+           <div id="ww-inputrow" style="display:flex;gap:7px;">
+             <input id="ww-input" disabled placeholder="Worthy réfléchit…" style="flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);border-radius:11px;padding:9px 11px;color:#fff;font-size:13px;font-family:inherit;outline:none;"/>
+             <button id="ww-send" style="padding:9px 13px;border-radius:11px;border:none;cursor:pointer;background:linear-gradient(135deg,#a78bfa,#7c3aed);color:#fff;font-size:14px;font-family:inherit;">→</button>
+           </div>
+         </div>`
+      : `<p style="color:rgba(255,255,255,.62);font-size:14px;line-height:1.6;margin:0 0 22px;">${reason}<br/>Question honnête : besoin réel, ou envie du moment ?</p>`;
     return `
       <div id="worthit-overlay" style="position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(5,3,10,.82);backdrop-filter:blur(6px);font-family:'Segoe UI',system-ui,sans-serif;">
         <div style="max-width:400px;width:100%;background:linear-gradient(165deg,#1a102c,#0c0716);border:1px solid rgba(167,139,250,.35);border-radius:22px;padding:30px 26px;box-shadow:0 40px 90px rgba(0,0,0,.6),0 0 50px rgba(124,58,237,.2);animation:worthitPop .45s cubic-bezier(.34,1.56,.64,1) both;">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:18px;">
             <span style="width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#7c3aed);box-shadow:0 0 12px rgba(167,139,250,.8);"></span>
             <span style="color:#fff;font-size:16px;font-weight:800;letter-spacing:-.02em;">worthit</span>
-            <span style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.4);">Pause anti-impulsion</span>
+            <span style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.4);">${worthy ? 'Worthy · Premium' : 'Pause anti-impulsion'}</span>
           </div>
-          <h2 style="color:#fff;font-size:19px;font-weight:800;margin:0 0 10px;line-height:1.35;">Une seconde. Tu allais dépenser ${priceTxt}.</h2>
-          <p style="color:rgba(255,255,255,.62);font-size:14px;line-height:1.6;margin:0 0 22px;">${reason}<br/>Question honnête : besoin réel, ou envie du moment ?</p>
+          <h2 style="color:#fff;font-size:19px;font-weight:800;margin:0 0 ${worthy ? '16' : '10'}px;line-height:1.35;">Une seconde. Tu allais dépenser ${priceTxt}.</h2>
+          ${corps}
           <div style="display:flex;flex-direction:column;gap:9px;">
             <button id="worthit-wait" style="padding:14px;border-radius:13px;border:none;cursor:pointer;background:linear-gradient(135deg,#a78bfa,#7c3aed);color:#fff;font-size:14.5px;font-weight:700;font-family:inherit;">${strict ? '← Retour' : "💪 J'attends 24 h"}</button>
             ${strict
@@ -273,11 +371,14 @@
   function showOverlay(target, price, kwHit) {
     if (document.getElementById('worthit-overlay')) return;
     const strict = strictActive();
+    // Worthy (Premium) : mini-échange personnalisé, mais pas en mode strict (là, c'est le PIN qui compte).
+    const worthy = !strict && worthyActive();
     // En mode strict, on ne passe qu'avec le code : le minuteur n'a plus lieu d'être.
     let wait = strict ? 0 : Math.min(600, Math.max(0, Math.round(+cfg.pauseSeconds || 0)));
     const host = document.createElement('div');
-    host.innerHTML = overlayHtml(price, kwHit, wait, strict);
+    host.innerHTML = overlayHtml(price, kwHit, wait, strict, worthy);
     document.documentElement.appendChild(host);
+    if (worthy) runWorthy(price, kwHit);
 
     let timer = null;
     const cleanup = () => { if (timer) clearInterval(timer); host.remove(); };

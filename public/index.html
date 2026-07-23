@@ -961,7 +961,15 @@ function saveLocal(){
       agentFreeUsed:(typeof agent!=='undefined'?agent.freeUsed:0), agentFreeDate:(new Date()).toDateString(),
     }));
     // Canal de synchro avec l'extension Chrome : elle lit cette clé quand tu visites le site.
-    localStorage.setItem('worthit_ext_sync', JSON.stringify({keywords:state.blockKeywords||[], priceLimit:state.priceLimit||0, pauseSeconds:(state.pauseSeconds===undefined?60:state.pauseSeconds), ts:Date.now()}));
+    // On pousse aussi le contexte budgétaire + statut Premium + l'URL du serveur : c'est ce qui
+    // permet à Worthy de poser une question personnalisée depuis n'importe quel site marchand.
+    localStorage.setItem('worthit_ext_sync', JSON.stringify({
+      keywords:state.blockKeywords||[], priceLimit:state.priceLimit||0,
+      pauseSeconds:(state.pauseSeconds===undefined?60:state.pauseSeconds),
+      premium:!!state.isPremium, apiBase:location.origin, lang:state.lang,
+      ctx:(typeof agentContext==='function'?agentContext():null),
+      ts:Date.now(),
+    }));
   }catch(e){}
   if(typeof syncToServer==='function') syncToServer();
 }

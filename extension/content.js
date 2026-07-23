@@ -10,7 +10,36 @@
 
   const BUY_WORDS = /(ajouter au panier|add to cart|add to bag|add to basket|buy now|acheter|payer maintenant|payer|commander|passer la commande|valider (ma |la )?commande|checkout|proceed to|place order|in den warenkorb|jetzt kaufen|zur kasse|comprar|añadir a la cesta|pagar|in winkelwagen|afrekenen|nu kopen|bestellen)/i;
 
-  let cfg = { enabled: true, pauseAll: true, hideResults: true, blockSearch: true, pauseSeconds: 60, keywords: [], priceLimit: 0 };
+  let cfg = { enabled: true, pauseAll: true, hideResults: true, blockSearch: true, pauseSeconds: 60, strictMode: false, pin: '', keywords: [], priceLimit: 0 };
+
+  /* Mode strict : le seul moyen de passer un blocage est le code PIN fixé à l'avance.
+   * (Friction volontaire, pas un coffre-fort : une extension reste désinstallable.) */
+  function strictActive() {
+    return !!(cfg.strictMode && cfg.pin && String(cfg.pin).length);
+  }
+  /* Champ de saisie du code, réutilisé par les deux pop-ups (achat + recherche). */
+  function pinGateHtml(id) {
+    return `<div style="margin-top:12px;padding-top:14px;border-top:1px solid rgba(255,255,255,.1);">
+      <p style="font-size:11.5px;color:rgba(255,255,255,.45);margin:0 0 8px;text-align:center;">Débloquer avec le code</p>
+      <div style="display:flex;gap:8px;">
+        <input id="${id}-pin" type="password" inputmode="numeric" autocomplete="off" placeholder="••••" style="flex:1;text-align:center;letter-spacing:.3em;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.15);border-radius:11px;padding:11px;color:#fff;font-family:inherit;font-size:15px;"/>
+        <button id="${id}-unlock" style="padding:11px 16px;border-radius:11px;border:none;cursor:pointer;background:rgba(255,255,255,.1);color:#fff;font-size:13px;font-family:inherit;">Débloquer</button>
+      </div>
+      <p id="${id}-err" style="font-size:11px;color:#f87171;margin:8px 0 0;text-align:center;height:14px;"></p>
+    </div>`;
+  }
+  function wirePinGate(id, onSuccess) {
+    const input = document.getElementById(id + '-pin');
+    const btn = document.getElementById(id + '-unlock');
+    const err = document.getElementById(id + '-err');
+    if (!input || !btn) return;
+    const tryUnlock = () => {
+      if (String(input.value) === String(cfg.pin)) onSuccess();
+      else { err.textContent = 'Code incorrect.'; input.value = ''; input.focus(); }
+    };
+    btn.addEventListener('click', tryUnlock);
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); } });
+  }
 
   const allowKey = 'worthit_allow_' + location.hostname;
 
@@ -132,6 +161,7 @@
 
   function showSearchBlock(hit, query) {
     if (document.getElementById('worthit-search-block')) return;
+    const strict = strictActive();
     const host = document.createElement('div');
     host.id = 'worthit-search-host';
     host.innerHTML = `
@@ -148,8 +178,10 @@
             Rien n'a changé depuis, à part l'envie du moment.
           </p>
           <div style="display:flex;flex-direction:column;gap:9px;">
-            <button id="worthit-sb-leave" style="padding:14px;border-radius:13px;border:none;cursor:pointer;background:linear-gradient(135deg,#a78bfa,#7c3aed);color:#fff;font-size:14.5px;font-weight:700;font-family:inherit;">💪 Je fais autre chose</button>
-            <button id="worthit-sb-stay" style="padding:12px;border-radius:13px;border:1px solid rgba(255,255,255,.18);cursor:pointer;background:transparent;color:rgba(255,255,255,.75);font-size:13px;font-family:inherit;">Voir quand même (5 min)</button>
+            <button id="worthit-sb-leave" style="padding:14px;border-radius:13px;border:none;cursor:pointer;background:linear-gradient(135deg,#a78bfa,#7c3aed);color:#fff;font-size:14.5px;font-weight:700;font-family:inherit;">${strict ? '← Retour' : '💪 Je fais autre chose'}</button>
+            ${strict
+              ? pinGateHtml('worthit-sb')
+              : `<button id="worthit-sb-stay" style="padding:12px;border-radius:13px;border:1px solid rgba(255,255,255,.18);cursor:pointer;background:transparent;color:rgba(255,255,255,.75);font-size:13px;font-family:inherit;">Voir quand même (5 min)</button>`}
           </div>
           <p style="font-size:10.5px;color:rgba(255,255,255,.3);margin:18px 0 0;text-align:center;">Worthit est du côté de l'acheteur, jamais du vendeur.</p>
         </div>
@@ -163,10 +195,17 @@
       close();
       if (history.length > 1) history.back(); else location.href = 'about:blank';
     });
-    document.getElementById('worthit-sb-stay').addEventListener('click', () => {
-      try { sessionStorage.setItem(searchAllowKey, String(Date.now() + 5 * 60 * 1000)); } catch (e) {}
-      close();
-    });
+    if (strict) {
+      wirePinGate('worthit-sb', () => {
+        try { sessionStorage.setItem(searchAllowKey, String(Date.now() + 5 * 60 * 1000)); } catch (e) {}
+        close();
+      });
+    } else {
+      document.getElementById('worthit-sb-stay').addEventListener('click', () => {
+        try { sessionStorage.setItem(searchAllowKey, String(Date.now() + 5 * 60 * 1000)); } catch (e) {}
+        close();
+      });
+    }
   }
 
   function esc(s) {
@@ -202,7 +241,7 @@
     return m ? parseFloat((m[1] || m[2]).replace(/[  ]/g, '').replace(',', '.')) || 0 : 0;
   }
 
-  function overlayHtml(price, kwHit, wait) {
+  function overlayHtml(price, kwHit, wait, strict) {
     const priceTxt = price > 0 ? `<strong>${price.toLocaleString('fr-FR')} €</strong>` : 'cet achat';
     const reason = kwHit
       ? `Tu as toi-même bloqué le mot-clé <strong>« ${kwHit} »</strong> un jour où tu avais les idées claires.`
@@ -220,8 +259,10 @@
           <h2 style="color:#fff;font-size:19px;font-weight:800;margin:0 0 10px;line-height:1.35;">Une seconde. Tu allais dépenser ${priceTxt}.</h2>
           <p style="color:rgba(255,255,255,.62);font-size:14px;line-height:1.6;margin:0 0 22px;">${reason}<br/>Question honnête : besoin réel, ou envie du moment ?</p>
           <div style="display:flex;flex-direction:column;gap:9px;">
-            <button id="worthit-wait" style="padding:14px;border-radius:13px;border:none;cursor:pointer;background:linear-gradient(135deg,#a78bfa,#7c3aed);color:#fff;font-size:14.5px;font-weight:700;font-family:inherit;">💪 J'attends 24 h</button>
-            <button id="worthit-buy" ${wait > 0 ? 'disabled' : ''} style="padding:12px;border-radius:13px;border:1px solid rgba(255,255,255,.18);cursor:${wait > 0 ? 'not-allowed' : 'pointer'};background:transparent;color:rgba(255,255,255,${wait > 0 ? '.38' : '.75'});font-size:13px;font-family:inherit;transition:color .3s ease;">${wait > 0 ? `J'achète dans ${wait} s…` : "J'achète quand même"}</button>
+            <button id="worthit-wait" style="padding:14px;border-radius:13px;border:none;cursor:pointer;background:linear-gradient(135deg,#a78bfa,#7c3aed);color:#fff;font-size:14.5px;font-weight:700;font-family:inherit;">${strict ? '← Retour' : "💪 J'attends 24 h"}</button>
+            ${strict
+              ? pinGateHtml('worthit')
+              : `<button id="worthit-buy" ${wait > 0 ? 'disabled' : ''} style="padding:12px;border-radius:13px;border:1px solid rgba(255,255,255,.18);cursor:${wait > 0 ? 'not-allowed' : 'pointer'};background:transparent;color:rgba(255,255,255,${wait > 0 ? '.38' : '.75'});font-size:13px;font-family:inherit;transition:color .3s ease;">${wait > 0 ? `J'achète dans ${wait} s…` : "J'achète quand même"}</button>`}
           </div>
           <p style="font-size:10.5px;color:rgba(255,255,255,.3);margin:16px 0 0;text-align:center;">Worthit est du côté de l'acheteur, jamais du vendeur.</p>
         </div>
@@ -231,14 +272,38 @@
 
   function showOverlay(target, price, kwHit) {
     if (document.getElementById('worthit-overlay')) return;
-    let wait = Math.min(600, Math.max(0, Math.round(+cfg.pauseSeconds || 0)));
+    const strict = strictActive();
+    // En mode strict, on ne passe qu'avec le code : le minuteur n'a plus lieu d'être.
+    let wait = strict ? 0 : Math.min(600, Math.max(0, Math.round(+cfg.pauseSeconds || 0)));
     const host = document.createElement('div');
-    host.innerHTML = overlayHtml(price, kwHit, wait);
+    host.innerHTML = overlayHtml(price, kwHit, wait, strict);
     document.documentElement.appendChild(host);
+
+    let timer = null;
+    const cleanup = () => { if (timer) clearInterval(timer); host.remove(); };
+    const proceed = () => {
+      cleanup();
+      try { sessionStorage.setItem(allowKey, String(Date.now() + 10000)); } catch (e) {}
+      if (target) target.click();
+    };
+
+    document.getElementById('worthit-wait').addEventListener('click', () => {
+      cleanup();
+      if (strict) return; // « ← Retour » : on reste sur la page, sans badge de série
+      const badge = document.createElement('div');
+      badge.textContent = '🔥 Bien joué. Ta série continue.';
+      badge.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:2147483647;background:#1a102c;border:1px solid rgba(167,139,250,.4);color:#fff;padding:12px 18px;border-radius:999px;font-family:system-ui;font-size:13.5px;box-shadow:0 12px 30px rgba(0,0,0,.5);';
+      document.documentElement.appendChild(badge);
+      setTimeout(() => badge.remove(), 3500);
+    });
+
+    if (strict) {
+      wirePinGate('worthit', proceed);
+      return;
+    }
 
     const buyBtn = document.getElementById('worthit-buy');
     // Résister est toujours instantané ; c'est seulement « J'achète quand même » qui doit patienter.
-    let timer = null;
     if (wait > 0) {
       timer = setInterval(() => {
         wait--;
@@ -253,21 +318,9 @@
         }
       }, 1000);
     }
-    const cleanup = () => { if (timer) clearInterval(timer); host.remove(); };
-
-    document.getElementById('worthit-wait').addEventListener('click', () => {
-      cleanup();
-      const badge = document.createElement('div');
-      badge.textContent = '🔥 Bien joué. Ta série continue.';
-      badge.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:2147483647;background:#1a102c;border:1px solid rgba(167,139,250,.4);color:#fff;padding:12px 18px;border-radius:999px;font-family:system-ui;font-size:13.5px;box-shadow:0 12px 30px rgba(0,0,0,.5);';
-      document.documentElement.appendChild(badge);
-      setTimeout(() => badge.remove(), 3500);
-    });
     buyBtn.addEventListener('click', () => {
       if (buyBtn.disabled) return; // le minuteur n'est pas terminé
-      cleanup();
-      try { sessionStorage.setItem(allowKey, String(Date.now() + 10000)); } catch (e) {}
-      if (target) target.click();
+      proceed();
     });
   }
 

@@ -71,6 +71,17 @@
     <span>sec.</span>
   </div>
 
+  <p class="h">Mode strict (code PIN)</p>
+  <div class="row">
+    <label class="lbl" for="strictMode">Exiger un code pour passer un blocage</label>
+    <span class="switch"><input type="checkbox" id="strictMode"><span class="slider"></span></span>
+  </div>
+  <div class="price-row">
+    <span>Code PIN</span>
+    <input type="password" id="pin" inputmode="numeric" autocomplete="off" placeholder="ex : 1234" style="width:110px;">
+  </div>
+  <p class="foot">Sans code défini, le mode strict reste inactif. Le pop-up n'offrira alors que « Retour » ou le bon code. Friction volontaire — une extension reste désinstallable.</p>
+
   <p class="foot">Astuce : 0 = pas de seuil / pas de minuteur. Ouvre ton dashboard Worthit pour synchroniser tes réglages automatiquement. <a href="https://worthit-bi9e.onrender.com" target="_blank">Worthit</a></p>
   <script src="popup.js"></script>
 </body>

@@ -82,6 +82,80 @@
   setTimeout(syncFromSite, 1200);
   setInterval(syncFromSite, 4000);
 
+  /* ---------- 3 bis) Auto-capture des économies quand tu résistes ----------
+   * L'extension connaît déjà le prix. Au clic « J'attends », on note une résistance
+   * EN ATTENTE. Elle ne devient une économie confirmée qu'après 24 h — et seulement si
+   * tu n'as pas acheté le même produit (même URL) entre-temps. Dédup par URL pour que
+   * spammer « ajouter au panier → non » ne gonfle rien. Les économies mûries sont versées
+   * dans ton compte à ta prochaine visite sur le site Worthit. */
+  const MATURE_MS = 24 * 60 * 60 * 1000;       // 24 h avant de compter
+  const DEDUP_MS = 30 * 24 * 60 * 60 * 1000;   // même URL : compte une fois par 30 jours
+
+  function urlKey() {
+    // On ignore query + hash : la même fiche produit atteinte via des paramètres de suivi
+    // différents ne doit compter qu'une fois.
+    try { const u = new URL(location.href); return u.origin + u.pathname; }
+    catch (e) { return String(location.href).split('?')[0]; }
+  }
+  function localGet(keys) { return new Promise((res) => chrome.storage.local.get(keys, (r) => res(r || {}))); }
+  function localSet(obj) { return new Promise((res) => chrome.storage.local.set(obj, () => res())); }
+
+  async function recordResistance(price) {
+    const p = Math.max(0, +price || 0);
+    if (p <= 0) return; // sans prix détecté, une « économie » de 0 € n'a aucun sens
+    const key = urlKey();
+    const now = Date.now();
+    const { worthit_pending = {}, worthit_matured = [] } = await localGet(['worthit_pending', 'worthit_matured']);
+    if (worthit_pending[key]) return;                                              // déjà en attente
+    if (worthit_matured.some((m) => m.key === key && now - m.ts < DEDUP_MS)) return; // déjà compté récemment
+    worthit_pending[key] = { price: p, ts: now, hostname: location.hostname, title: (document.title || '').slice(0, 80) };
+    await localSet({ worthit_pending });
+  }
+  async function cancelResistance() {
+    const key = urlKey();
+    const { worthit_pending = {} } = await localGet(['worthit_pending']);
+    if (worthit_pending[key]) { delete worthit_pending[key]; await localSet({ worthit_pending }); }
+  }
+  async function matureSweep() {
+    const now = Date.now();
+    const { worthit_pending = {}, worthit_matured = [] } = await localGet(['worthit_pending', 'worthit_matured']);
+    let changed = false;
+    for (const key of Object.keys(worthit_pending)) {
+      const p = worthit_pending[key];
+      if (now - p.ts >= MATURE_MS) {
+        // id unique (URL + horodatage) : le site s'en sert pour ne jamais compter deux fois.
+        worthit_matured.push({ id: key + '|' + p.ts, key, price: p.price, ts: p.ts, hostname: p.hostname, title: p.title });
+        delete worthit_pending[key];
+        changed = true;
+      }
+    }
+    // Purge des mûries trop vieilles (supposées déjà synchronisées) pour ne pas grossir sans fin.
+    const garde = worthit_matured.filter((m) => now - m.ts < DEDUP_MS + MATURE_MS);
+    if (garde.length !== worthit_matured.length) changed = true;
+    if (changed) await localSet({ worthit_pending, worthit_matured: garde });
+  }
+  async function reportMaturedToSite() {
+    if (!isWorthitApp()) return;
+    const { worthit_matured = [] } = await localGet(['worthit_matured']);
+    try { localStorage.setItem('worthit_savings_inbox', JSON.stringify(worthit_matured)); } catch (e) {}
+  }
+  /* Le site accuse réception des économies qu'il a créditées : on les retire alors de la file,
+   * pour qu'elles ne soient jamais recomptées. */
+  async function consumeAck() {
+    if (!isWorthitApp()) return;
+    let ack;
+    try { ack = JSON.parse(localStorage.getItem('worthit_savings_ack') || '[]'); } catch (e) { return; }
+    if (!Array.isArray(ack) || !ack.length) return;
+    const ackSet = new Set(ack);
+    const { worthit_matured = [] } = await localGet(['worthit_matured']);
+    const reste = worthit_matured.filter((m) => !ackSet.has(m.id));
+    if (reste.length !== worthit_matured.length) await localSet({ worthit_matured: reste });
+  }
+  matureSweep();
+  setInterval(matureSweep, 60000);
+  setTimeout(() => { reportMaturedToSite(); consumeAck(); }, 1500);
+  setInterval(() => { reportMaturedToSite(); consumeAck(); }, 5000);
+
   /* ---------- 2) Masquage des produits contenant un mot-clé bloqué ---------- */
   let styleInjected = false;
   function injectStyle() {
@@ -384,6 +458,8 @@
     const cleanup = () => { if (timer) clearInterval(timer); host.remove(); };
     const proceed = () => {
       cleanup();
+      // Tu achètes finalement ce produit : on annule la résistance en attente pour cette URL.
+      cancelResistance();
       try { sessionStorage.setItem(allowKey, String(Date.now() + 10000)); } catch (e) {}
       if (target) target.click();
     };
@@ -391,6 +467,8 @@
     document.getElementById('worthit-wait').addEventListener('click', () => {
       cleanup();
       if (strict) return; // « ← Retour » : on reste sur la page, sans badge de série
+      // Tu résistes : on note l'économie en attente (confirmée après 24 h, dédup par URL).
+      recordResistance(price);
       const badge = document.createElement('div');
       badge.textContent = '🔥 Bien joué. Ta série continue.';
       badge.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:2147483647;background:#1a102c;border:1px solid rgba(167,139,250,.4);color:#fff;padding:12px 18px;border-radius:999px;font-family:system-ui;font-size:13.5px;box-shadow:0 12px 30px rgba(0,0,0,.5);';

@@ -2363,6 +2363,49 @@ function setPauseSeconds(v){
   toast(state.pauseSeconds>0 ? `Minuteur réglé sur ${state.pauseSeconds} s` : 'Minuteur désactivé','lock');
 }
 
+/* ============================== ÉCONOMIES AUTO (extension) ==============================
+ * L'extension dépose dans localStorage les résistances mûries (>24h, dédupliquées par URL).
+ * On les crédite au compte, une seule fois chacune (idempotent via un ensemble d'ids traités),
+ * puis on accuse réception pour que l'extension les retire de sa file. */
+function ingestAutoSavings(){
+  if(!state.profile) return; // pas de compte connecté : rien à créditer
+  let inbox;
+  try{ inbox = JSON.parse(localStorage.getItem('worthit_savings_inbox')||'[]'); }catch(e){ return; }
+  if(!Array.isArray(inbox) || !inbox.length) return;
+  let done;
+  try{ done = JSON.parse(localStorage.getItem('worthit_savings_done')||'[]'); }catch(e){ done = []; }
+  const doneSet = new Set(done);
+  const goal = state.goals[0];
+  const dayIdx = (new Date().getDay()+6)%7;
+  let applied = 0, total = 0;
+  for(const s of inbox){
+    if(!s || !s.id || doneSet.has(s.id)) continue;
+    doneSet.add(s.id);
+    const price = Math.max(0, Number(s.price)||0);
+    if(price<=0) continue;
+    if(state.week[dayIdx]) state.week[dayIdx].amount += price;
+    state.savedTotal += price;
+    if(goal) goal.current = Math.min(goal.target, goal.current + price);
+    state.sous += Math.max(5, Math.round(price/10));
+    state.victoryCount = (state.victoryCount||0) + 1;
+    const item = String(s.title || s.hostname || 'Achat évité').slice(0,60);
+    state.victories.unshift({item, price, when:'Résisté 24 h', goal: goal ? goal.name : 'ton objectif'});
+    applied++; total += price;
+  }
+  state.victories = state.victories.slice(0,6);
+  // Accusé = les ids déjà traités encore présents dans la boîte (borné par la taille de la boîte).
+  const ackIds = inbox.filter(s => s && s.id && doneSet.has(s.id)).map(s => s.id);
+  try{
+    localStorage.setItem('worthit_savings_done', JSON.stringify([...doneSet].slice(-1000)));
+    localStorage.setItem('worthit_savings_ack', JSON.stringify(ackIds));
+  }catch(e){}
+  if(applied){
+    saveLocal();
+    toast(`+${total} € confirmés — résistances tenues 24 h ✨`,'trophy');
+    if(state.page==='dashboard' || state.page==='classement') render();
+  }
+}
+
 function addVictory(){
   const plusieurs = state.goals.length>1;
   document.getElementById('modal-root').innerHTML = `<div class="modal-backdrop" onclick="if(event.target===this)closeModal()">
@@ -3056,6 +3099,10 @@ try{ history.replaceState({page:state.page}, '', pathForPage(state.page) + locat
 render(false);
 renderAgent();
 
+/* Crédite les économies auto que l'extension aurait déposées (résistances tenues 24 h). */
+ingestAutoSavings();
+setInterval(ingestAutoSavings, 5000);
+
 /* Restaure la session Supabase existante (si l'utilisateur était déjà connecté) et synchronise. */
 (async function initServerSync(){
   if(sb){
@@ -3067,6 +3114,7 @@ renderAgent();
         await syncFromServer();
         render(true);
         renderAgent();
+        ingestAutoSavings(); // profil frais du serveur : on crédite les économies en attente
       }
     }catch(e){}
   }

@@ -560,7 +560,7 @@ app.post('/api/create-checkout-session', requireAuth(async (req, res) => {
         price_data: {
           currency: 'eur',
           recurring: { interval: monthly ? 'month' : 'year' },
-          unit_amount: monthly ? 299 : 2399, // centimes : 2,99 € / 23,99 €
+          unit_amount: monthly ? 499 : 3999, // centimes : 4,99 € / 39,99 €
           product_data: { name: 'Worthit Premium', description: "Agent IA personnalisé, dashboard perso, tournois entre amis" },
         },
       }],

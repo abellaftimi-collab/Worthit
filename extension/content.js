@@ -10,7 +10,7 @@
 
   const BUY_WORDS = /(ajouter au panier|add to cart|add to bag|add to basket|buy now|acheter|payer maintenant|payer|commander|passer la commande|valider (ma |la )?commande|checkout|proceed to|place order|in den warenkorb|jetzt kaufen|zur kasse|comprar|añadir a la cesta|pagar|in winkelwagen|afrekenen|nu kopen|bestellen)/i;
 
-  let cfg = { enabled: true, pauseAll: true, hideResults: true, blockSearch: true, keywords: [], priceLimit: 0 };
+  let cfg = { enabled: true, pauseAll: true, hideResults: true, blockSearch: true, pauseSeconds: 60, keywords: [], priceLimit: 0 };
 
   const allowKey = 'worthit_allow_' + location.hostname;
 
@@ -28,9 +28,12 @@
       if (!d || typeof d !== 'object') return;
       const nextKeywords = Array.isArray(d.keywords) ? d.keywords.map(String).slice(0, 50) : cfg.keywords;
       const nextLimit = Math.max(0, +d.priceLimit || 0);
-      if (JSON.stringify(nextKeywords) !== JSON.stringify(cfg.keywords) || nextLimit !== cfg.priceLimit) {
+      // Durée du minuteur : bornée 0–600 s pour éviter toute valeur aberrante venue du site.
+      const nextPause = (d.pauseSeconds === undefined) ? cfg.pauseSeconds : Math.min(600, Math.max(0, +d.pauseSeconds || 0));
+      if (JSON.stringify(nextKeywords) !== JSON.stringify(cfg.keywords) || nextLimit !== cfg.priceLimit || nextPause !== cfg.pauseSeconds) {
         cfg.keywords = nextKeywords;
         cfg.priceLimit = nextLimit;
+        cfg.pauseSeconds = nextPause;
         chrome.storage.sync.set({ worthitCfg: cfg });
       }
     } catch (e) {}
@@ -199,7 +202,7 @@
     return m ? parseFloat((m[1] || m[2]).replace(/[  ]/g, '').replace(',', '.')) || 0 : 0;
   }
 
-  function overlayHtml(price, kwHit) {
+  function overlayHtml(price, kwHit, wait) {
     const priceTxt = price > 0 ? `<strong>${price.toLocaleString('fr-FR')} €</strong>` : 'cet achat';
     const reason = kwHit
       ? `Tu as toi-même bloqué le mot-clé <strong>« ${kwHit} »</strong> un jour où tu avais les idées claires.`
@@ -218,7 +221,7 @@
           <p style="color:rgba(255,255,255,.62);font-size:14px;line-height:1.6;margin:0 0 22px;">${reason}<br/>Question honnête : besoin réel, ou envie du moment ?</p>
           <div style="display:flex;flex-direction:column;gap:9px;">
             <button id="worthit-wait" style="padding:14px;border-radius:13px;border:none;cursor:pointer;background:linear-gradient(135deg,#a78bfa,#7c3aed);color:#fff;font-size:14.5px;font-weight:700;font-family:inherit;">💪 J'attends 24 h</button>
-            <button id="worthit-buy" style="padding:12px;border-radius:13px;border:1px solid rgba(255,255,255,.18);cursor:pointer;background:transparent;color:rgba(255,255,255,.75);font-size:13px;font-family:inherit;">J'achète quand même</button>
+            <button id="worthit-buy" ${wait > 0 ? 'disabled' : ''} style="padding:12px;border-radius:13px;border:1px solid rgba(255,255,255,.18);cursor:${wait > 0 ? 'not-allowed' : 'pointer'};background:transparent;color:rgba(255,255,255,${wait > 0 ? '.38' : '.75'});font-size:13px;font-family:inherit;transition:color .3s ease;">${wait > 0 ? `J'achète dans ${wait} s…` : "J'achète quand même"}</button>
           </div>
           <p style="font-size:10.5px;color:rgba(255,255,255,.3);margin:16px 0 0;text-align:center;">Worthit est du côté de l'acheteur, jamais du vendeur.</p>
         </div>
@@ -228,19 +231,41 @@
 
   function showOverlay(target, price, kwHit) {
     if (document.getElementById('worthit-overlay')) return;
+    let wait = Math.min(600, Math.max(0, Math.round(+cfg.pauseSeconds || 0)));
     const host = document.createElement('div');
-    host.innerHTML = overlayHtml(price, kwHit);
+    host.innerHTML = overlayHtml(price, kwHit, wait);
     document.documentElement.appendChild(host);
+
+    const buyBtn = document.getElementById('worthit-buy');
+    // Résister est toujours instantané ; c'est seulement « J'achète quand même » qui doit patienter.
+    let timer = null;
+    if (wait > 0) {
+      timer = setInterval(() => {
+        wait--;
+        if (wait > 0) {
+          buyBtn.textContent = `J'achète dans ${wait} s…`;
+        } else {
+          clearInterval(timer); timer = null;
+          buyBtn.disabled = false;
+          buyBtn.textContent = "J'achète quand même";
+          buyBtn.style.cursor = 'pointer';
+          buyBtn.style.color = 'rgba(255,255,255,.75)';
+        }
+      }, 1000);
+    }
+    const cleanup = () => { if (timer) clearInterval(timer); host.remove(); };
+
     document.getElementById('worthit-wait').addEventListener('click', () => {
-      host.remove();
+      cleanup();
       const badge = document.createElement('div');
       badge.textContent = '🔥 Bien joué. Ta série continue.';
       badge.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:2147483647;background:#1a102c;border:1px solid rgba(167,139,250,.4);color:#fff;padding:12px 18px;border-radius:999px;font-family:system-ui;font-size:13.5px;box-shadow:0 12px 30px rgba(0,0,0,.5);';
       document.documentElement.appendChild(badge);
       setTimeout(() => badge.remove(), 3500);
     });
-    document.getElementById('worthit-buy').addEventListener('click', () => {
-      host.remove();
+    buyBtn.addEventListener('click', () => {
+      if (buyBtn.disabled) return; // le minuteur n'est pas terminé
+      cleanup();
       try { sessionStorage.setItem(allowKey, String(Date.now() + 10000)); } catch (e) {}
       if (target) target.click();
     });

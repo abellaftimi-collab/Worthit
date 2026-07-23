@@ -415,14 +415,15 @@ app.get('/api/friends', requireAuth(async (req, res) => {
         semaine: montantSemaine(moi), progression: progressionSemaine(moi), moi: true },
     ].sort((a, b) => b.semaine - a.semaine).map((u, i) => ({ ...u, rang: i + 1 }));
 
-    // Les trois badges hebdomadaires : chaque entrée du classement sait si elle en détient un.
+    // Les trois badges hebdomadaires : des CODES stables, pas des libellés en français —
+    // c'est au client de les traduire selon la langue de qui regarde (t('badge.topEconomie')…).
     const badges = calculerBadges(classement);
     classement = classement.map(u => ({
       ...u,
       badges: [
-        u.lien === badges.topEconomieId ? 'Top économie' : null,
-        u.lien === badges.topProgressionId ? 'Plus grosse progression' : null,
-        u.lien === badges.topSerieId ? 'Plus longue série' : null,
+        u.lien === badges.topEconomieId ? 'top_economie' : null,
+        u.lien === badges.topProgressionId ? 'top_progression' : null,
+        u.lien === badges.topSerieId ? 'top_serie' : null,
       ].filter(Boolean),
     }));
 

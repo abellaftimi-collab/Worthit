@@ -457,6 +457,8 @@ async function syncFromServer(){
     state.priceLimit = Number(r.profile.price_limit)||'';
     if(r.profile.lang && LANGS[r.profile.lang]) state.lang = r.profile.lang;
     state.pendingReferralDays = r.profile.pending_referral_days||0;
+    state.emailWeekly = r.profile.email_weekly!==false;
+    if(r.profile.week_count!==undefined) state.weekCount = Number(r.profile.week_count)||0;
   } else {
     state.profile = null;
     state.pendingReferralDays = 0;
@@ -477,8 +479,10 @@ async function syncToServer(){
         weaknesses:state.profile.weaknesses||[], impulse_freq:state.profile.impulseFreq||null,
         streak:state.streak, saved_total:state.savedTotal, sous:state.sous,
         block_keywords:state.blockKeywords||[], price_limit:state.priceLimit||0, lang:state.lang,
-        // Total de la semaine, pour le classement du tournoi (le serveur l'horodate au lundi courant).
+        email_weekly:state.emailWeekly!==false,
+        // Total + nombre de la semaine (tournoi + récap ; le serveur l'horodate au lundi courant).
         week_saved:(state.week||[]).reduce((s,d)=>s+(Number(d.amount)||0),0),
+        week_count:state.weekCount||0,
       },
       goals: state.goals,
       victories: state.victories,
@@ -655,7 +659,7 @@ fr:{ui:{
 'rgpd.title':"Tes données",'rgpd.desc':"Conformément à la politique de confidentialité : accès, export et suppression totale, à tout moment.",'rgpd.export':"Exporter mes données (JSON)",'rgpd.deleteAccount':"Supprimer mon compte définitivement",'rgpd.confirmTitle':"Supprimer ton compte ?",'rgpd.confirmDesc':"Action définitive et irréversible : profil, objectifs, victoires, amis et abonnement seront tous supprimés. Pour confirmer, tape {mot} ci-dessous.",'rgpd.confirmWord':"SUPPRIMER",'rgpd.typeToConfirmPh':"Tape {mot}",'rgpd.deleteBtn':"Supprimer définitivement",'rgpd.cancel':"Annuler",'rgpd.preparing':"Préparation de ton export…",'rgpd.exportFailed':"Échec de l'export, réessaie.",'rgpd.exportDone':"Export téléchargé.",'rgpd.typeConfirmToast':"Tape {mot} pour confirmer.",'rgpd.deleteFailed':"Échec de la suppression, réessaie.",'rgpd.deleted':"Compte supprimé.",
 'victory.editAria':"Corriger cette victoire",'victory.deleteAria':"Supprimer cette victoire",'victory.deletedToast':"Victoire supprimée.",'victory.editTitle':"Corriger cette victoire",'victory.editSub':"Les montants déjà comptés sont réajustés automatiquement.",'victory.missing':"Indique l'achat et son prix.",'victory.updated':"Victoire mise à jour.",'victory.save':"Enregistrer",'victory.itemPh':"L'achat évité (ex : sneakers…)",'victory.pricePh':"Son prix (€)",'victory.addTitle':"À quoi as-tu résisté ?",'victory.addSub':"Ce montant part vers ton objectif, et tu gagnes des crans.",'victory.addSave':"Enregistrer ma victoire",
 'friends.copied':"Identifiant copié — envoie-le à ton ami.",'friends.copyFailed':"Copie impossible, note-le à la main.",'friends.idLen':"Un identifiant fait 8 chiffres.",'friends.notFound':"Aucun compte avec cet identifiant.",'friends.isYourself':"C'est ton propre identifiant 🙂",'friends.already':"Vous êtes déjà amis.",'friends.pending':"Une demande est déjà en cours.",'friends.sentTo':"Demande envoyée à {nom}.",'friends.sendFailed':"Échec de l'envoi.",'friends.addedGift':"Ami ajouté — il reçoit 1 semaine Premium offerte ✨",'friends.added':"Ami ajouté.",'friends.acceptFailed':"Impossible d'accepter cette demande.",'friends.needAccount':"Crée ton compte pour obtenir ton identifiant et ajouter tes amis.",'friends.yourId':"Ton identifiant — partage-le pour qu'on t'ajoute",'friends.copy':"Copier",'friends.addWithId':"Ajouter un ami avec son identifiant",'friends.send':"Envoyer",'friends.explain':"Ton ami reçoit une demande à accepter. S'il n'a pas Premium, il gagne {semaine} en acceptant.",'friends.oneWeek':"1 semaine offerte",'friends.giftsLeft':"Il t'en reste {n} à offrir.",'friends.giftsUsed':"Tu as utilisé tes semaines à offrir.",'friends.received':"Demandes reçues",'friends.accept':"Accepter",'friends.refuse':"Refuser",'friends.pendingSent':"En attente de réponse",'friends.cancel':"Annuler",'friends.emptyTitle':"Pas encore d'amis",'friends.emptyDesc':"Partage ton identifiant ci-dessus : le classement se remplira dès qu'une demande sera acceptée.",'friends.loading':"Chargement…",'friends.loadError':"Impossible de charger tes amis pour l'instant.",'friends.eyebrow':"Tournois",'friends.title':"Cette semaine, entre amis",'friends.lede':"Classement des économies de la semaine. Remise à zéro chaque lundi.",'friends.lockedTitle':"Classement des amis",'friends.lockedDesc':"Le classement hebdomadaire est réservé au Premium — ou offert 1 semaine si un ami t'ajoute.",
-'badge.topEconomie':"Top économie",'badge.topProgression':"Plus grosse progression",'badge.topSerie':"Plus longue série",'friends.you':"toi",
+'badge.topEconomie':"Top économie",'badge.topProgression':"Plus grosse progression",'badge.topSerie':"Plus longue série",'friends.you':"toi",'email.weeklyLabel':"Récap hebdo par email",'email.weeklyOn':"Récap hebdo activé.",'email.weeklyOff':"Récap hebdo désactivé.",
 'hero.ctaPremium':"Voir Premium",'hero.t1':"Aucune carte requise",'hero.t2':"Annulable en un clic",'hero.t3':"Données sur ton appareil",
 'mock.checkout':"sneaker-store.com — Paiement",'mock.product':"Sneakers édition limitée",'mock.sub':"Panier · livraison offerte",'mock.msg':"Ça représente <strong>34 %</strong> de ce qu'il te reste ce mois-ci. Ton objectif « Voyage » recule. Toujours partant ?",'mock.left':"Reste ce mois-ci",'mock.wait':"J'attends 24 h",'mock.buy':"J'achète",'mock.chip1':"12 jours de série",'mock.chip2':"gardés cette semaine",
 'quiz.before':"Avant de commencer — question",'quiz.skip':"Passer le quiz →",'quiz.next':"Question suivante",'quiz.why':"Voir pourquoi Worthit existe",
@@ -700,7 +704,7 @@ en:{ui:{
 'rgpd.title':"Your data",'rgpd.desc':"As stated in the privacy policy: access, export and full deletion, anytime.",'rgpd.export':"Export my data (JSON)",'rgpd.deleteAccount':"Delete my account permanently",'rgpd.confirmTitle':"Delete your account?",'rgpd.confirmDesc':"Permanent and irreversible: profile, goals, victories, friends and subscription will all be deleted. To confirm, type {mot} below.",'rgpd.confirmWord':"DELETE",'rgpd.typeToConfirmPh':"Type {mot}",'rgpd.deleteBtn':"Delete permanently",'rgpd.cancel':"Cancel",'rgpd.preparing':"Preparing your export…",'rgpd.exportFailed':"Export failed, try again.",'rgpd.exportDone':"Export downloaded.",'rgpd.typeConfirmToast':"Type {mot} to confirm.",'rgpd.deleteFailed':"Deletion failed, try again.",'rgpd.deleted':"Account deleted.",
 'victory.editAria':"Correct this victory",'victory.deleteAria':"Delete this victory",'victory.deletedToast':"Victory deleted.",'victory.editTitle':"Correct this victory",'victory.editSub':"Already counted amounts are adjusted automatically.",'victory.missing':"Enter the purchase and its price.",'victory.updated':"Victory updated.",'victory.save':"Save",'victory.itemPh':"The purchase you avoided (e.g. sneakers…)",'victory.pricePh':"Its price (€)",'victory.addTitle':"What did you resist?",'victory.addSub':"This amount goes toward your goal, and you earn crans.",'victory.addSave':"Save my victory",
 'friends.copied':"ID copied — send it to your friend.",'friends.copyFailed':"Couldn't copy, write it down instead.",'friends.idLen':"An ID is 8 digits.",'friends.notFound':"No account with this ID.",'friends.isYourself':"That's your own ID 🙂",'friends.already':"You're already friends.",'friends.pending':"A request is already pending.",'friends.sentTo':"Request sent to {nom}.",'friends.sendFailed':"Failed to send.",'friends.addedGift':"Friend added — they get 1 free Premium week ✨",'friends.added':"Friend added.",'friends.acceptFailed':"Couldn't accept this request.",'friends.needAccount':"Create your account to get your ID and add friends.",'friends.yourId':"Your ID — share it so people can add you",'friends.copy':"Copy",'friends.addWithId':"Add a friend with their ID",'friends.send':"Send",'friends.explain':"Your friend gets a request to accept. If they don't have Premium, they get {semaine} by accepting.",'friends.oneWeek':"1 free week",'friends.giftsLeft':"You have {n} left to give.",'friends.giftsUsed':"You've used up your gift weeks.",'friends.received':"Requests received",'friends.accept':"Accept",'friends.refuse':"Decline",'friends.pendingSent':"Awaiting response",'friends.cancel':"Cancel",'friends.emptyTitle':"No friends yet",'friends.emptyDesc':"Share your ID above: the leaderboard fills up as soon as a request is accepted.",'friends.loading':"Loading…",'friends.loadError':"Couldn't load your friends right now.",'friends.eyebrow':"Tournaments",'friends.title':"This week, with friends",'friends.lede':"This week's savings leaderboard. Resets every Monday.",'friends.lockedTitle':"Friends leaderboard",'friends.lockedDesc':"The weekly leaderboard is Premium-only — or free for 1 week if a friend adds you.",
-'badge.topEconomie':"Top saver",'badge.topProgression':"Biggest improvement",'badge.topSerie':"Longest streak",'friends.you':"you",
+'badge.topEconomie':"Top saver",'badge.topProgression':"Biggest improvement",'badge.topSerie':"Longest streak",'friends.you':"you",'email.weeklyLabel':"Weekly email recap",'email.weeklyOn':"Weekly recap enabled.",'email.weeklyOff':"Weekly recap disabled.",
 'hero.ctaPremium':"See Premium",'hero.t1':"No card required",'hero.t2':"Cancel anytime",'hero.t3':"Data stays on your device",
 'mock.checkout':"sneaker-store.com — Checkout",'mock.product':"Limited edition sneakers",'mock.sub':"Cart · free shipping",'mock.msg':"That's <strong>34%</strong> of what you have left this month. Your “Travel” goal slips back. Still going for it?",'mock.left':"Left this month",'mock.wait':"I'll wait 24h",'mock.buy':"Buy anyway",'mock.chip1':"12-day streak",'mock.chip2':"kept this week",
 'quiz.before':"Before we start — question",'quiz.skip':"Skip the quiz →",'quiz.next':"Next question",'quiz.why':"See why Worthit exists",
@@ -753,7 +757,7 @@ es:{ui:{
 'rgpd.title':"Tus datos",'rgpd.desc':"Según la política de privacidad: acceso, exportación y eliminación total, en cualquier momento.",'rgpd.export':"Exportar mis datos (JSON)",'rgpd.deleteAccount':"Eliminar mi cuenta definitivamente",'rgpd.confirmTitle':"¿Eliminar tu cuenta?",'rgpd.confirmDesc':"Acción definitiva e irreversible: perfil, objetivos, victorias, amigos y suscripción se eliminarán. Para confirmar, escribe {mot} abajo.",'rgpd.confirmWord':"ELIMINAR",'rgpd.typeToConfirmPh':"Escribe {mot}",'rgpd.deleteBtn':"Eliminar definitivamente",'rgpd.cancel':"Cancelar",'rgpd.preparing':"Preparando tu exportación…",'rgpd.exportFailed':"Error al exportar, inténtalo de nuevo.",'rgpd.exportDone':"Exportación descargada.",'rgpd.typeConfirmToast':"Escribe {mot} para confirmar.",'rgpd.deleteFailed':"Error al eliminar, inténtalo de nuevo.",'rgpd.deleted':"Cuenta eliminada.",
 'victory.editAria':"Corregir esta victoria",'victory.deleteAria':"Eliminar esta victoria",'victory.deletedToast':"Victoria eliminada.",'victory.editTitle':"Corregir esta victoria",'victory.editSub':"Los importes ya contados se reajustan automáticamente.",'victory.missing':"Indica la compra y su precio.",'victory.updated':"Victoria actualizada.",'victory.save':"Guardar",'victory.itemPh':"La compra evitada (ej: zapatillas…)",'victory.pricePh':"Su precio (€)",'victory.addTitle':"¿A qué te resististe?",'victory.addSub':"Este importe va hacia tu objetivo, y ganas crans.",'victory.addSave':"Guardar mi victoria",
 'friends.copied':"Identificador copiado — envíaselo a tu amigo.",'friends.copyFailed':"No se pudo copiar, anótalo a mano.",'friends.idLen':"Un identificador tiene 8 dígitos.",'friends.notFound':"Ninguna cuenta con ese identificador.",'friends.isYourself':"Es tu propio identificador 🙂",'friends.already':"Ya sois amigos.",'friends.pending':"Ya hay una solicitud en curso.",'friends.sentTo':"Solicitud enviada a {nom}.",'friends.sendFailed':"Error al enviar.",'friends.addedGift':"Amigo añadido — recibe 1 semana Premium gratis ✨",'friends.added':"Amigo añadido.",'friends.acceptFailed':"No se pudo aceptar esta solicitud.",'friends.needAccount':"Crea tu cuenta para obtener tu identificador y añadir amigos.",'friends.yourId':"Tu identificador — compártelo para que te añadan",'friends.copy':"Copiar",'friends.addWithId':"Añadir un amigo con su identificador",'friends.send':"Enviar",'friends.explain':"Tu amigo recibe una solicitud para aceptar. Si no tiene Premium, gana {semaine} al aceptar.",'friends.oneWeek':"1 semana gratis",'friends.giftsLeft':"Te quedan {n} por regalar.",'friends.giftsUsed':"Has usado tus semanas para regalar.",'friends.received':"Solicitudes recibidas",'friends.accept':"Aceptar",'friends.refuse':"Rechazar",'friends.pendingSent':"Esperando respuesta",'friends.cancel':"Cancelar",'friends.emptyTitle':"Aún no tienes amigos",'friends.emptyDesc':"Comparte tu identificador arriba: la clasificación se llenará en cuanto se acepte una solicitud.",'friends.loading':"Cargando…",'friends.loadError':"No se pudieron cargar tus amigos ahora.",'friends.eyebrow':"Torneos",'friends.title':"Esta semana, entre amigos",'friends.lede':"Clasificación de ahorros de la semana. Se reinicia cada lunes.",'friends.lockedTitle':"Clasificación de amigos",'friends.lockedDesc':"La clasificación semanal es solo Premium — o gratis 1 semana si un amigo te añade.",
-'badge.topEconomie':"Mejor ahorro",'badge.topProgression':"Mayor progreso",'badge.topSerie':"Racha más larga",'friends.you':"tú",
+'badge.topEconomie':"Mejor ahorro",'badge.topProgression':"Mayor progreso",'badge.topSerie':"Racha más larga",'friends.you':"tú",'email.weeklyLabel':"Resumen semanal por email",'email.weeklyOn':"Resumen semanal activado.",'email.weeklyOff':"Resumen semanal desactivado.",
 'hero.ctaPremium':"Ver Premium",'hero.t1':"Sin tarjeta",'hero.t2':"Cancela cuando quieras",'hero.t3':"Tus datos en tu dispositivo",
 'mock.checkout':"sneaker-store.com — Pago",'mock.product':"Zapatillas edición limitada",'mock.sub':"Carrito · envío gratis",'mock.msg':"Es el <strong>34 %</strong> de lo que te queda este mes. Tu meta «Viaje» retrocede. ¿Sigues adelante?",'mock.left':"Te queda este mes",'mock.wait':"Espero 24 h",'mock.buy':"Comprar igual",'mock.chip1':"Racha de 12 días",'mock.chip2':"ahorrados esta semana",
 'quiz.before':"Antes de empezar — pregunta",'quiz.skip':"Saltar el quiz →",'quiz.next':"Siguiente pregunta",'quiz.why':"Ver por qué existe Worthit",
@@ -806,7 +810,7 @@ de:{ui:{
 'rgpd.title':"Deine Daten",'rgpd.desc':"Gemäß der Datenschutzerklärung: Zugriff, Export und vollständige Löschung, jederzeit.",'rgpd.export':"Meine Daten exportieren (JSON)",'rgpd.deleteAccount':"Mein Konto endgültig löschen",'rgpd.confirmTitle':"Konto löschen?",'rgpd.confirmDesc':"Endgültig und unwiderruflich: Profil, Ziele, Erfolge, Freunde und Abo werden gelöscht. Tippe zur Bestätigung unten {mot} ein.",'rgpd.confirmWord':"LÖSCHEN",'rgpd.typeToConfirmPh':"Tippe {mot}",'rgpd.deleteBtn':"Endgültig löschen",'rgpd.cancel':"Abbrechen",'rgpd.preparing':"Export wird vorbereitet…",'rgpd.exportFailed':"Export fehlgeschlagen, versuch es erneut.",'rgpd.exportDone':"Export heruntergeladen.",'rgpd.typeConfirmToast':"Tippe {mot} zur Bestätigung.",'rgpd.deleteFailed':"Löschen fehlgeschlagen, versuch es erneut.",'rgpd.deleted':"Konto gelöscht.",
 'victory.editAria':"Diesen Erfolg korrigieren",'victory.deleteAria':"Diesen Erfolg löschen",'victory.deletedToast':"Erfolg gelöscht.",'victory.editTitle':"Diesen Erfolg korrigieren",'victory.editSub':"Bereits gezählte Beträge werden automatisch angepasst.",'victory.missing':"Gib den Kauf und seinen Preis an.",'victory.updated':"Erfolg aktualisiert.",'victory.save':"Speichern",'victory.itemPh':"Der vermiedene Kauf (z. B. Sneaker…)",'victory.pricePh':"Sein Preis (€)",'victory.addTitle':"Wobei hast du widerstanden?",'victory.addSub':"Dieser Betrag fließt in dein Ziel, und du verdienst crans.",'victory.addSave':"Meinen Erfolg speichern",
 'friends.copied':"ID kopiert — schick sie deinem Freund.",'friends.copyFailed':"Kopieren fehlgeschlagen, notiere sie von Hand.",'friends.idLen':"Eine ID hat 8 Ziffern.",'friends.notFound':"Kein Konto mit dieser ID.",'friends.isYourself':"Das ist deine eigene ID 🙂",'friends.already':"Ihr seid schon befreundet.",'friends.pending':"Es läuft bereits eine Anfrage.",'friends.sentTo':"Anfrage an {nom} gesendet.",'friends.sendFailed':"Senden fehlgeschlagen.",'friends.addedGift':"Freund hinzugefügt — er bekommt 1 Woche Premium gratis ✨",'friends.added':"Freund hinzugefügt.",'friends.acceptFailed':"Anfrage konnte nicht angenommen werden.",'friends.needAccount':"Erstelle dein Konto, um deine ID zu erhalten und Freunde hinzuzufügen.",'friends.yourId':"Deine ID — teile sie, damit man dich hinzufügen kann",'friends.copy':"Kopieren",'friends.addWithId':"Freund per ID hinzufügen",'friends.send':"Senden",'friends.explain':"Dein Freund erhält eine Anfrage zum Annehmen. Ohne Premium bekommt er {semaine}, wenn er annimmt.",'friends.oneWeek':"1 Woche gratis",'friends.giftsLeft':"Du hast noch {n} zu verschenken.",'friends.giftsUsed':"Du hast deine Geschenkwochen aufgebraucht.",'friends.received':"Erhaltene Anfragen",'friends.accept':"Annehmen",'friends.refuse':"Ablehnen",'friends.pendingSent':"Warten auf Antwort",'friends.cancel':"Abbrechen",'friends.emptyTitle':"Noch keine Freunde",'friends.emptyDesc':"Teile deine ID oben: die Rangliste füllt sich, sobald eine Anfrage angenommen wird.",'friends.loading':"Wird geladen…",'friends.loadError':"Deine Freunde konnten gerade nicht geladen werden.",'friends.eyebrow':"Turniere",'friends.title':"Diese Woche, mit Freunden",'friends.lede':"Sparrangliste der Woche. Setzt sich jeden Montag zurück.",'friends.lockedTitle':"Freundes-Rangliste",'friends.lockedDesc':"Die wöchentliche Rangliste ist nur für Premium — oder 1 Woche gratis, wenn dich ein Freund hinzufügt.",
-'badge.topEconomie':"Bester Sparer",'badge.topProgression':"Größte Steigerung",'badge.topSerie':"Längste Serie",'friends.you':"du",
+'badge.topEconomie':"Bester Sparer",'badge.topProgression':"Größte Steigerung",'badge.topSerie':"Längste Serie",'friends.you':"du",'email.weeklyLabel':"Wöchentliche E-Mail-Zusammenfassung",'email.weeklyOn':"Wochenrückblick aktiviert.",'email.weeklyOff':"Wochenrückblick deaktiviert.",
 'hero.ctaPremium':"Premium ansehen",'hero.t1':"Keine Karte nötig",'hero.t2':"Jederzeit kündbar",'hero.t3':"Daten bleiben auf deinem Gerät",
 'mock.checkout':"sneaker-store.com — Kasse",'mock.product':"Sneakers Limited Edition",'mock.sub':"Warenkorb · Gratisversand",'mock.msg':"Das sind <strong>34 %</strong> von dem, was dir diesen Monat bleibt. Dein Ziel „Reise“ rückt weiter weg. Trotzdem kaufen?",'mock.left':"Diesen Monat übrig",'mock.wait':"Ich warte 24 h",'mock.buy':"Trotzdem kaufen",'mock.chip1':"12-Tage-Serie",'mock.chip2':"diese Woche behalten",
 'quiz.before':"Bevor wir starten — Frage",'quiz.skip':"Quiz überspringen →",'quiz.next':"Nächste Frage",'quiz.why':"Warum es Worthit gibt",
@@ -859,7 +863,7 @@ nl:{ui:{
 'rgpd.title':"Jouw gegevens",'rgpd.desc':"Volgens het privacybeleid: toegang, export en volledige verwijdering, op elk moment.",'rgpd.export':"Mijn gegevens exporteren (JSON)",'rgpd.deleteAccount':"Mijn account definitief verwijderen",'rgpd.confirmTitle':"Account verwijderen?",'rgpd.confirmDesc':"Definitief en onomkeerbaar: profiel, doelen, overwinningen, vrienden en abonnement worden allemaal verwijderd. Typ ter bevestiging {mot} hieronder.",'rgpd.confirmWord':"VERWIJDEREN",'rgpd.typeToConfirmPh':"Typ {mot}",'rgpd.deleteBtn':"Definitief verwijderen",'rgpd.cancel':"Annuleren",'rgpd.preparing':"Je export wordt voorbereid…",'rgpd.exportFailed':"Export mislukt, probeer opnieuw.",'rgpd.exportDone':"Export gedownload.",'rgpd.typeConfirmToast':"Typ {mot} ter bevestiging.",'rgpd.deleteFailed':"Verwijderen mislukt, probeer opnieuw.",'rgpd.deleted':"Account verwijderd.",
 'victory.editAria':"Deze overwinning corrigeren",'victory.deleteAria':"Deze overwinning verwijderen",'victory.deletedToast':"Overwinning verwijderd.",'victory.editTitle':"Deze overwinning corrigeren",'victory.editSub':"Al meegetelde bedragen worden automatisch aangepast.",'victory.missing':"Geef de aankoop en de prijs op.",'victory.updated':"Overwinning bijgewerkt.",'victory.save':"Opslaan",'victory.itemPh':"De vermeden aankoop (bijv. sneakers…)",'victory.pricePh':"De prijs (€)",'victory.addTitle':"Waar heb je weerstand aan geboden?",'victory.addSub':"Dit bedrag gaat naar je doel, en je verdient crans.",'victory.addSave':"Mijn overwinning opslaan",
 'friends.copied':"ID gekopieerd — stuur hem naar je vriend.",'friends.copyFailed':"Kopiëren mislukt, noteer hem handmatig.",'friends.idLen':"Een ID bestaat uit 8 cijfers.",'friends.notFound':"Geen account met deze ID.",'friends.isYourself':"Dat is je eigen ID 🙂",'friends.already':"Jullie zijn al vrienden.",'friends.pending':"Er loopt al een verzoek.",'friends.sentTo':"Verzoek verstuurd naar {nom}.",'friends.sendFailed':"Versturen mislukt.",'friends.addedGift':"Vriend toegevoegd — die krijgt 1 gratis Premium-week ✨",'friends.added':"Vriend toegevoegd.",'friends.acceptFailed':"Kon dit verzoek niet accepteren.",'friends.needAccount':"Maak je account aan om je ID te krijgen en vrienden toe te voegen.",'friends.yourId':"Jouw ID — deel hem zodat je toegevoegd kunt worden",'friends.copy':"Kopiëren",'friends.addWithId':"Vriend toevoegen met ID",'friends.send':"Versturen",'friends.explain':"Je vriend krijgt een verzoek om te accepteren. Zonder Premium krijgt die {semaine} bij het accepteren.",'friends.oneWeek':"1 gratis week",'friends.giftsLeft':"Je hebt er nog {n} over om weg te geven.",'friends.giftsUsed':"Je hebt je gratis weken op.",'friends.received':"Ontvangen verzoeken",'friends.accept':"Accepteren",'friends.refuse':"Weigeren",'friends.pendingSent':"Wachten op reactie",'friends.cancel':"Annuleren",'friends.emptyTitle':"Nog geen vrienden",'friends.emptyDesc':"Deel je ID hierboven: het klassement vult zich zodra een verzoek wordt geaccepteerd.",'friends.loading':"Laden…",'friends.loadError':"Kon je vrienden nu niet laden.",'friends.eyebrow':"Toernooien",'friends.title':"Deze week, met vrienden",'friends.lede':"Spaarklassement van de week. Wordt elke maandag gereset.",'friends.lockedTitle':"Vriendenklassement",'friends.lockedDesc':"Het wekelijkse klassement is alleen voor Premium — of 1 gratis week als een vriend je toevoegt.",
-'badge.topEconomie':"Beste spaarder",'badge.topProgression':"Grootste vooruitgang",'badge.topSerie':"Langste reeks",'friends.you':"jij",
+'badge.topEconomie':"Beste spaarder",'badge.topProgression':"Grootste vooruitgang",'badge.topSerie':"Langste reeks",'friends.you':"jij",'email.weeklyLabel':"Wekelijkse e-mailsamenvatting",'email.weeklyOn':"Weekoverzicht ingeschakeld.",'email.weeklyOff':"Weekoverzicht uitgeschakeld.",
 'hero.ctaPremium':"Bekijk Premium",'hero.t1':"Geen kaart nodig",'hero.t2':"Altijd opzegbaar",'hero.t3':"Data blijft op je apparaat",
 'mock.checkout':"sneaker-store.com — Afrekenen",'mock.product':"Sneakers limited edition",'mock.sub':"Winkelmand · gratis verzending",'mock.msg':"Dat is <strong>34%</strong> van wat je deze maand overhoudt. Je doel ‘Reis’ schuift op. Toch doen?",'mock.left':"Deze maand over",'mock.wait':"Ik wacht 24 u",'mock.buy':"Toch kopen",'mock.chip1':"12 dagen streak",'mock.chip2':"deze week bespaard",
 'quiz.before':"Voor we beginnen — vraag",'quiz.skip':"Quiz overslaan →",'quiz.next':"Volgende vraag",'quiz.why':"Waarom Worthit bestaat",
@@ -927,6 +931,8 @@ const state = {
   profile:null,
   goals:[], streak:0, savedTotal:0, sous:0, sousToday:0,
   victoryCount:0, // total d'achats évités depuis le début (la liste victories est tronquée, elle ne peut pas servir de compteur)
+  weekStart:'', weekCount:0, // semaine en cours : lundi (repère de reset) + nb d'achats évités cette semaine
+  emailWeekly:true, // recevoir le récap hebdo par email
   week:WEEK_DAYS.map(d=>({day:d,amount:0})), victories:[],
   blockKeywords:[], priceLimit:'', pauseSeconds:60, userEmail:'', pendingReferralDays:0, settingsTab:'profil',
   owned:['av1','th1'], activeAvatar:'av1', activeTheme:'th1',
@@ -955,6 +961,7 @@ function saveLocal(){
       introDone:state.introDone, profile:state.profile, goals:state.goals,
       streak:state.streak, savedTotal:state.savedTotal, sous:state.sous,
       week:state.week, victories:state.victories, victoryCount:state.victoryCount,
+      weekStart:state.weekStart, weekCount:state.weekCount,
       blockKeywords:state.blockKeywords, priceLimit:state.priceLimit, pauseSeconds:state.pauseSeconds,
       owned:state.owned, activeAvatar:state.activeAvatar, activeTheme:state.activeTheme,
       isPremiumDemo:state.isPremium, authNom:state.auth.nom, lang:state.lang,
@@ -985,6 +992,8 @@ function loadLocal(){
     state.victories = Array.isArray(d.victories)?d.victories:[];
     // Comptes créés avant l'ajout du compteur : on repart au moins du nombre de victoires connues.
     state.victoryCount = Number(d.victoryCount) || state.victories.length;
+    state.weekStart = d.weekStart || '';
+    state.weekCount = Number(d.weekCount) || 0;
     if(Array.isArray(d.blockKeywords)) state.blockKeywords = d.blockKeywords;
     if(d.priceLimit!==undefined) state.priceLimit = d.priceLimit;
     if(d.pauseSeconds!==undefined) state.pauseSeconds = d.pauseSeconds;
@@ -2362,6 +2371,31 @@ function setPauseSeconds(v){
   saveLocal();
   toast(state.pauseSeconds>0 ? `Minuteur réglé sur ${state.pauseSeconds} s` : 'Minuteur désactivé','lock');
 }
+function toggleEmailWeekly(){
+  state.emailWeekly = state.emailWeekly===false; // inverse : false -> true, true/undefined -> false
+  saveLocal();
+  toast(state.emailWeekly ? t('email.weeklyOn') : t('email.weeklyOff'),'mail');
+  render();
+}
+
+/* Lundi de la semaine en cours (local), au format YYYY-MM-DD — repère de remise à zéro hebdo. */
+function mondayStr(){
+  const d = new Date();
+  const jour = (d.getDay()+6)%7; // 0 = lundi
+  d.setDate(d.getDate()-jour); d.setHours(0,0,0,0);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+/* Remet à zéro le compteur hebdo (montant + nombre) dès qu'une nouvelle semaine commence.
+ * Corrige un vrai bug : sans ça, state.week accumulait DEPUIS TOUJOURS par jour de semaine,
+ * donc « cette semaine » était faux (tournoi, graphe du dashboard, récap). */
+function ensureCurrentWeek(){
+  const m = mondayStr();
+  if(state.weekStart !== m){
+    state.weekStart = m;
+    state.week = WEEK_DAYS.map(d=>({day:d,amount:0}));
+    state.weekCount = 0;
+  }
+}
 
 /* ============================== ÉCONOMIES AUTO (extension) ==============================
  * L'extension dépose dans localStorage les résistances mûries (>24h, dédupliquées par URL).
@@ -2375,6 +2409,7 @@ function ingestAutoSavings(){
   let done;
   try{ done = JSON.parse(localStorage.getItem('worthit_savings_done')||'[]'); }catch(e){ done = []; }
   const doneSet = new Set(done);
+  ensureCurrentWeek();
   const goal = state.goals[0];
   const dayIdx = (new Date().getDay()+6)%7;
   let applied = 0, total = 0;
@@ -2384,6 +2419,7 @@ function ingestAutoSavings(){
     const price = Math.max(0, Number(s.price)||0);
     if(price<=0) continue;
     if(state.week[dayIdx]) state.week[dayIdx].amount += price;
+    state.weekCount = (state.weekCount||0) + 1;
     state.savedTotal += price;
     if(goal) goal.current = Math.min(goal.target, goal.current + price);
     state.sous += Math.max(5, Math.round(price/10));
@@ -2425,8 +2461,10 @@ function saveVictory(){
   const item = document.getElementById('vic-item').value.trim();
   const price = Number(document.getElementById('vic-price').value);
   if(!item || !(price>0)){ toast(t('victory.missing'),'bag'); return; }
+  ensureCurrentWeek();
   const dayIdx = (new Date().getDay()+6)%7; // lundi = 0
   state.week[dayIdx].amount += price;
+  state.weekCount = (state.weekCount||0) + 1;
   state.savedTotal += price;
   const selecteur = document.getElementById('vic-goal');
   const goal = selecteur ? state.goals.find(g=>String(g.id)===selecteur.value) : state.goals[0];
@@ -2461,6 +2499,7 @@ function supprimerVictoire(i){
   if(!v) return;
   retirerEffetsVictoire(v);
   state.victoryCount = Math.max(0, (state.victoryCount||0) - 1);
+  state.weekCount = Math.max(0, (state.weekCount||0) - 1);
   state.victories.splice(i,1);
   saveLocal();
   toast(t('victory.deletedToast'),'x');
@@ -2741,6 +2780,9 @@ function pageParametres(){
       <div style="display:flex;flex-direction:column;gap:10px;font-size:13.5px;color:var(--ink-dim);margin-bottom:20px;">
         <div style="display:flex;justify-content:space-between;gap:10px;"><span>E-mail</span><span style="color:#fff;text-align:right;">${esc(state.userEmail||'—')}</span></div>
         <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;"><span>Abonnement</span><span style="text-align:right;">${state.isPremium?`<span class="badge-premium">${I('crown',9)} Premium</span>`:`<span style="color:#fff;">Gratuit</span>`}</span></div>
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;"><span>${esc(t('email.weeklyLabel'))}</span>
+          <button onclick="toggleEmailWeekly()" role="switch" aria-checked="${state.emailWeekly!==false}" style="position:relative;width:40px;height:22px;border-radius:99px;border:none;cursor:pointer;background:${state.emailWeekly!==false?'var(--grad)':'rgba(255,255,255,.15)'};flex-shrink:0;transition:background .2s;"><span style="position:absolute;top:3px;left:${state.emailWeekly!==false?'21px':'3px'};width:16px;height:16px;border-radius:50%;background:#fff;transition:left .2s;"></span></button>
+        </div>
       </div>
       ${state.isPremium
         ? `<button onclick="downgrade()" class="btn btn-ghost btn-sm btn-block" style="margin-bottom:10px;">Repasser en Gratuit</button>`
@@ -3088,6 +3130,7 @@ function renderAgent(){
 /* ============================== INIT ============================== */
 document.documentElement.dataset.worthitApp = '1'; // marqueur lu par l'extension Chrome (synchro + pas de blocage ici)
 loadLocal();
+ensureCurrentWeek(); // remet à zéro le compteur hebdo si une nouvelle semaine a commencé
 document.documentElement.lang = state.lang; // reflète la langue déjà choisie dès le premier rendu, pas juste après un clic
 /* L'URL d'arrivée gagne (lien partagé, F5, favori). Sur la racine seulement,
  * une première visite passe par l'intro. */

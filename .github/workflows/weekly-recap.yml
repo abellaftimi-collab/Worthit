@@ -1,0 +1,24 @@
+name: Récap hebdomadaire
+
+# Envoie le récap hebdo chaque dimanche soir (18:00 UTC), avant la remise à zéro du lundi.
+# Le vrai travail est fait par le serveur ; ce workflow ne fait qu'appeler l'endpoint.
+on:
+  schedule:
+    - cron: '0 18 * * 0'   # dimanche 18:00 UTC
+  workflow_dispatch: {}    # permet aussi un déclenchement manuel depuis l'onglet Actions
+
+jobs:
+  recap:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Appeler l'endpoint de récap
+        run: |
+          code=$(curl -s -o /tmp/out.json -w "%{http_code}" -X POST \
+            "${APP_URL}/api/cron/weekly-recap" \
+            -H "x-cron-secret: ${CRON_SECRET}")
+          echo "HTTP $code"
+          cat /tmp/out.json
+          test "$code" = "200"
+        env:
+          APP_URL: https://worthit-bi9e.onrender.com
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}

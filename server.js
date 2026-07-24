@@ -30,6 +30,12 @@ const supa = (SUPABASE_URL && SUPABASE_SERVICE_KEY)
   ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } })
   : null;
 
+const crypto = require('crypto');
+const RESEND_API_KEY = process.env.RESEND_API_KEY || '';         // fournisseur d'email (resend.com)
+const RESEND_FROM = process.env.RESEND_FROM || 'Worthit <onboarding@resend.dev>';
+const CRON_SECRET = process.env.CRON_SECRET || '';               // protège l'endpoint de récap
+const APP_URL = (process.env.APP_URL || 'https://worthit-bi9e.onrender.com').replace(/\/+$/, '');
+
 /* ---------- identifie l'utilisateur connecté depuis le header Authorization: Bearer <token> ---------- */
 async function getUser(req) {
   if (!supa) return null;
@@ -204,7 +210,7 @@ app.post('/api/sync', requireAuth(async (req, res) => {
        * (is_premium, premium_until) ni modifier son identifiant public, son parrainage ou son
        * streak (sinon il suffirait d'envoyer {streak: 9999} pour débloquer tous les paliers). */
       const CHAMPS_CLIENT = ['nom', 'status', 'fonction', 'income', 'rent', 'charges', 'weaknesses',
-        'impulse_freq', 'saved_total', 'sous', 'block_keywords', 'price_limit', 'lang'];
+        'impulse_freq', 'saved_total', 'sous', 'block_keywords', 'price_limit', 'lang', 'email_weekly'];
       const base = { id: uid, updated_at: new Date().toISOString() };
       for (const champ of CHAMPS_CLIENT) if (profile[champ] !== undefined) base[champ] = profile[champ];
 
@@ -214,15 +220,15 @@ app.post('/api/sync', requireAuth(async (req, res) => {
       // Streak : un jour d'activité de plus s'ajoute au plus une fois par jour calendaire (UTC).
       Object.assign(base, prochainStreak(courant && courant.streak, courant && courant.last_active_date));
 
-      // Montant de la semaine (tournoi) : horodaté au lundi courant pour la remise à zéro.
-      // Si une semaine nouvelle démarre, l'ancien montant est conservé dans week_saved_prev —
-      // c'est lui qui permet de calculer le badge « Plus grosse progression ».
-      if (profile.week_saved !== undefined) {
+      // Montant + nombre d'achats évités de la semaine (tournoi + récap), horodatés au lundi courant.
+      // À la bascule de semaine, l'ancien montant est conservé dans week_saved_prev (badge progression).
+      if (profile.week_saved !== undefined || profile.week_count !== undefined) {
         const aujourdhui = lundiCourant();
         if (courant && courant.week_start && courant.week_start !== aujourdhui) {
           base.week_saved_prev = Number(courant.week_saved) || 0;
         }
-        base.week_saved = Math.max(0, Number(profile.week_saved) || 0);
+        if (profile.week_saved !== undefined) base.week_saved = Math.max(0, Number(profile.week_saved) || 0);
+        if (profile.week_count !== undefined) base.week_count = Math.max(0, Math.round(Number(profile.week_count) || 0));
         base.week_start = aujourdhui;
       }
 
@@ -237,6 +243,10 @@ app.post('/api/sync', requireAuth(async (req, res) => {
       if (error && /last_active_date|column "streak"/.test(error.message)) {
         const { streak, last_active_date, ...sansStreak } = base;
         ({ error } = await supa.from('profiles').upsert({ ...sansStreak, referral_code: uid.slice(0, 8) }));
+      }
+      if (error && /week_count|email_weekly/.test(error.message)) {
+        const { week_count, email_weekly, ...sansEmail } = base;
+        ({ error } = await supa.from('profiles').upsert({ ...sansEmail, referral_code: uid.slice(0, 8) }));
       }
       if (error) throw error;
     }
@@ -323,6 +333,132 @@ app.delete('/api/account', requireAuth(async (req, res) => {
     res.status(500).json({ error: 'delete_error' });
   }
 }));
+
+/* ================= RÉCAP HEBDOMADAIRE PAR EMAIL =================
+ * Un planificateur externe (GitHub Actions) appelle /api/cron/weekly-recap chaque dimanche.
+ * Pour chaque utilisateur ayant économisé cette semaine, on envoie un email récapitulatif.
+ * Sans RESEND_API_KEY, l'endpoint tourne en « dry-run » : il dit qui/quoi sans rien envoyer. */
+
+/* Jeton de désinscription : signe l'id utilisateur, pour que le lien marche sans connexion
+ * tout en n'étant pas devinable. */
+function unsubToken(uid) {
+  return crypto.createHash('sha256').update(uid + '|' + (CRON_SECRET || SUPABASE_SERVICE_KEY)).digest('hex').slice(0, 24);
+}
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+async function sendEmail(to, subject, html) {
+  if (!RESEND_API_KEY) return { dryRun: true };
+  const r = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${RESEND_API_KEY}` },
+    body: JSON.stringify({ from: RESEND_FROM, to: [to], subject, html }),
+  });
+  if (!r.ok) throw new Error('resend ' + r.status + ' ' + (await r.text()).slice(0, 200));
+  return { sent: true };
+}
+
+function recapEmailHtml(p, uid) {
+  const nom = (p.nom || '').trim();
+  const saved = Math.round(Number(p.week_saved) || 0);
+  const count = Math.round(Number(p.week_count) || 0);
+  const streak = Number(p.streak) || 0;
+  const goal = p._goal; // objectif principal, joint en amont
+  const unsub = `${APP_URL}/api/unsubscribe?u=${encodeURIComponent(uid)}&t=${unsubToken(uid)}`;
+  const ligneObjectif = goal
+    ? `<tr><td style="padding:6px 0;color:#b9adcf;font-size:14px;">Objectif « ${esc(goal.name)} »</td><td style="padding:6px 0;color:#fff;font-size:14px;text-align:right;font-weight:600;">${Math.round(goal.current)} / ${Math.round(goal.target)} €</td></tr>`
+    : '';
+  return `<!doctype html><html><body style="margin:0;background:#f4f2f8;padding:24px 12px;font-family:'Segoe UI',system-ui,Arial,sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
+      <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background:linear-gradient(165deg,#1a102c,#0c0716);border-radius:20px;overflow:hidden;border:1px solid rgba(167,139,250,.3);">
+        <tr><td style="padding:30px 30px 8px;">
+          <div style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#a78bfa;vertical-align:middle;"></div>
+          <span style="color:#fff;font-size:17px;font-weight:800;letter-spacing:-.02em;vertical-align:middle;margin-left:7px;">worthit</span>
+        </td></tr>
+        <tr><td style="padding:8px 30px 4px;">
+          <h1 style="color:#fff;font-size:22px;font-weight:800;margin:0;line-height:1.3;">${nom ? esc(nom) + ', ta' : 'Ta'} semaine 💜</h1>
+        </td></tr>
+        <tr><td style="padding:14px 30px 0;">
+          <div style="background:linear-gradient(135deg,rgba(167,139,250,.18),rgba(124,58,237,.08));border:1px solid rgba(167,139,250,.3);border-radius:16px;padding:22px;text-align:center;">
+            <div style="color:#b9adcf;font-size:13px;">Tu as gardé</div>
+            <div style="color:#fff;font-size:40px;font-weight:800;letter-spacing:-.02em;margin:4px 0;">${saved} €</div>
+            <div style="color:#b9adcf;font-size:13px;">en résistant à ${count} achat${count > 1 ? 's' : ''} cette semaine</div>
+          </div>
+        </td></tr>
+        <tr><td style="padding:18px 30px 0;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr><td style="padding:6px 0;color:#b9adcf;font-size:14px;">🔥 Ta série</td><td style="padding:6px 0;color:#fff;font-size:14px;text-align:right;font-weight:600;">${streak} jour${streak > 1 ? 's' : ''}</td></tr>
+            ${ligneObjectif}
+          </table>
+        </td></tr>
+        <tr><td style="padding:24px 30px 8px;">
+          <a href="${APP_URL}/dashboard" style="display:block;text-align:center;background:linear-gradient(135deg,#a78bfa,#7c3aed);color:#fff;text-decoration:none;font-weight:700;font-size:15px;padding:14px;border-radius:13px;">Voir mon tableau de bord</a>
+        </td></tr>
+        <tr><td style="padding:8px 30px 26px;text-align:center;">
+          <span style="color:#6b6480;font-size:11px;">Worthit est du côté de l'acheteur, jamais du vendeur.<br/>
+          <a href="${unsub}" style="color:#8a7fb0;">Ne plus recevoir ce récap</a></span>
+        </td></tr>
+      </table>
+    </td></tr></table>
+  </body></html>`;
+}
+
+app.post('/api/cron/weekly-recap', async (req, res) => {
+  if (!CRON_SECRET || req.get('x-cron-secret') !== CRON_SECRET) {
+    return res.status(401).json({ error: 'non_autorise' });
+  }
+  if (!supa) return res.status(400).json({ error: 'supabase_non_configure' });
+  const dryRun = !RESEND_API_KEY;
+  const lundi = lundiCourant();
+  try {
+    // Uniquement les gens actifs cette semaine et qui n'ont pas déjà reçu ce récap.
+    const { data: profils, error } = await supa.from('profiles')
+      .select('id, nom, week_saved, week_count, streak, week_start, email_weekly, last_recap_sent')
+      .eq('week_start', lundi).gt('week_saved', 0);
+    if (error) throw error;
+
+    const eligibles = (profils || []).filter((p) => p.email_weekly !== false && p.last_recap_sent !== lundi);
+    const resultats = [];
+    for (const p of eligibles) {
+      const { data: u } = await supa.auth.admin.getUserById(p.id);
+      const email = u && u.user && u.user.email;
+      if (!email) continue;
+      const { data: goals } = await supa.from('goals').select('name, target, current').eq('user_id', p.id).order('created_at').limit(1);
+      p._goal = (goals && goals[0]) || null;
+      const html = recapEmailHtml(p, p.id);
+      try {
+        const r = await sendEmail(email, `Ta semaine Worthit : ${Math.round(p.week_saved)} € gardés 💜`, html);
+        if (!dryRun) await supa.from('profiles').update({ last_recap_sent: lundi }).eq('id', p.id);
+        resultats.push({ email: dryRun ? email : email.replace(/(.).+(@.*)/, '$1***$2'), saved: Math.round(p.week_saved), count: p.week_count, sent: !!r.sent, dryRun: !!r.dryRun });
+      } catch (err) {
+        console.error('[recap] envoi échoué', p.id, err.message);
+        resultats.push({ email: email.replace(/(.).+(@.*)/, '$1***$2'), erreur: err.message });
+      }
+    }
+    res.json({ dryRun, semaine: lundi, eligibles: eligibles.length, resultats });
+  } catch (err) {
+    console.error('[cron/weekly-recap]', err.message);
+    res.status(500).json({ error: 'recap_error', detail: err.message });
+  }
+});
+
+app.get('/api/unsubscribe', async (req, res) => {
+  const uid = String(req.query.u || '');
+  const token = String(req.query.t || '');
+  const page = (titre, msg) => `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><body style="margin:0;background:#0c0716;color:#fff;font-family:system-ui,sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center;text-align:center;"><div style="max-width:380px;padding:30px;"><div style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#a78bfa;"></div> <span style="font-weight:800;">worthit</span><h1 style="font-size:20px;margin:18px 0 8px;">${titre}</h1><p style="color:#b9adcf;font-size:14px;line-height:1.6;">${msg}</p><a href="${APP_URL}" style="color:#a78bfa;font-size:13px;">Retour à Worthit</a></div></body>`;
+  if (!supa || !uid || token !== unsubToken(uid)) {
+    return res.status(400).send(page('Lien invalide', "Ce lien de désinscription n'est pas valide ou a expiré."));
+  }
+  try {
+    await supa.from('profiles').update({ email_weekly: false }).eq('id', uid);
+    res.send(page('Désinscription confirmée', 'Tu ne recevras plus le récap hebdomadaire. Tu peux le réactiver à tout moment depuis tes Paramètres.'));
+  } catch (err) {
+    console.error('[unsubscribe]', err.message);
+    res.status(500).send(page('Oups', 'Une erreur est survenue. Réessaie depuis tes Paramètres.'));
+  }
+});
 
 /* ================= AMIS & TOURNOI =================
  * Amitié en deux temps : une demande, puis une acceptation. Personne n'apparaît
@@ -705,4 +841,5 @@ app.listen(PORT, () => {
     console.warn('    En local : `stripe listen --forward-to localhost:3000/api/webhook` puis colle le whsec_… dans .env');
   }
   console.log(`  OpenAI : ${OPENAI_KEY ? 'configuré (' + OPENAI_MODEL + ')' : 'NON configuré (cerveau local — ajoute OPENAI_API_KEY dans .env)'}`);
+  console.log(`  Récap email : ${RESEND_API_KEY ? 'configuré (Resend)' : 'dry-run (ajoute RESEND_API_KEY pour envoyer réellement)'}${CRON_SECRET ? '' : ' — ⚠ CRON_SECRET absent : /api/cron/weekly-recap refuse tout appel'}`);
 });

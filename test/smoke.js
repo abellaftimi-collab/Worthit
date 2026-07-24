@@ -107,6 +107,21 @@ test('un fichier inexistant renvoie bien 404, pas la page d\'accueil', async () 
 
 /* ---------------- sécurité ---------------- */
 
+test('l\'endpoint de récap refuse un appel sans le bon secret', async () => {
+  // Sans CRON_SECRET (non défini dans les tests), l'endpoint doit tout refuser.
+  const sansSecret = await fetch(BASE + '/api/cron/weekly-recap', { method: 'POST' });
+  assert.strictEqual(sansSecret.status, 401, 'sans secret → 401');
+  const mauvais = await fetch(BASE + '/api/cron/weekly-recap', {
+    method: 'POST', headers: { 'x-cron-secret': 'mauvais' },
+  });
+  assert.strictEqual(mauvais.status, 401, 'mauvais secret → 401');
+});
+
+test('le lien de désinscription rejette un jeton invalide', async () => {
+  const r = await fetch(BASE + '/api/unsubscribe?u=abc&t=faux');
+  assert.strictEqual(r.status, 400);
+});
+
 test('le webhook Stripe refuse un événement non signé', async () => {
   // Sans STRIPE_WEBHOOK_SECRET, accepter ce corps reviendrait à offrir le Premium à qui le demande.
   const r = await fetch(BASE + '/api/webhook', {

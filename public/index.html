@@ -2483,15 +2483,33 @@ function saveVictory(){
 /* ============================== CORRECTION D'UNE VICTOIRE ============================== */
 /* Retire les effets d'une victoire (montant, crans, objectif) sans jamais passer en négatif —
  * utilisé à la fois par la suppression et par la modification (qui retire puis réapplique). */
+/* Retire `price` du total de la semaine. Une victoire ne mémorise pas SON jour, donc on puise
+ * dans les jours (aujourd'hui d'abord) jusqu'à absorber le montant : le TOTAL de la semaine
+ * (qui alimente le tournoi et le récap email) reste ainsi toujours juste. */
+function retirerDuMontantSemaine(price){
+  let reste = Math.max(0, price);
+  const dayIdx = (new Date().getDay()+6)%7;
+  const ordre = [dayIdx, ...state.week.map((_,i)=>i).filter(i=>i!==dayIdx)];
+  for(const i of ordre){
+    if(reste<=0) break;
+    const pris = Math.min(state.week[i].amount, reste);
+    state.week[i].amount -= pris;
+    reste -= pris;
+  }
+}
 function retirerEffetsVictoire(v){
   state.savedTotal = Math.max(0, state.savedTotal - v.price);
   state.sous = Math.max(0, state.sous - Math.max(5, Math.round(v.price/10)));
+  retirerDuMontantSemaine(v.price); // ← corrige le montant hebdo (était oublié)
   const goal = state.goals.find(g=>g.name===v.goal);
   if(goal) goal.current = Math.max(0, goal.current - v.price);
 }
 function appliquerEffetsVictoire(item, price, goal){
   state.savedTotal += price;
   state.sous += Math.max(5, Math.round(price/10));
+  ensureCurrentWeek();
+  const dayIdx = (new Date().getDay()+6)%7;
+  if(state.week[dayIdx]) state.week[dayIdx].amount += price; // ← corrige le montant hebdo
   if(goal) goal.current = Math.min(goal.target, goal.current + price);
 }
 function supprimerVictoire(i){

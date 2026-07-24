@@ -435,7 +435,9 @@ app.post('/api/cron/weekly-recap', async (req, res) => {
       p._goal = (goals && goals[0]) || null;
       const html = recapEmailHtml(p, p.id);
       try {
-        const r = await sendEmail(email, `Ta semaine Worthit : ${Math.round(p.week_saved)} € gardés 💜`, html);
+        // En dry-run on n'appelle JAMAIS l'envoi (le bug : sendEmail ne regardait que la clé Resend,
+        // donc ?dry=1 envoyait quand même). On court-circuite ici, avant tout appel réseau.
+        const r = dryRun ? { dryRun: true } : await sendEmail(email, `Ta semaine Worthit : ${Math.round(p.week_saved)} € gardés 💜`, html);
         if (!dryRun) await supa.from('profiles').update({ last_recap_sent: lundi }).eq('id', p.id);
         resultats.push({ email: dryRun ? email : email.replace(/(.).+(@.*)/, '$1***$2'), saved: Math.round(p.week_saved), count: p.week_count, sent: !!r.sent, dryRun: !!r.dryRun });
       } catch (err) {

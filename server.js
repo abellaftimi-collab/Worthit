@@ -213,6 +213,9 @@ app.post('/api/sync', requireAuth(async (req, res) => {
         'impulse_freq', 'saved_total', 'sous', 'block_keywords', 'price_limit', 'lang', 'email_weekly'];
       const base = { id: uid, updated_at: new Date().toISOString() };
       for (const champ of CHAMPS_CLIENT) if (profile[champ] !== undefined) base[champ] = profile[champ];
+      // Email dupliqué depuis le jeton (jamais depuis le client) : sert au récap hebdomadaire,
+      // pour ne pas dépendre de l'API admin Auth au moment de l'envoi.
+      if (req.user.email) base.email = req.user.email;
 
       const { data: courant } = await supa.from('profiles')
         .select('streak, last_active_date, week_saved, week_start').eq('id', uid).maybeSingle();
@@ -244,8 +247,8 @@ app.post('/api/sync', requireAuth(async (req, res) => {
         const { streak, last_active_date, ...sansStreak } = base;
         ({ error } = await supa.from('profiles').upsert({ ...sansStreak, referral_code: uid.slice(0, 8) }));
       }
-      if (error && /week_count|email_weekly/.test(error.message)) {
-        const { week_count, email_weekly, ...sansEmail } = base;
+      if (error && /week_count|email_weekly|"email"/.test(error.message)) {
+        const { week_count, email_weekly, email, ...sansEmail } = base;
         ({ error } = await supa.from('profiles').upsert({ ...sansEmail, referral_code: uid.slice(0, 8) }));
       }
       if (error) throw error;
@@ -415,15 +418,16 @@ app.post('/api/cron/weekly-recap', async (req, res) => {
   try {
     // Uniquement les gens actifs cette semaine et qui n'ont pas déjà reçu ce récap.
     const { data: profils, error } = await supa.from('profiles')
-      .select('id, nom, week_saved, week_count, streak, week_start, email_weekly, last_recap_sent')
+      .select('id, nom, email, week_saved, week_count, streak, week_start, email_weekly, last_recap_sent')
       .eq('week_start', lundi).gt('week_saved', 0);
     if (error) throw error;
 
     const eligibles = (profils || []).filter((p) => p.email_weekly !== false && p.last_recap_sent !== lundi);
     const resultats = [];
     for (const p of eligibles) {
-      const { data: u } = await supa.auth.admin.getUserById(p.id);
-      const email = u && u.user && u.user.email;
+      // Email lu directement depuis profiles (fiable) ; l'API admin n'est qu'un secours.
+      let email = p.email;
+      if (!email) { try { const { data: u } = await supa.auth.admin.getUserById(p.id); email = u && u.user && u.user.email; } catch (e) {} }
       if (!email) continue;
       const { data: goals } = await supa.from('goals').select('name, target, current').eq('user_id', p.id).order('created_at').limit(1);
       p._goal = (goals && goals[0]) || null;

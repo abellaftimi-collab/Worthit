@@ -413,7 +413,9 @@ app.post('/api/cron/weekly-recap', async (req, res) => {
     return res.status(401).json({ error: 'non_autorise' });
   }
   if (!supa) return res.status(400).json({ error: 'supabase_non_configure' });
-  const dryRun = !RESEND_API_KEY;
+  // Sans clé Resend = dry-run forcé. Avec clé, on peut quand même simuler avec ?dry=1
+  // (pratique pour vérifier qui serait éligible en prod sans envoyer d'email).
+  const dryRun = !RESEND_API_KEY || req.query.dry === '1';
   const lundi = lundiCourant();
   try {
     // Uniquement les gens actifs cette semaine et qui n'ont pas déjà reçu ce récap.

@@ -223,6 +223,25 @@ test('le chat répond et valide son entrée', async () => {
   assert.strictEqual((await ask({ message: 'x'.repeat(2001) })).status, 400, 'message trop long → 400');
 });
 
+test('le cerveau local répond dans la langue de l\'utilisateur', async () => {
+  // Quand OpenAI est indisponible ou le quota atteint, un utilisateur allemand ne doit pas
+  // recevoir une réponse en français. La langue vient de context.langue.
+  const ask = (langue) => fetch(BASE + '/api/chat', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: 'Bonjour', context: { langue, reste: 400 } }),
+  }).then(r => r.json());
+
+  // On épuise d'abord le quota IA pour être sûr de tomber sur le cerveau local,
+  // quel que soit l'ordre d'exécution des tests.
+  for (let i = 0; i < CHAT_MAX_AI + 1; i++) await ask('fr');
+
+  const de = await ask('de');
+  assert.ok(String(de.source).startsWith('local'), 'le cerveau local doit répondre ici');
+  assert.match(de.reply, /Hallo/, 'allemand attendu');
+  assert.match((await ask('es')).reply, /Hola/, 'espagnol attendu');
+  assert.match((await ask('fr')).reply, /Salut/, 'français attendu');
+});
+
 test('le quota IA bascule sur le cerveau local au lieu de laisser filer la facture', async () => {
   const ask = () => fetch(BASE + '/api/chat', {
     method: 'POST',

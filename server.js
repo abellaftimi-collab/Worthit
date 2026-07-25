@@ -1004,8 +1004,75 @@ Le contexte contient aussi sa fonction/métier, ses catégories de faiblesse (fa
 Si context.langue vaut "en", "es", "de" ou "nl", réponds dans cette langue (en gardant le même ton).`;
 
 /* Cerveau local de secours : les mêmes règles que la démo front, côté serveur */
+/* Le cerveau local parle les mêmes 5 langues que le site : il répond quand OpenAI est
+ * indisponible ou le quota atteint, et un utilisateur allemand ne doit pas se retrouver
+ * avec du français à ce moment-là. La langue arrive dans context.langue. */
+const PHRASES = {
+  fr: {
+    zero: "Ton budget du mois est déjà à zéro… c'est peut-être le signal le plus clair qu'on puisse avoir, non ?",
+    half: (p, pct, left) => `${p} €, c'est ${pct} % de ce qu'il te reste ce mois-ci (${left} €). Presque la moitié de ta marge.\n\nMa suggestion : on pose une pause de 24 h. Si demain tu y penses encore, on en reparle.`,
+    fifth: (pct, left, g) => `Ça représente ${pct} % de ton reste-à-vivre (${left} €).${g ? ` Ton objectif « ${g} » avancerait plus lentement.` : ''}\n\nQuestion honnête : besoin réel, ou envie du moment ?`,
+    small: (p, pct) => `${p} €, soit ${pct} % de ce qu'il te reste. C'est raisonnable — mais est-ce que tu l'aurais acheté la semaine dernière ? Si la réponse est non, c'est peut-être l'algorithme qui a gagné, pas toi.`,
+    budget: (l, r, c, i, e) => `Ce mois-ci il te reste ${l} € une fois le loyer (${r} €) et les charges (${c} €) déduits de tes ${i} €.\n\nEt tu as déjà gardé ${e} € en résistant. Pas mal, non ?`,
+    motiv: (n, s, g, reste) => `${n ? n + ', t' : 'T'}a série tient depuis ${s} jours. 🔥${g ? `\n\nChaque euro non dépensé va vers « ${g} » — il en manque ${reste} €.` : ''}`,
+    goalsTail: '\n\nChaque refus fait avancer ces barres.',
+    hello: (n) => `Salut${n ? ' ' + n : ''} ! Une envie d'achat te trotte dans la tête ? Dis-moi quoi et à quel prix, on regarde ensemble ce que ça pèse vraiment.`,
+    thanks: "Avec plaisir. Je suis là au moment du doute — c'est exactement mon travail. 💜",
+    fallback: "Dis-m'en plus : c'est quoi, et ça coûte combien ? Donne-moi un prix et je te montre ce que ça représente sur ton mois.",
+  },
+  en: {
+    zero: "Your budget for the month is already at zero… that might be the clearest signal you'll ever get, no?",
+    half: (p, pct, left) => `€${p} is ${pct}% of what you have left this month (€${left}). Almost half your headroom.\n\nMy suggestion: let's put a 24 h pause on it. If you still want it tomorrow, we'll talk again.`,
+    fifth: (pct, left, g) => `That's ${pct}% of your spending money (€${left}).${g ? ` Your goal “${g}” would move more slowly.` : ''}\n\nHonest question: real need, or passing urge?`,
+    small: (p, pct) => `€${p}, so ${pct}% of what you have left. That's reasonable — but would you have bought it last week? If not, maybe the algorithm won, not you.`,
+    budget: (l, r, c, i, e) => `This month you have €${l} left once rent (€${r}) and bills (€${c}) are taken out of your €${i}.\n\nAnd you've already kept €${e} by resisting. Not bad, right?`,
+    motiv: (n, s, g, reste) => `${n ? n + ', y' : 'Y'}our streak has held for ${s} days. 🔥${g ? `\n\nEvery euro not spent goes towards “${g}” — €${reste} to go.` : ''}`,
+    goalsTail: '\n\nEvery refusal pushes those bars forward.',
+    hello: (n) => `Hi${n ? ' ' + n : ''}! Got a purchase on your mind? Tell me what it is and how much, and we'll look at what it really costs you.`,
+    thanks: "My pleasure. I'm here for the moment of doubt — that's exactly my job. 💜",
+    fallback: "Tell me more: what is it, and how much does it cost? Give me a price and I'll show you what it means for your month.",
+  },
+  es: {
+    zero: "Tu presupuesto del mes ya está a cero… puede que sea la señal más clara que existe, ¿no?",
+    half: (p, pct, left) => `${p} € es el ${pct} % de lo que te queda este mes (${left} €). Casi la mitad de tu margen.\n\nMi sugerencia: ponemos una pausa de 24 h. Si mañana sigues pensando en ello, lo hablamos.`,
+    fifth: (pct, left, g) => `Eso representa el ${pct} % de tu dinero disponible (${left} €).${g ? ` Tu objetivo «${g}» avanzaría más despacio.` : ''}\n\nPregunta honesta: ¿necesidad real o antojo del momento?`,
+    small: (p, pct) => `${p} €, o sea el ${pct} % de lo que te queda. Es razonable, pero ¿lo habrías comprado la semana pasada? Si la respuesta es no, quizá ganó el algoritmo, no tú.`,
+    budget: (l, r, c, i, e) => `Este mes te quedan ${l} € una vez descontados el alquiler (${r} €) y los gastos (${c} €) de tus ${i} €.\n\nY ya has guardado ${e} € resistiendo. Nada mal, ¿no?`,
+    motiv: (n, s, g, reste) => `${n ? n + ', t' : 'T'}u racha aguanta desde hace ${s} días. 🔥${g ? `\n\nCada euro no gastado va a «${g}»: faltan ${reste} €.` : ''}`,
+    goalsTail: '\n\nCada negativa hace avanzar esas barras.',
+    hello: (n) => `¡Hola${n ? ' ' + n : ''}! ¿Tienes una compra rondándote la cabeza? Dime qué es y a qué precio y miramos juntos cuánto pesa de verdad.`,
+    thanks: "Un placer. Estoy aquí para el momento de duda: es exactamente mi trabajo. 💜",
+    fallback: "Cuéntame más: ¿qué es y cuánto cuesta? Dame un precio y te enseño lo que supone en tu mes.",
+  },
+  de: {
+    zero: "Dein Monatsbudget steht schon auf null … das ist vielleicht das klarste Signal überhaupt, oder?",
+    half: (p, pct, left) => `${p} € sind ${pct} % von dem, was dir diesen Monat bleibt (${left} €). Fast die Hälfte deines Spielraums.\n\nMein Vorschlag: 24 Stunden Pause. Wenn du morgen noch daran denkst, reden wir weiter.`,
+    fifth: (pct, left, g) => `Das sind ${pct} % deines verfügbaren Geldes (${left} €).${g ? ` Dein Ziel „${g}“ käme langsamer voran.` : ''}\n\nEhrliche Frage: echter Bedarf oder Lust des Moments?`,
+    small: (p, pct) => `${p} €, also ${pct} % von dem, was dir bleibt. Das ist vertretbar — aber hättest du es letzte Woche gekauft? Wenn nein, hat vielleicht der Algorithmus gewonnen, nicht du.`,
+    budget: (l, r, c, i, e) => `Diesen Monat bleiben dir ${l} €, wenn Miete (${r} €) und Fixkosten (${c} €) von deinen ${i} € abgezogen sind.\n\nUnd du hast schon ${e} € behalten, indem du widerstanden hast. Nicht schlecht, oder?`,
+    motiv: (n, s, g, reste) => `${n ? n + ', d' : 'D'}eine Serie hält seit ${s} Tagen. 🔥${g ? `\n\nJeder nicht ausgegebene Euro geht an „${g}“ — es fehlen noch ${reste} €.` : ''}`,
+    goalsTail: '\n\nJede Absage bringt diese Balken voran.',
+    hello: (n) => `Hallo${n ? ' ' + n : ''}! Geht dir ein Kauf durch den Kopf? Sag mir was und zu welchem Preis, dann schauen wir, was es wirklich wiegt.`,
+    thanks: "Sehr gern. Ich bin für den Moment des Zweifels da — genau das ist mein Job. 💜",
+    fallback: "Erzähl mir mehr: Was ist es, und was kostet es? Nenn mir einen Preis, und ich zeige dir, was das für deinen Monat bedeutet.",
+  },
+  nl: {
+    zero: "Je budget voor deze maand staat al op nul… dat is misschien wel het duidelijkste signaal dat er bestaat, niet?",
+    half: (p, pct, left) => `€ ${p} is ${pct} % van wat je deze maand overhoudt (€ ${left}). Bijna de helft van je ruimte.\n\nMijn voorstel: 24 uur pauze. Denk je er morgen nog aan, dan praten we verder.`,
+    fifth: (pct, left, g) => `Dat is ${pct} % van je besteedbare geld (€ ${left}).${g ? ` Je doel ‘${g}’ zou trager vooruitgaan.` : ''}\n\nEerlijke vraag: echte behoefte of opwelling?`,
+    small: (p, pct) => `€ ${p}, oftewel ${pct} % van wat je overhoudt. Dat is redelijk — maar had je het vorige week gekocht? Zo niet, dan won misschien het algoritme, niet jij.`,
+    budget: (l, r, c, i, e) => `Deze maand hou je € ${l} over als huur (€ ${r}) en vaste lasten (€ ${c}) van je € ${i} af zijn.\n\nEn je hebt al € ${e} bewaard door te weerstaan. Niet slecht, toch?`,
+    motiv: (n, s, g, reste) => `${n ? n + ', j' : 'J'}e reeks houdt het al ${s} dagen vol. 🔥${g ? `\n\nElke niet-uitgegeven euro gaat naar ‘${g}’ — er is nog € ${reste} nodig.` : ''}`,
+    goalsTail: '\n\nElke weigering duwt die balken vooruit.',
+    hello: (n) => `Hoi${n ? ' ' + n : ''}! Zit er een aankoop in je hoofd? Zeg me wat en voor hoeveel, dan kijken we samen wat het echt weegt.`,
+    thanks: "Graag gedaan. Ik ben er op het moment van twijfel — dat is precies mijn werk. 💜",
+    fallback: "Vertel me meer: wat is het en wat kost het? Geef me een prijs en ik laat zien wat dat betekent voor je maand.",
+  },
+};
+
 function localBrain(raw, ctx) {
   ctx = ctx || {};
+  const p = PHRASES[ctx.langue] || PHRASES.fr;
   const t = String(raw).toLowerCase();
   const left = Number(ctx.reste) || 0;
   const name = ctx.nom || '';
@@ -1015,17 +1082,23 @@ function localBrain(raw, ctx) {
   if (m && parseFloat(m[1].replace(',', '.')) > 0) {
     const price = parseFloat(m[1].replace(',', '.'));
     const pct = left > 0 ? Math.round((price / left) * 100) : null;
-    if (pct === null) return "Ton budget du mois est déjà à zéro… c'est peut-être le signal le plus clair qu'on puisse avoir, non ?";
-    if (pct >= 50) return `${price} €, c'est ${pct} % de ce qu'il te reste ce mois-ci (${left} €). Presque la moitié de ta marge.\n\nMa suggestion : on pose une pause de 24 h. Si demain tu y penses encore, on en reparle.`;
-    if (pct >= 20) return `Ça représente ${pct} % de ton reste-à-vivre (${left} €).${goal ? ` Ton objectif « ${goal.name} » avancerait plus lentement.` : ''}\n\nQuestion honnête : besoin réel, ou envie du moment ?`;
-    return `${price} €, soit ${pct} % de ce qu'il te reste. C'est raisonnable — mais est-ce que tu l'aurais acheté la semaine dernière ? Si la réponse est non, c'est peut-être l'algorithme qui a gagné, pas toi.`;
+    if (pct === null) return p.zero;
+    if (pct >= 50) return p.half(price, pct, left);
+    if (pct >= 20) return p.fifth(pct, left, goal && goal.name);
+    return p.small(price, pct);
   }
-  if (/budget|reste|argent|combien/.test(t)) return `Ce mois-ci il te reste ${left} € une fois le loyer (${ctx.loyer || 0} €) et les charges (${ctx.charges || 0} €) déduits de tes ${ctx.revenu || 0} €.\n\nEt tu as déjà gardé ${ctx.economise || 0} € en résistant. Pas mal, non ?`;
-  if (/motiv|encourag|craquer|envie|dur/.test(t)) return `${name ? name + ', t' : 'T'}a série tient depuis ${ctx.streak || 0} jours. 🔥${goal ? `\n\nChaque euro non dépensé va vers « ${goal.name} » — il en manque ${goal.target - goal.current} €.` : ''}`;
-  if (/objectif|épargne|epargne/.test(t) && goals.length) return goals.map(g => `« ${g.name} » : ${g.current} / ${g.target} € (${Math.round((g.current / g.target) * 100)} %)`).join('\n') + '\n\nChaque refus fait avancer ces barres.';
-  if (/bonjour|salut|hello|coucou|hey/.test(t)) return `Salut${name ? ' ' + name : ''} ! Une envie d'achat te trotte dans la tête ? Dis-moi quoi et à quel prix, on regarde ensemble ce que ça pèse vraiment.`;
-  if (/merci|top|cool|nickel/.test(t)) return "Avec plaisir. Je suis là au moment du doute — c'est exactement mon travail. 💜";
-  return "Dis-m'en plus : c'est quoi, et ça coûte combien ? Donne-moi un prix et je te montre ce que ça représente sur ton mois.";
+  if (/budget|reste|argent|combien|money|left|dinero|geld|budget/.test(t)) {
+    return p.budget(left, ctx.loyer || 0, ctx.charges || 0, ctx.revenu || 0, ctx.economise || 0);
+  }
+  if (/motiv|encourag|craquer|envie|dur|urge|tempted|ánimo|animo|versuch|verleid/.test(t)) {
+    return p.motiv(name, ctx.streak || 0, goal && goal.name, goal ? goal.target - goal.current : 0);
+  }
+  if (/objectif|épargne|epargne|goal|saving|objetivo|ahorro|ziel|sparen|doel/.test(t) && goals.length) {
+    return goals.map(g => `« ${g.name} » : ${g.current} / ${g.target} € (${Math.round((g.current / g.target) * 100)} %)`).join('\n') + p.goalsTail;
+  }
+  if (/bonjour|salut|hello|coucou|hey|hi|hola|hallo|hoi/.test(t)) return p.hello(name);
+  if (/merci|top|cool|nickel|thanks|thank you|gracias|danke|bedankt/.test(t)) return p.thanks;
+  return p.fallback;
 }
 
 /* Quota IA par IP : /api/chat est public (la démo doit marcher sans compte), donc sans garde-fou

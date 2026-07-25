@@ -76,12 +76,35 @@ Démarre un vrai serveur, stubbe l'API OpenAI, et vérifie les routes, le refus 
 signés, l'authentification des routes privées et le plafond IA. Aucune clé nécessaire, aucun appel
 réseau sortant. Les mêmes tests tournent en CI à chaque push (`.github/workflows/ci.yml`).
 
+## Résiliation de l'abonnement
+
+`POST /api/subscription/cancel` demande à Stripe d'arrêter le renouvellement
+(`cancel_at_period_end`) : l'utilisateur garde Premium jusqu'à la fin de la période qu'il a déjà
+payée, exactement ce que promettent les CGU. Le webhook `customer.subscription.deleted` retire
+ensuite le Premium tout seul ; `customer.subscription.updated` couvre les fins moins propres
+(impayé, litige, arrêt côté Stripe). `POST /api/subscription/resume` annule la résiliation tant
+que la période n'est pas terminée.
+
+Rien à configurer dans le dashboard Stripe : la résiliation passe par l'API, pas par le portail
+client. `GET /api/subscription` renvoie l'état réel (statut, date de fin, résiliation programmée)
+et n'est appelé qu'à l'ouverture de l'onglet Compte.
+
 ## Règles de sécurité (importantes)
 
 - Les clés ne vont **que** dans `.env`, jamais dans le code, jamais côté front, jamais dans Git.
 - Le front ne parle qu'à **ton** serveur ; c'est le serveur qui parle à Stripe et OpenAI.
 - Les numéros de carte ne transitent jamais par ton serveur : Stripe Checkout les gère sur ses pages.
 - `/api/webhook` n'accepte que les événements signés par Stripe (voir plus haut).
+- **Aucun script tiers** ne s'exécute sur le site : le client Supabase est servi depuis
+  `/vendor/supabase.js` (lu dans `node_modules`, version alignée sur `package.json`) et non
+  depuis un CDN. Un CDN compromis pourrait sinon exécuter n'importe quel code sur une page où
+  l'utilisateur est connecté.
+- Chaque réponse porte `Content-Security-Policy` (dont `frame-ancestors 'none'` contre le
+  clickjacking), `X-Content-Type-Options`, `Referrer-Policy` et HSTS en HTTPS.
+- Toute route asynchrone passe par un emballage qui rattrape les erreurs : une requête ne peut
+  plus rester sans réponse, ni faire tomber le process.
+- Le lien de désinscription ouvre une **page de confirmation** (POST) : les antivirus et les
+  aperçus de messagerie visitent les liens des emails et désabonnaient les gens à leur insu.
 
 ## Architecture
 
@@ -90,6 +113,8 @@ public/index.html   Le site complet (un seul fichier, fonts incluses)
 public/og.png       Image de partage (réseaux sociaux) — régénérable, voir plus bas
 server.js           Express : statique + /api/chat + /api/sync + /api/me
                     + /api/create-checkout-session + /api/verify-session + /api/webhook
+                    + /api/subscription (état, /cancel, /resume)
+/vendor/supabase.js Le client Supabase, servi par nous (aucun script tiers sur le site)
 supabase/*.sql      Schéma de la base — à exécuter dans l'ordre, une seule fois chacune
 extension/          L'extension navigateur (Chrome/Edge ; voir extension/SAFARI.md pour iOS)
 public/sw.js        Service worker PWA (app installable, marche hors ligne)

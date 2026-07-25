@@ -5,8 +5,10 @@
  * - Fichiers statiques : cache d'abord → démarrage instantané.
  * - /api/ : jamais mis en cache (données personnelles + doivent être fraîches).
  */
-const CACHE = 'worthit-v1';
-const SHELL = ['/', '/dashboard', '/favicon.svg', '/manifest.webmanifest'];
+const CACHE = 'worthit-v2';
+// /vendor/supabase.js fait partie de la coquille : sans lui, l'app hors ligne perdait
+// la connexion aux comptes (il venait d'un CDN, injoignable sans réseau).
+const SHELL = ['/', '/dashboard', '/favicon.svg', '/manifest.webmanifest', '/vendor/supabase.js'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));

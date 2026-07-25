@@ -46,13 +46,27 @@ async function getUser(req) {
   if (error || !data || !data.user) return null;
   return data.user;
 }
-function requireAuth(handler) {
+/* Toute route async DOIT passer par un de ces deux emballages.
+ * Express 4 ne rattrape pas les promesses rejetées : sans ça, une simple erreur de base
+ * laissait la requête sans réponse (le navigateur tourne dans le vide) ET faisait tomber
+ * le process entier (Node ≥ 15 transforme une "unhandled rejection" en crash). */
+function route(handler) {
   return async (req, res) => {
+    try {
+      return await handler(req, res);
+    } catch (err) {
+      console.error('[api]', req.method, req.originalUrl, err && err.message);
+      if (!res.headersSent) res.status(500).json({ error: 'erreur_serveur' });
+    }
+  };
+}
+function requireAuth(handler) {
+  return route(async (req, res) => {
     const user = await getUser(req);
     if (!user) return res.status(401).json({ error: 'non_authentifie' });
     req.user = user;
     return handler(req, res);
-  };
+  });
 }
 
 /* ---------- webhook Stripe : DOIT être monté avant express.json() (corps brut requis) ---------- */
@@ -120,6 +134,16 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, 
       if (error) throw error;
       console.log(`[stripe] premium retiré (abonnement ${sub.id})`);
     }
+    // Un abonnement peut mourir sans passer par "deleted" : impayé, litige, arrêt côté Stripe.
+    // Sans ce cas, le Premium restait acquis à vie après un défaut de paiement.
+    if (event.type === 'customer.subscription.updated') {
+      const sub = event.data.object;
+      const actif = ['active', 'trialing', 'past_due'].includes(sub.status);
+      const { error } = await supa.from('profiles').update({ is_premium: actif })
+        .eq('stripe_subscription_id', sub.id);
+      if (error) throw error;
+      if (!actif) console.log(`[stripe] premium retiré : abonnement ${sub.id} en statut ${sub.status}`);
+    }
     res.json({ received: true });
   } catch (err) {
     // Réponse non-2xx : Stripe réessaiera automatiquement ce webhook plus tard.
@@ -129,7 +153,60 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, 
 });
 
 app.set('trust proxy', 1); // derrière le proxy Render : req.ip = vraie IP client, pas celle du proxy
+app.disable('x-powered-by');                       // ne pas annoncer la techno utilisée
+
+/* En-têtes de sécurité, appliqués à tout ce que le serveur renvoie.
+ * frame-ancestors 'none' : personne ne peut charger Worthit dans une iframe pour piéger
+ * les clics d'un utilisateur connecté (clickjacking sur « Supprimer mon compte »…). */
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), payment=()');
+  res.setHeader('Content-Security-Policy', [
+    "default-src 'self'",
+    // Le front est un fichier unique : ses scripts et styles sont en ligne, d'où 'unsafe-inline'.
+    // Aucun script tiers n'est autorisé — Supabase est servi depuis /vendor/ par ce serveur.
+    "script-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob:",
+    "font-src 'self' data:",
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+    "form-action 'self' https://checkout.stripe.com",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "object-src 'none'",
+  ].join('; '));
+  if (req.secure || req.get('x-forwarded-proto') === 'https') {
+    res.setHeader('Strict-Transport-Security', 'max-age=15552000; includeSubDomains');
+  }
+  next();
+});
+
 app.use(express.json({ limit: '256kb' }));
+
+/* Supabase servi par nous plutôt que par un CDN tiers : un CDN compromis pourrait exécuter
+ * n'importe quel code sur la page où l'utilisateur est connecté. La version suit package.json.
+ * Deux façons de le localiser, au cas où le paquet ajouterait un jour un champ "exports"
+ * qui interdirait le chemin direct ; un test de fumée vérifie que la route répond bien. */
+const SUPABASE_UMD = (() => {
+  const essais = [
+    () => require.resolve('@supabase/supabase-js/dist/umd/supabase.js'),
+    () => path.join(path.dirname(require.resolve('@supabase/supabase-js/package.json')), 'dist', 'umd', 'supabase.js'),
+  ];
+  for (const essai of essais) {
+    try {
+      const p = essai();
+      if (require('fs').existsSync(p)) return p;
+    } catch (e) { /* on essaie la méthode suivante */ }
+  }
+  return null;
+})();
+app.get('/vendor/supabase.js', (req, res) => {
+  if (!SUPABASE_UMD) return res.status(404).type('text/plain').send('supabase-js introuvable');
+  res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
+  res.sendFile(SUPABASE_UMD);
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 /* ---------- Premium : abonnement Stripe OU semaine offerte encore valable ---------- */
@@ -143,13 +220,35 @@ function isPremium(profile) {
 async function ensureFriendId(uid) {
   const { data } = await supa.from('profiles').select('friend_id').eq('id', uid).maybeSingle();
   if (data && data.friend_id) return data.friend_id;
+  if (!data) return null;                  // profil pas encore créé : rien à mettre à jour
   for (let essai = 0; essai < 6; essai++) {
-    const candidat = String(Math.floor(10000000 + Math.random() * 90000000));
-    const { error } = await supa.from('profiles').update({ friend_id: candidat }).eq('id', uid);
-    if (!error) return candidat;           // collision improbable : on retente
+    const candidat = String(crypto.randomInt(10000000, 100000000));
+    // .select() est indispensable : sans lui, un update qui ne touche AUCUNE ligne ne renvoie
+    // pas d'erreur, et on affichait à l'utilisateur un identifiant qui n'existait nulle part.
+    const { data: maj, error } = await supa.from('profiles')
+      .update({ friend_id: candidat }).eq('id', uid).select('friend_id');
+    if (!error && maj && maj.length) return candidat;
+    if (!error) return null;               // aucune ligne mise à jour : inutile d'insister
   }
-  return null;
+  return null;                             // collisions à répétition : très improbable
 }
+
+/* Limiteur de débit générique, en mémoire (un seul process sur Render). */
+const compteursDebit = new Map();
+function limiterDebit(cle, max, fenetreMs) {
+  const now = Date.now();
+  const hit = compteursDebit.get(cle);
+  if (!hit || now > hit.resetAt) {
+    compteursDebit.set(cle, { count: 1, resetAt: now + fenetreMs });
+    return true;
+  }
+  hit.count++;
+  return hit.count <= max;
+}
+setInterval(() => {
+  const now = Date.now();
+  for (const [cle, hit] of compteursDebit) if (now > hit.resetAt) compteursDebit.delete(cle);
+}, 10 * 60 * 1000).unref();
 
 /* Lundi de la semaine en cours, au format YYYY-MM-DD (le tournoi se remet à zéro le lundi). */
 function lundiCourant() {
@@ -200,6 +299,29 @@ app.get('/api/sync', requireAuth(async (req, res) => {
     premium: isPremium(profile), friendId: profile ? profile.friend_id : null,
   });
 }));
+
+/* ---------- garde-fous d'écriture (le client peut envoyer n'importe quoi) ---------- */
+const MAX_OBJECTIFS = 20;
+const MAX_VICTOIRES = 20;
+const texteCourt = (v, max) => String(v == null ? '' : v).trim().slice(0, max);
+const nombrePositif = (v) => {
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.min(Math.max(n, 0), 1e9) : 0;
+};
+
+/* Remplace toutes les lignes d'un utilisateur. En cas d'échec de l'insertion, on remet
+ * l'ancienne liste : sans ça, une erreur au milieu laissait l'utilisateur les mains vides. */
+async function remplacerLignes(table, uid, lignes) {
+  const { data: avant } = await supa.from(table).select('*').eq('user_id', uid);
+  const { error: delErr } = await supa.from(table).delete().eq('user_id', uid);
+  if (delErr) throw delErr;
+  if (!lignes.length) return;
+  const { error: insErr } = await supa.from(table).insert(lignes);
+  if (insErr) {
+    if (avant && avant.length) await supa.from(table).insert(avant);
+    throw insErr;
+  }
+}
 
 app.post('/api/sync', requireAuth(async (req, res) => {
   const uid = req.user.id;
@@ -254,24 +376,19 @@ app.post('/api/sync', requireAuth(async (req, res) => {
       if (error) throw error;
     }
     if (Array.isArray(goals)) {
-      const { error: delErr } = await supa.from('goals').delete().eq('user_id', uid);
-      if (delErr) throw delErr;
-      if (goals.length) {
-        const { error: insErr } = await supa.from('goals').insert(goals.map(g => ({
-          user_id: uid, name: g.name, target: g.target, current: g.current || 0,
-        })));
-        if (insErr) throw insErr;
-      }
+      // Nettoyage AVANT toute suppression : une ligne sans nom ou sans montant faisait échouer
+      // l'insertion… après que l'ancienne liste ait déjà été effacée (objectifs perdus).
+      const propres = goals.slice(0, MAX_OBJECTIFS)
+        .map((g) => ({ user_id: uid, name: texteCourt(g && g.name, 80), target: nombrePositif(g && g.target), current: nombrePositif(g && g.current) }))
+        .filter((g) => g.name && g.target > 0);
+      await remplacerLignes('goals', uid, propres);
     }
     if (Array.isArray(victories)) {
-      const { error: delErr2 } = await supa.from('victories').delete().eq('user_id', uid);
-      if (delErr2) throw delErr2;
-      if (victories.length) {
-        const { error: insErr2 } = await supa.from('victories').insert(victories.slice(0, 20).map(v => ({
-          user_id: uid, item: v.item, price: v.price, goal_name: v.goal || v.goal_name || null,
-        })));
-        if (insErr2) throw insErr2;
-      }
+      const propres = victories.slice(0, MAX_VICTOIRES)
+        .map((v) => ({ user_id: uid, item: texteCourt(v && v.item, 120), price: nombrePositif(v && v.price),
+                       goal_name: texteCourt(v && (v.goal || v.goal_name), 80) || null }))
+        .filter((v) => v.item);
+      await remplacerLignes('victories', uid, propres);
     }
     res.json({ ok: true });
   } catch (err) {
@@ -345,7 +462,14 @@ app.delete('/api/account', requireAuth(async (req, res) => {
 /* Jeton de désinscription : signe l'id utilisateur, pour que le lien marche sans connexion
  * tout en n'étant pas devinable. */
 function unsubToken(uid) {
-  return crypto.createHash('sha256').update(uid + '|' + (CRON_SECRET || SUPABASE_SERVICE_KEY)).digest('hex').slice(0, 24);
+  // HMAC (et non un simple hash) : la clé est une vraie clé, pas un préfixe de message.
+  return crypto.createHmac('sha256', CRON_SECRET || SUPABASE_SERVICE_KEY || 'worthit-dev')
+    .update('unsub|' + uid).digest('hex').slice(0, 24);
+}
+function unsubTokenValide(uid, token) {
+  const attendu = unsubToken(uid);
+  const a = Buffer.from(String(token || '')); const b = Buffer.from(attendu);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
 /* ---------- Preuve de Premium pour l'extension ----------
@@ -385,12 +509,12 @@ function logoSvg(size) {
   </svg>`;
 }
 
-async function sendEmail(to, subject, html) {
+async function sendEmail(to, subject, html, entetes) {
   if (!RESEND_API_KEY) return { dryRun: true };
   const r = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${RESEND_API_KEY}` },
-    body: JSON.stringify({ from: RESEND_FROM, to: [to], subject, html }),
+    body: JSON.stringify({ from: RESEND_FROM, to: [to], subject, html, headers: entetes || undefined }),
   });
   if (!r.ok) throw new Error('resend ' + r.status + ' ' + (await r.text()).slice(0, 200));
   return { sent: true };
@@ -470,7 +594,14 @@ app.post('/api/cron/weekly-recap', async (req, res) => {
       try {
         // En dry-run on n'appelle JAMAIS l'envoi (le bug : sendEmail ne regardait que la clé Resend,
         // donc ?dry=1 envoyait quand même). On court-circuite ici, avant tout appel réseau.
-        const r = dryRun ? { dryRun: true } : await sendEmail(email, `Ta semaine Worthit : ${Math.round(p.week_saved)} € gardés 💜`, html);
+        // Les en-têtes RFC 2369/8058 : le bouton « Se désabonner » natif de Gmail/Outlook.
+        // Sans eux, l'utilisateur agacé clique « Spam », ce qui abîme la réputation d'envoi.
+        const lienUnsub = `${APP_URL}/api/unsubscribe?u=${encodeURIComponent(p.id)}&t=${unsubToken(p.id)}`;
+        const entetes = {
+          'List-Unsubscribe': `<${lienUnsub}>`,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+        };
+        const r = dryRun ? { dryRun: true } : await sendEmail(email, `Ta semaine Worthit : ${Math.round(p.week_saved)} € gardés 💜`, html, entetes);
         if (!dryRun) await supa.from('profiles').update({ last_recap_sent: lundi }).eq('id', p.id);
         resultats.push({ email: dryRun ? email : email.replace(/(.).+(@.*)/, '$1***$2'), saved: Math.round(p.week_saved), count: p.week_count, sent: !!r.sent, dryRun: !!r.dryRun });
       } catch (err) {
@@ -485,21 +616,36 @@ app.post('/api/cron/weekly-recap', async (req, res) => {
   }
 });
 
-app.get('/api/unsubscribe', async (req, res) => {
+function pageUnsub(titre, msg, bouton) {
+  return `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(titre)} — Worthit</title><body style="margin:0;background:#0c0716;color:#fff;font-family:system-ui,sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center;text-align:center;"><div style="max-width:380px;padding:30px;">${logoSvg(18)} <span style="font-weight:800;vertical-align:middle;">worthit</span><h1 style="font-size:20px;margin:18px 0 8px;">${esc(titre)}</h1><p style="color:#b9adcf;font-size:14px;line-height:1.6;">${esc(msg)}</p>${bouton || ''}<p style="margin-top:18px;"><a href="${APP_URL}" style="color:#a78bfa;font-size:13px;">Retour à Worthit</a></p></div></body>`;
+}
+
+/* Le lien du mail n'agit PAS tout seul : il ouvre une page de confirmation.
+ * Les antivirus et les aperçus de messagerie (Gmail, Outlook…) visitent les liens des emails
+ * pour les analyser — avec une désinscription en GET, ils désabonnaient les gens à leur insu. */
+app.get('/api/unsubscribe', route(async (req, res) => {
   const uid = String(req.query.u || '');
   const token = String(req.query.t || '');
-  const page = (titre, msg) => `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><body style="margin:0;background:#0c0716;color:#fff;font-family:system-ui,sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center;text-align:center;"><div style="max-width:380px;padding:30px;">${logoSvg(18)} <span style="font-weight:800;vertical-align:middle;">worthit</span><h1 style="font-size:20px;margin:18px 0 8px;">${titre}</h1><p style="color:#b9adcf;font-size:14px;line-height:1.6;">${msg}</p><a href="${APP_URL}" style="color:#a78bfa;font-size:13px;">Retour à Worthit</a></div></body>`;
-  if (!supa || !uid || token !== unsubToken(uid)) {
-    return res.status(400).send(page('Lien invalide', "Ce lien de désinscription n'est pas valide ou a expiré."));
+  if (!supa || !uid || !unsubTokenValide(uid, token)) {
+    return res.status(400).send(pageUnsub('Lien invalide', "Ce lien de désinscription n'est pas valide ou a expiré."));
   }
-  try {
-    await supa.from('profiles').update({ email_weekly: false }).eq('id', uid);
-    res.send(page('Désinscription confirmée', 'Tu ne recevras plus le récap hebdomadaire. Tu peux le réactiver à tout moment depuis tes Paramètres.'));
-  } catch (err) {
-    console.error('[unsubscribe]', err.message);
-    res.status(500).send(page('Oups', 'Une erreur est survenue. Réessaie depuis tes Paramètres.'));
+  const action = `/api/unsubscribe?u=${encodeURIComponent(uid)}&t=${encodeURIComponent(token)}`;
+  res.send(pageUnsub('Ne plus recevoir le récap ?', 'Un clic pour confirmer. Tu pourras le réactiver quand tu veux depuis tes Paramètres.',
+    `<form method="post" action="${esc(action)}"><button type="submit" style="margin-top:18px;background:linear-gradient(135deg,#a78bfa,#7c3aed);color:#fff;border:none;font-weight:700;font-size:15px;padding:13px 22px;border-radius:13px;cursor:pointer;">Confirmer la désinscription</button></form>`));
+}));
+
+/* L'action réelle. Sert aussi la désinscription « en un clic » RFC 8058 des clients mail,
+ * qui envoient un POST sur cette même URL. */
+app.post('/api/unsubscribe', route(async (req, res) => {
+  const uid = String(req.query.u || (req.body && req.body.u) || '');
+  const token = String(req.query.t || (req.body && req.body.t) || '');
+  if (!supa || !uid || !unsubTokenValide(uid, token)) {
+    return res.status(400).send(pageUnsub('Lien invalide', "Ce lien de désinscription n'est pas valide ou a expiré."));
   }
-});
+  const { error } = await supa.from('profiles').update({ email_weekly: false }).eq('id', uid);
+  if (error) throw error;
+  res.send(pageUnsub('Désinscription confirmée', 'Tu ne recevras plus le récap hebdomadaire. Tu peux le réactiver à tout moment depuis tes Paramètres.'));
+}));
 
 /* ================= AMIS & TOURNOI =================
  * Amitié en deux temps : une demande, puis une acceptation. Personne n'apparaît
@@ -624,6 +770,11 @@ app.post('/api/friends/request', requireAuth(async (req, res) => {
   const uid = req.user.id;
   const code = String((req.body && req.body.friendId) || '').trim();
   if (!/^\d{8}$/.test(code)) return res.status(400).json({ error: 'identifiant_invalide' });
+  // Sans plafond, on pouvait balayer les identifiants à 8 chiffres pour cartographier les comptes.
+  // 20 essais / 10 min : très au-dessus d'un usage normal, très en dessous d'un balayage utile.
+  if (!limiterDebit('ami:' + uid, 20, 10 * 60 * 1000)) {
+    return res.status(429).json({ error: 'trop_de_demandes' });
+  }
   try {
     const { data: cible } = await supa.from('profiles').select('id, nom').eq('friend_id', code).maybeSingle();
     if (!cible) return res.status(404).json({ error: 'introuvable' });
@@ -716,6 +867,11 @@ app.post('/api/create-checkout-session', requireAuth(async (req, res) => {
     const ownCode = req.user.id.slice(0, 8);
     let trialDays = 0;
     const { data: profile } = await supa.from('profiles').select('*').eq('id', req.user.id).maybeSingle();
+    // Déjà abonné : ouvrir un second Checkout créerait un DEUXIÈME abonnement payant sur la
+    // même carte. Le bouton est masqué côté front, mais un double-clic ou un lien direct suffisait.
+    if (profile && profile.stripe_subscription_id && profile.is_premium) {
+      return res.status(409).json({ error: 'deja_abonne' });
+    }
     if (profile) {
       // Premier code de parrainage fourni par cet utilisateur : on l'enregistre définitivement.
       if (refCode && !profile.referred_by && String(refCode).toLowerCase() !== ownCode) {
@@ -750,6 +906,71 @@ app.post('/api/create-checkout-session', requireAuth(async (req, res) => {
     console.error('[stripe]', err.message);
     res.status(500).json({ error: 'stripe_error' });
   }
+}));
+
+/* ================= ABONNEMENT : ÉTAT ET RÉSILIATION =================
+ * Les CGU promettent « résiliable à tout moment depuis tes Paramètres » et la page d'accueil
+ * affiche « Annulable en un clic ». Avant ces routes, le bouton « Repasser en Gratuit » ne
+ * faisait que changer un drapeau dans le navigateur : l'abonnement Stripe continuait à
+ * prélever. C'est ici que la promesse devient vraie. */
+
+/* Traduit un abonnement Stripe en quelques champs simples pour le front. */
+function vueAbonnement(sub) {
+  if (!sub) return null;
+  const fin = sub.cancel_at || sub.current_period_end || null;
+  return {
+    id: sub.id,
+    statut: sub.status,                                    // active, trialing, past_due, canceled…
+    resiliationProgrammee: !!sub.cancel_at_period_end,
+    finLe: fin ? new Date(fin * 1000).toISOString() : null,
+    interval: (sub.items && sub.items.data[0] && sub.items.data[0].plan && sub.items.data[0].plan.interval) || null,
+  };
+}
+
+async function abonnementDe(uid) {
+  const { data: profile } = await supa.from('profiles')
+    .select('stripe_subscription_id, is_premium, premium_until').eq('id', uid).maybeSingle();
+  if (!profile || !profile.stripe_subscription_id || !stripe) return { profile, sub: null };
+  try {
+    return { profile, sub: await stripe.subscriptions.retrieve(profile.stripe_subscription_id) };
+  } catch (err) {
+    // Abonnement introuvable côté Stripe (compte de test nettoyé, clé changée…) : on ne casse
+    // pas la page Paramètres pour autant, on répond « pas d'abonnement suivi ».
+    console.error('[abonnement] introuvable chez Stripe :', err.message);
+    return { profile, sub: null };
+  }
+}
+
+/* État de l'abonnement, affiché dans les Paramètres (appelé seulement à l'ouverture de la page). */
+app.get('/api/subscription', requireAuth(async (req, res) => {
+  const { profile, sub } = await abonnementDe(req.user.id);
+  res.json({
+    premium: isPremium(profile),
+    premiumUntil: (profile && profile.premium_until) || null,   // semaine offerte (sans Stripe)
+    abonnement: vueAbonnement(sub),
+  });
+}));
+
+/* Résiliation : on garde le Premium jusqu'à la fin de la période DÉJÀ PAYÉE, comme les CGU
+ * l'annoncent, puis Stripe envoie customer.subscription.deleted qui retire le Premium. */
+app.post('/api/subscription/cancel', requireAuth(async (req, res) => {
+  const { profile, sub } = await abonnementDe(req.user.id);
+  if (!sub) {
+    // Pas d'abonnement payant (semaine offerte, mode démo) : rien à résilier chez Stripe.
+    return res.json({ ok: true, sansAbonnement: true, premium: isPremium(profile) });
+  }
+  if (sub.status === 'canceled') return res.json({ ok: true, abonnement: vueAbonnement(sub) });
+  const maj = await stripe.subscriptions.update(sub.id, { cancel_at_period_end: true });
+  console.log(`[abonnement] résiliation programmée pour ${req.user.id} (${sub.id})`);
+  res.json({ ok: true, abonnement: vueAbonnement(maj) });
+}));
+
+/* Se raviser avant la fin de période : on relance le même abonnement, sans repasser en caisse. */
+app.post('/api/subscription/resume', requireAuth(async (req, res) => {
+  const { sub } = await abonnementDe(req.user.id);
+  if (!sub || sub.status === 'canceled') return res.status(404).json({ error: 'aucun_abonnement' });
+  const maj = await stripe.subscriptions.update(sub.id, { cancel_at_period_end: false });
+  res.json({ ok: true, abonnement: vueAbonnement(maj) });
 }));
 
 /* Vérification au retour de Checkout (pratique en local, le webhook reste la source de vérité en prod) */
@@ -832,7 +1053,7 @@ setInterval(() => {
   for (const [ip, hit] of chatHits) if (now > hit.resetAt) chatHits.delete(ip);
 }, CHAT_WINDOW_MS).unref();
 
-app.post('/api/chat', async (req, res) => {
+app.post('/api/chat', route(async (req, res) => {
   const { message, history, context, premiumAuth } = req.body || {};
   if (!message || typeof message !== 'string') return res.status(400).json({ error: 'message manquant' });
   if (message.length > MAX_MESSAGE_LEN) return res.status(400).json({ error: 'message_trop_long' });
@@ -869,13 +1090,38 @@ app.post('/api/chat', async (req, res) => {
     // L'IA distante a échoué : le cerveau local prend le relais, l'utilisateur n'est jamais bloqué.
     res.json({ reply: localBrain(message, context), source: 'local-fallback' });
   }
-});
+}));
 
 /* ---------- fallback SPA : /tarifs, /a-propos… renvoient l'app (le routing se fait côté client) ---------- */
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/')) return next();
   if (path.extname(req.path)) return next(); // fichier réellement introuvable : vrai 404
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+/* Une route d'API qui n'existe pas doit répondre en JSON : le front fait r.json() sur
+ * toutes ses réponses et se prenait une page HTML d'erreur en pleine figure. */
+app.use('/api', (req, res) => res.status(404).json({ error: 'route_inconnue' }));
+
+/* Filet de sécurité final : une erreur qui a échappé à tout le reste ne doit pas fuiter
+ * de trace d'exécution vers le navigateur. */
+app.use((err, req, res, next) => {
+  console.error('[erreur]', req.method, req.originalUrl, err && err.message);
+  if (res.headersSent) return next(err);
+  if (req.path.startsWith('/api/')) return res.status(500).json({ error: 'erreur_serveur' });
+  res.status(500).type('text/plain').send('Erreur serveur');
+});
+
+// Une promesse rejetée sans surveillance faisait tomber tout le serveur (Node ≥ 15).
+// On la journalise et on reste debout : les utilisateurs connectés ne sont pas éjectés.
+process.on('unhandledRejection', (raison) => {
+  console.error('[unhandledRejection]', (raison && raison.stack) || raison);
+});
+// Une exception non rattrapée laisse le process dans un état incertain : on note et on sort
+// proprement, Render relance aussitôt un serveur sain.
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', (err && err.stack) || err);
+  process.exit(1);
 });
 
 app.listen(PORT, () => {

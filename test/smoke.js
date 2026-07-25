@@ -105,6 +105,33 @@ test('un fichier inexistant renvoie bien 404, pas la page d\'accueil', async () 
   assert.strictEqual(r.status, 404);
 });
 
+test('Supabase est servi par nous, pas par un CDN tiers', async () => {
+  // Si ce test tombe, le paquet a changé de structure : la page ne pourrait plus créer de
+  // compte, et le <script src="/vendor/supabase.js"> renverrait un 404 silencieux.
+  const r = await fetch(BASE + '/vendor/supabase.js');
+  assert.strictEqual(r.status, 200);
+  assert.match(r.headers.get('content-type') || '', /javascript/);
+  assert.match(await r.text(), /createClient/);
+
+  const html = await (await fetch(BASE + '/')).text();
+  assert.doesNotMatch(html, /<script src="https?:\/\//, 'aucun script tiers ne doit être chargé');
+});
+
+test('une route d\'API inconnue répond en JSON, pas en HTML', async () => {
+  const r = await fetch(BASE + '/api/route-qui-nexiste-pas');
+  assert.strictEqual(r.status, 404);
+  assert.match(r.headers.get('content-type') || '', /json/);
+});
+
+/* ---------------- sécurité ---------------- */
+
+test('les en-têtes de sécurité sont posés sur chaque réponse', async () => {
+  const r = await fetch(BASE + '/');
+  assert.strictEqual(r.headers.get('x-content-type-options'), 'nosniff');
+  assert.match(r.headers.get('content-security-policy') || '', /frame-ancestors 'none'/);
+  assert.strictEqual(r.headers.get('x-powered-by'), null, 'la techno du serveur ne doit pas être annoncée');
+});
+
 /* ---------------- sécurité ---------------- */
 
 test('l\'endpoint de récap refuse un appel sans le bon secret', async () => {
@@ -135,6 +162,8 @@ test('un faux jeton Premium ne débloque pas le quota IA élargi', async () => {
 test('le lien de désinscription rejette un jeton invalide', async () => {
   const r = await fetch(BASE + '/api/unsubscribe?u=abc&t=faux');
   assert.strictEqual(r.status, 400);
+  const rPost = await fetch(BASE + '/api/unsubscribe?u=abc&t=faux', { method: 'POST' });
+  assert.strictEqual(rPost.status, 400, 'le POST doit vérifier le jeton comme le GET');
 });
 
 test('le webhook Stripe refuse un événement non signé', async () => {
@@ -164,6 +193,10 @@ test('les routes privées exigent une authentification', async () => {
     ['GET', '/api/export'],
     ['GET', '/api/premium-token'],
     ['DELETE', '/api/account'],
+    // La résiliation touche à l'argent : elle ne doit jamais être joignable sans compte.
+    ['GET', '/api/subscription'],
+    ['POST', '/api/subscription/cancel'],
+    ['POST', '/api/subscription/resume'],
   ];
   for (const [method, route] of routes) {
     const r = await fetch(BASE + route, {

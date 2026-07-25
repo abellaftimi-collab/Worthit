@@ -319,7 +319,9 @@ a{color:inherit;}
 }
 </style>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<!-- Supabase servi par notre propre serveur (et non par un CDN tiers) : aucun script étranger
+     ne s'exécute sur une page où l'utilisateur est connecté, et l'app marche hors ligne. -->
+<script src="/vendor/supabase.js"></script>
 </head>
 <body>
 <canvas id="bg-canvas"></canvas>
@@ -421,16 +423,16 @@ const CID = (function(){
 function pendingReferral(){ try{ return localStorage.getItem('worthit_ref_pending')||''; }catch(e){ return ''; } }
 function applyRefCodeInput(){
   const v = (document.getElementById('ref-code-input').value||'').trim();
-  if(!/^[a-z0-9]{4,12}$/i.test(v)){ toast('Code invalide.','gift'); return; }
-  if(myReferralCode() && v.toLowerCase()===myReferralCode()){ toast('Tu ne peux pas utiliser ton propre code.','gift'); return; }
+  if(!/^[a-z0-9]{4,12}$/i.test(v)){ toast(t('ref.invalidCode'),'gift'); return; }
+  if(myReferralCode() && v.toLowerCase()===myReferralCode()){ toast(t('ref.ownCode'),'gift'); return; }
   try{ localStorage.setItem('worthit_ref_pending', v.toLowerCase()); }catch(e){}
-  toast('Code appliqué !','gift');
+  toast(t('ref.applied'),'gift');
   render();
 }
 function myReferralCode(){ return (authSession && authSession.user && authSession.user.id) ? authSession.user.id.slice(0,8) : ''; }
 function myReferralLink(){ const c=myReferralCode(); return c ? (location.origin + '/?ref=' + c) : ''; }
 
-/* ---- comptes réels : Supabase Auth (chargé via CDN dans <head>, absent en mode artifact/démo) ---- */
+/* ---- comptes réels : Supabase Auth (servi par notre serveur, absent en mode artifact/démo) ---- */
 const SUPA_URL = 'https://rdvdsfunrinvwvltbojc.supabase.co';
 const SUPA_ANON_KEY = 'sb_publishable_WIDUf3lc96k8Sr0oKfQMjQ_kO1JqCPo';
 const sb = (typeof window !== 'undefined' && window.supabase && window.supabase.createClient)
@@ -446,12 +448,12 @@ async function authedApi(path, opts){
 }
 function translateAuthError(msg){
   msg = String(msg||'');
-  if(/already registered|already exists/i.test(msg)) return "Un compte existe déjà avec cet e-mail.";
-  if(/invalid login credentials/i.test(msg)) return "E-mail ou mot de passe incorrect.";
-  if(/password should be at least/i.test(msg)) return "6 caractères minimum.";
-  if(/rate limit/i.test(msg)) return "Trop de tentatives — réessaie dans un instant.";
-  if(/email not confirmed/i.test(msg)) return "Confirme d'abord ton e-mail (lien envoyé à l'inscription).";
-  return "Une erreur est survenue. Réessaie.";
+  if(/already registered|already exists/i.test(msg)) return t('authErr.exists');
+  if(/invalid login credentials/i.test(msg)) return t('authErr.badCreds');
+  if(/password should be at least/i.test(msg)) return t('authErr.short');
+  if(/rate limit/i.test(msg)) return t('authErr.rate');
+  if(/email not confirmed/i.test(msg)) return t('authErr.unconfirmed');
+  return t('authErr.generic');
 }
 /* Charge le profil/objectifs/victoires depuis le serveur pour l'utilisateur connecté */
 async function syncFromServer(){
@@ -479,7 +481,9 @@ async function syncFromServer(){
     state.pendingReferralDays = 0;
   }
   state.goals = (r.goals||[]).map(g=>({id:g.id, name:g.name, target:Number(g.target), current:Number(g.current)||0}));
-  state.victories = (r.victories||[]).map(v=>({item:v.item, price:Number(v.price), when:'', goal:v.goal_name||''}));
+  // La date vient de created_at : avant, elle était remplacée par une chaîne vide et toutes
+  // les victoires perdaient leur date au moindre rechargement de page.
+  state.victories = (r.victories||[]).map(v=>({item:v.item, price:Number(v.price), when:v.created_at||'', goal:v.goal_name||''}));
   return true;
 }
 /* Pousse l'état courant vers le serveur (silencieux, ne bloque jamais l'UI) */
@@ -675,6 +679,12 @@ fr:{ui:{
 'victory.editAria':"Corriger cette victoire",'victory.deleteAria':"Supprimer cette victoire",'victory.deletedToast':"Victoire supprimée.",'victory.editTitle':"Corriger cette victoire",'victory.editSub':"Les montants déjà comptés sont réajustés automatiquement.",'victory.missing':"Indique l'achat et son prix.",'victory.updated':"Victoire mise à jour.",'victory.save':"Enregistrer",'victory.itemPh':"L'achat évité (ex : sneakers…)",'victory.pricePh':"Son prix (€)",'victory.addTitle':"À quoi as-tu résisté ?",'victory.addSub':"Ce montant part vers ton objectif, et tu gagnes des crans.",'victory.addSave':"Enregistrer ma victoire",'victory.alreadyTracked':"{n} résistance(s) déjà suivie(s) par l'extension",
 'friends.copied':"Identifiant copié — envoie-le à ton ami.",'friends.copyFailed':"Copie impossible, note-le à la main.",'friends.idLen':"Un identifiant fait 8 chiffres.",'friends.notFound':"Aucun compte avec cet identifiant.",'friends.isYourself':"C'est ton propre identifiant 🙂",'friends.already':"Vous êtes déjà amis.",'friends.pending':"Une demande est déjà en cours.",'friends.sentTo':"Demande envoyée à {nom}.",'friends.sendFailed':"Échec de l'envoi.",'friends.addedGift':"Ami ajouté — il reçoit 1 semaine Premium offerte ✨",'friends.added':"Ami ajouté.",'friends.acceptFailed':"Impossible d'accepter cette demande.",'friends.needAccount':"Crée ton compte pour obtenir ton identifiant et ajouter tes amis.",'friends.yourId':"Ton identifiant — partage-le pour qu'on t'ajoute",'friends.copy':"Copier",'friends.addWithId':"Ajouter un ami avec son identifiant",'friends.send':"Envoyer",'friends.explain':"Ton ami reçoit une demande à accepter. S'il n'a pas Premium, il gagne {semaine} en acceptant.",'friends.oneWeek':"1 semaine offerte",'friends.giftsLeft':"Il t'en reste {n} à offrir.",'friends.giftsUsed':"Tu as utilisé tes semaines à offrir.",'friends.received':"Demandes reçues",'friends.accept':"Accepter",'friends.refuse':"Refuser",'friends.pendingSent':"En attente de réponse",'friends.cancel':"Annuler",'friends.emptyTitle':"Pas encore d'amis",'friends.emptyDesc':"Partage ton identifiant ci-dessus : le classement se remplira dès qu'une demande sera acceptée.",'friends.loading':"Chargement…",'friends.loadError':"Impossible de charger tes amis pour l'instant.",'friends.eyebrow':"Tournois",'friends.title':"Cette semaine, entre amis",'friends.lede':"Classement des économies de la semaine. Remise à zéro chaque lundi.",'friends.lockedTitle':"Classement des amis",'friends.lockedDesc':"Le classement hebdomadaire est réservé au Premium — ou offert 1 semaine si un ami t'ajoute.",
 'badge.topEconomie':"Top économie",'badge.topProgression':"Plus grosse progression",'badge.topSerie':"Plus longue série",'friends.you':"toi",'email.weeklyLabel':"Récap hebdo par email",'email.weeklyOn':"Récap hebdo activé.",'email.weeklyOff':"Récap hebdo désactivé.",
+'sub.section':"Ton abonnement",'sub.plan':"Formule",'sub.freePlan':"Gratuit",'sub.premiumPlan':"Premium",'sub.renewsOn':"Se renouvelle le {date}",'sub.endsOn':"Premium actif jusqu'au {date}",'sub.cancel':"Résilier mon abonnement",'sub.resume':"Reprendre mon abonnement",'sub.resumed':"Abonnement repris — content de te garder 💜",'sub.resumeFailed':"Impossible de reprendre l'abonnement, réessaie.",'sub.confirmTitle':"Résilier ton abonnement ?",'sub.confirmDesc':"Tu gardes Premium jusqu'au {date} : la période est déjà payée. Ensuite, retour au Gratuit — ta série, tes économies et tes objectifs restent intacts.",'sub.confirmDescNoDate':"Tu gardes Premium jusqu'à la fin de la période déjà payée. Ensuite, retour au Gratuit — ta série, tes économies et tes objectifs restent intacts.",'sub.confirmBtn':"Confirmer la résiliation",'sub.keep':"Garder Premium",'sub.doneUntil':"Résiliation confirmée — Premium jusqu'au {date}.",'sub.done':"Résiliation confirmée.",'sub.failed':"Échec de la résiliation. Réessaie, ou écris-nous à contact@worthit.app.",'sub.backToFree':"Tu es repassé en Gratuit.",'sub.loading':"Chargement…",'sub.pastDue':"Paiement en attente — vérifie ton moyen de paiement.",'sub.giftedWeek':"Semaine offerte — aucun prélèvement en cours.",'sub.currentPlan':"Formule actuelle : Gratuit",
+'ref.invalidCode':"Code invalide.",'ref.ownCode':"Tu ne peux pas utiliser ton propre code.",'ref.applied':"Code appliqué !",'ref.needAccount':"Connecte-toi pour obtenir ton lien.",'ref.linkCopied':"Lien copié — envoie-le à un ami !",
+'pay.alreadyPremium':"Ton abonnement Premium est déjà actif.",'pay.needAccount':"Crée ton compte pour passer Premium.",'pay.welcome':"Bienvenue dans Premium ✨",'pay.demoSuffix':" (mode démo)",'pay.confirmed':"Paiement confirmé — bienvenue dans Premium ✨",'pay.canceled':"Paiement annulé — tu restes en Gratuit.",'pay.failed':"Le paiement n'a pas pu démarrer. Réessaie dans un instant.",
+'onb.needIncome':"Indique ton revenu mensuel pour continuer.",'onb.needRent':"Indique ton loyer et tes charges (0 si aucun).",'onb.needFreq':"Choisis une fréquence pour continuer.",'onb.needGoal':"Donne un nom et un montant à ton objectif.",'onb.profileUpdated':"Profil mis à jour",'onb.profileCreated':"Profil créé — 20 crans de bienvenue !",
+'block.added':"« {mot} » est maintenant bloqué",'block.removed':"« {mot} » débloqué",'ext.confirmed':"+{total} € confirmés — résistances tenues 24 h ✨",'victory.saved':"+{price} € gardés, +{crans} !",'shop.unlocked':"Objet débloqué !",'shop.themeApplied':"Thème appliqué",'shop.avatarUpdated':"Avatar mis à jour",'auth.signedOut':"Déconnecté.",'when.today':"Aujourd'hui",'when.yesterday':"Hier",
+'authErr.exists':"Un compte existe déjà avec cet e-mail.",'authErr.badCreds':"E-mail ou mot de passe incorrect.",'authErr.short':"6 caractères minimum.",'authErr.rate':"Trop de tentatives — réessaie dans un instant.",'authErr.unconfirmed':"Confirme d'abord ton e-mail (lien envoyé à l'inscription).",'authErr.generic':"Une erreur est survenue. Réessaie.",'authErr.created':"Compte créé ! Vérifie ta boîte mail pour confirmer, puis connecte-toi.",
 'hero.ctaPremium':"Voir Premium",'hero.t1':"Aucune carte requise",'hero.t2':"Annulable en un clic",'hero.t3':"Données sur ton appareil",
 'mock.checkout':"sneaker-store.com — Paiement",'mock.product':"Sneakers édition limitée",'mock.sub':"Panier · livraison offerte",'mock.msg':"Ça représente <strong>34 %</strong> de ce qu'il te reste ce mois-ci. Ton objectif « Voyage » recule. Toujours partant ?",'mock.left':"Reste ce mois-ci",'mock.wait':"J'attends 24 h",'mock.buy':"J'achète",'mock.chip1':"12 jours de série",'mock.chip2':"gardés cette semaine",
 'quiz.before':"Avant de commencer — question",'quiz.skip':"Passer le quiz →",'quiz.next':"Question suivante",'quiz.why':"Voir pourquoi Worthit existe",
@@ -720,6 +730,12 @@ en:{ui:{
 'victory.editAria':"Correct this victory",'victory.deleteAria':"Delete this victory",'victory.deletedToast':"Victory deleted.",'victory.editTitle':"Correct this victory",'victory.editSub':"Already counted amounts are adjusted automatically.",'victory.missing':"Enter the purchase and its price.",'victory.updated':"Victory updated.",'victory.save':"Save",'victory.itemPh':"The purchase you avoided (e.g. sneakers…)",'victory.pricePh':"Its price (€)",'victory.addTitle':"What did you resist?",'victory.addSub':"This amount goes toward your goal, and you earn crans.",'victory.addSave':"Save my victory",'victory.alreadyTracked':"{n} resistance(s) already tracked by the extension",
 'friends.copied':"ID copied — send it to your friend.",'friends.copyFailed':"Couldn't copy, write it down instead.",'friends.idLen':"An ID is 8 digits.",'friends.notFound':"No account with this ID.",'friends.isYourself':"That's your own ID 🙂",'friends.already':"You're already friends.",'friends.pending':"A request is already pending.",'friends.sentTo':"Request sent to {nom}.",'friends.sendFailed':"Failed to send.",'friends.addedGift':"Friend added — they get 1 free Premium week ✨",'friends.added':"Friend added.",'friends.acceptFailed':"Couldn't accept this request.",'friends.needAccount':"Create your account to get your ID and add friends.",'friends.yourId':"Your ID — share it so people can add you",'friends.copy':"Copy",'friends.addWithId':"Add a friend with their ID",'friends.send':"Send",'friends.explain':"Your friend gets a request to accept. If they don't have Premium, they get {semaine} by accepting.",'friends.oneWeek':"1 free week",'friends.giftsLeft':"You have {n} left to give.",'friends.giftsUsed':"You've used up your gift weeks.",'friends.received':"Requests received",'friends.accept':"Accept",'friends.refuse':"Decline",'friends.pendingSent':"Awaiting response",'friends.cancel':"Cancel",'friends.emptyTitle':"No friends yet",'friends.emptyDesc':"Share your ID above: the leaderboard fills up as soon as a request is accepted.",'friends.loading':"Loading…",'friends.loadError':"Couldn't load your friends right now.",'friends.eyebrow':"Tournaments",'friends.title':"This week, with friends",'friends.lede':"This week's savings leaderboard. Resets every Monday.",'friends.lockedTitle':"Friends leaderboard",'friends.lockedDesc':"The weekly leaderboard is Premium-only — or free for 1 week if a friend adds you.",
 'badge.topEconomie':"Top saver",'badge.topProgression':"Biggest improvement",'badge.topSerie':"Longest streak",'friends.you':"you",'email.weeklyLabel':"Weekly email recap",'email.weeklyOn':"Weekly recap enabled.",'email.weeklyOff':"Weekly recap disabled.",
+'sub.section':"Your subscription",'sub.plan':"Plan",'sub.freePlan':"Free",'sub.premiumPlan':"Premium",'sub.renewsOn':"Renews on {date}",'sub.endsOn':"Premium active until {date}",'sub.cancel':"Cancel my subscription",'sub.resume':"Resume my subscription",'sub.resumed':"Subscription resumed — glad to keep you 💜",'sub.resumeFailed':"Could not resume the subscription, try again.",'sub.confirmTitle':"Cancel your subscription?",'sub.confirmDesc':"You keep Premium until {date} — that period is already paid for. After that you go back to Free: your streak, savings and goals all stay.",'sub.confirmDescNoDate':"You keep Premium until the end of the period you already paid for. After that you go back to Free: your streak, savings and goals all stay.",'sub.confirmBtn':"Confirm cancellation",'sub.keep':"Keep Premium",'sub.doneUntil':"Cancellation confirmed — Premium until {date}.",'sub.done':"Cancellation confirmed.",'sub.failed':"Cancellation failed. Try again, or write to contact@worthit.app.",'sub.backToFree':"You're back on the Free plan.",'sub.loading':"Loading…",'sub.pastDue':"Payment pending — check your payment method.",'sub.giftedWeek':"Free week — nothing is being charged.",'sub.currentPlan':"Current plan: Free",
+'ref.invalidCode':"Invalid code.",'ref.ownCode':"You can't use your own code.",'ref.applied':"Code applied!",'ref.needAccount':"Sign in to get your link.",'ref.linkCopied':"Link copied — send it to a friend!",
+'pay.alreadyPremium':"Your Premium subscription is already active.",'pay.needAccount':"Create your account to go Premium.",'pay.welcome':"Welcome to Premium ✨",'pay.demoSuffix':" (demo mode)",'pay.confirmed':"Payment confirmed — welcome to Premium ✨",'pay.canceled':"Payment cancelled — you stay on Free.",'pay.failed':"Checkout could not start. Try again in a moment.",
+'onb.needIncome':"Enter your monthly income to continue.",'onb.needRent':"Enter your rent and bills (0 if none).",'onb.needFreq':"Pick a frequency to continue.",'onb.needGoal':"Give your goal a name and an amount.",'onb.profileUpdated':"Profile updated",'onb.profileCreated':"Profile created — 20 welcome notches!",
+'block.added':"“{mot}” is now blocked",'block.removed':"“{mot}” unblocked",'ext.confirmed':"+{total} € confirmed — 24 h resisted ✨",'victory.saved':"+{price} € kept, +{crans}!",'shop.unlocked':"Item unlocked!",'shop.themeApplied':"Theme applied",'shop.avatarUpdated':"Avatar updated",'auth.signedOut':"Signed out.",'when.today':"Today",'when.yesterday':"Yesterday",
+'authErr.exists':"An account already exists with this email.",'authErr.badCreds':"Wrong email or password.",'authErr.short':"6 characters minimum.",'authErr.rate':"Too many attempts — try again in a moment.",'authErr.unconfirmed':"Confirm your email first (link sent when you signed up).",'authErr.generic':"Something went wrong. Try again.",'authErr.created':"Account created! Check your inbox to confirm, then sign in.",
 'hero.ctaPremium':"See Premium",'hero.t1':"No card required",'hero.t2':"Cancel anytime",'hero.t3':"Data stays on your device",
 'mock.checkout':"sneaker-store.com — Checkout",'mock.product':"Limited edition sneakers",'mock.sub':"Cart · free shipping",'mock.msg':"That's <strong>34%</strong> of what you have left this month. Your “Travel” goal slips back. Still going for it?",'mock.left':"Left this month",'mock.wait':"I'll wait 24h",'mock.buy':"Buy anyway",'mock.chip1':"12-day streak",'mock.chip2':"kept this week",
 'quiz.before':"Before we start — question",'quiz.skip':"Skip the quiz →",'quiz.next':"Next question",'quiz.why':"See why Worthit exists",
@@ -773,6 +789,12 @@ es:{ui:{
 'victory.editAria':"Corregir esta victoria",'victory.deleteAria':"Eliminar esta victoria",'victory.deletedToast':"Victoria eliminada.",'victory.editTitle':"Corregir esta victoria",'victory.editSub':"Los importes ya contados se reajustan automáticamente.",'victory.missing':"Indica la compra y su precio.",'victory.updated':"Victoria actualizada.",'victory.save':"Guardar",'victory.itemPh':"La compra evitada (ej: zapatillas…)",'victory.pricePh':"Su precio (€)",'victory.addTitle':"¿A qué te resististe?",'victory.addSub':"Este importe va hacia tu objetivo, y ganas crans.",'victory.addSave':"Guardar mi victoria",'victory.alreadyTracked':"{n} resistencia(s) ya registrada(s) por la extensión",
 'friends.copied':"Identificador copiado — envíaselo a tu amigo.",'friends.copyFailed':"No se pudo copiar, anótalo a mano.",'friends.idLen':"Un identificador tiene 8 dígitos.",'friends.notFound':"Ninguna cuenta con ese identificador.",'friends.isYourself':"Es tu propio identificador 🙂",'friends.already':"Ya sois amigos.",'friends.pending':"Ya hay una solicitud en curso.",'friends.sentTo':"Solicitud enviada a {nom}.",'friends.sendFailed':"Error al enviar.",'friends.addedGift':"Amigo añadido — recibe 1 semana Premium gratis ✨",'friends.added':"Amigo añadido.",'friends.acceptFailed':"No se pudo aceptar esta solicitud.",'friends.needAccount':"Crea tu cuenta para obtener tu identificador y añadir amigos.",'friends.yourId':"Tu identificador — compártelo para que te añadan",'friends.copy':"Copiar",'friends.addWithId':"Añadir un amigo con su identificador",'friends.send':"Enviar",'friends.explain':"Tu amigo recibe una solicitud para aceptar. Si no tiene Premium, gana {semaine} al aceptar.",'friends.oneWeek':"1 semana gratis",'friends.giftsLeft':"Te quedan {n} por regalar.",'friends.giftsUsed':"Has usado tus semanas para regalar.",'friends.received':"Solicitudes recibidas",'friends.accept':"Aceptar",'friends.refuse':"Rechazar",'friends.pendingSent':"Esperando respuesta",'friends.cancel':"Cancelar",'friends.emptyTitle':"Aún no tienes amigos",'friends.emptyDesc':"Comparte tu identificador arriba: la clasificación se llenará en cuanto se acepte una solicitud.",'friends.loading':"Cargando…",'friends.loadError':"No se pudieron cargar tus amigos ahora.",'friends.eyebrow':"Torneos",'friends.title':"Esta semana, entre amigos",'friends.lede':"Clasificación de ahorros de la semana. Se reinicia cada lunes.",'friends.lockedTitle':"Clasificación de amigos",'friends.lockedDesc':"La clasificación semanal es solo Premium — o gratis 1 semana si un amigo te añade.",
 'badge.topEconomie':"Mejor ahorro",'badge.topProgression':"Mayor progreso",'badge.topSerie':"Racha más larga",'friends.you':"tú",'email.weeklyLabel':"Resumen semanal por email",'email.weeklyOn':"Resumen semanal activado.",'email.weeklyOff':"Resumen semanal desactivado.",
+'sub.section':"Tu suscripción",'sub.plan':"Plan",'sub.freePlan':"Gratis",'sub.premiumPlan':"Premium",'sub.renewsOn':"Se renueva el {date}",'sub.endsOn':"Premium activo hasta el {date}",'sub.cancel':"Cancelar mi suscripción",'sub.resume':"Reanudar mi suscripción",'sub.resumed':"Suscripción reanudada — nos alegra tenerte 💜",'sub.resumeFailed':"No se pudo reanudar la suscripción, inténtalo de nuevo.",'sub.confirmTitle':"¿Cancelar tu suscripción?",'sub.confirmDesc':"Mantienes Premium hasta el {date}: ese periodo ya está pagado. Después vuelves a Gratis — tu racha, tus ahorros y tus objetivos se conservan.",'sub.confirmDescNoDate':"Mantienes Premium hasta el final del periodo ya pagado. Después vuelves a Gratis — tu racha, tus ahorros y tus objetivos se conservan.",'sub.confirmBtn':"Confirmar la cancelación",'sub.keep':"Mantener Premium",'sub.doneUntil':"Cancelación confirmada — Premium hasta el {date}.",'sub.done':"Cancelación confirmada.",'sub.failed':"Fallo al cancelar. Inténtalo de nuevo o escríbenos a contact@worthit.app.",'sub.backToFree':"Has vuelto al plan Gratis.",'sub.loading':"Cargando…",'sub.pastDue':"Pago pendiente — revisa tu método de pago.",'sub.giftedWeek':"Semana de regalo — no hay ningún cobro en curso.",'sub.currentPlan':"Plan actual: Gratis",
+'ref.invalidCode':"Código no válido.",'ref.ownCode':"No puedes usar tu propio código.",'ref.applied':"¡Código aplicado!",'ref.needAccount':"Inicia sesión para obtener tu enlace.",'ref.linkCopied':"Enlace copiado — ¡envíaselo a un amigo!",
+'pay.alreadyPremium':"Tu suscripción Premium ya está activa.",'pay.needAccount':"Crea tu cuenta para pasar a Premium.",'pay.welcome':"Bienvenido a Premium ✨",'pay.demoSuffix':" (modo demo)",'pay.confirmed':"Pago confirmado — bienvenido a Premium ✨",'pay.canceled':"Pago cancelado — sigues en Gratis.",'pay.failed':"No se pudo iniciar el pago. Inténtalo en un momento.",
+'onb.needIncome':"Indica tus ingresos mensuales para continuar.",'onb.needRent':"Indica tu alquiler y tus gastos (0 si no tienes).",'onb.needFreq':"Elige una frecuencia para continuar.",'onb.needGoal':"Ponle un nombre y un importe a tu objetivo.",'onb.profileUpdated':"Perfil actualizado",'onb.profileCreated':"Perfil creado — ¡20 muescas de bienvenida!",
+'block.added':"«{mot}» ya está bloqueado",'block.removed':"«{mot}» desbloqueado",'ext.confirmed':"+{total} € confirmados — 24 h resistiendo ✨",'victory.saved':"+{price} € guardados, ¡+{crans}!",'shop.unlocked':"¡Objeto desbloqueado!",'shop.themeApplied':"Tema aplicado",'shop.avatarUpdated':"Avatar actualizado",'auth.signedOut':"Sesión cerrada.",'when.today':"Hoy",'when.yesterday':"Ayer",
+'authErr.exists':"Ya existe una cuenta con este correo.",'authErr.badCreds':"Correo o contraseña incorrectos.",'authErr.short':"6 caracteres como mínimo.",'authErr.rate':"Demasiados intentos — prueba dentro de un momento.",'authErr.unconfirmed':"Confirma antes tu correo (enlace enviado al registrarte).",'authErr.generic':"Ha ocurrido un error. Inténtalo de nuevo.",'authErr.created':"¡Cuenta creada! Revisa tu correo para confirmar y luego inicia sesión.",
 'hero.ctaPremium':"Ver Premium",'hero.t1':"Sin tarjeta",'hero.t2':"Cancela cuando quieras",'hero.t3':"Tus datos en tu dispositivo",
 'mock.checkout':"sneaker-store.com — Pago",'mock.product':"Zapatillas edición limitada",'mock.sub':"Carrito · envío gratis",'mock.msg':"Es el <strong>34 %</strong> de lo que te queda este mes. Tu meta «Viaje» retrocede. ¿Sigues adelante?",'mock.left':"Te queda este mes",'mock.wait':"Espero 24 h",'mock.buy':"Comprar igual",'mock.chip1':"Racha de 12 días",'mock.chip2':"ahorrados esta semana",
 'quiz.before':"Antes de empezar — pregunta",'quiz.skip':"Saltar el quiz →",'quiz.next':"Siguiente pregunta",'quiz.why':"Ver por qué existe Worthit",
@@ -826,6 +848,12 @@ de:{ui:{
 'victory.editAria':"Diesen Erfolg korrigieren",'victory.deleteAria':"Diesen Erfolg löschen",'victory.deletedToast':"Erfolg gelöscht.",'victory.editTitle':"Diesen Erfolg korrigieren",'victory.editSub':"Bereits gezählte Beträge werden automatisch angepasst.",'victory.missing':"Gib den Kauf und seinen Preis an.",'victory.updated':"Erfolg aktualisiert.",'victory.save':"Speichern",'victory.itemPh':"Der vermiedene Kauf (z. B. Sneaker…)",'victory.pricePh':"Sein Preis (€)",'victory.addTitle':"Wobei hast du widerstanden?",'victory.addSub':"Dieser Betrag fließt in dein Ziel, und du verdienst crans.",'victory.addSave':"Meinen Erfolg speichern",'victory.alreadyTracked':"{n} Widerstand/Widerstände bereits von der Erweiterung erfasst",
 'friends.copied':"ID kopiert — schick sie deinem Freund.",'friends.copyFailed':"Kopieren fehlgeschlagen, notiere sie von Hand.",'friends.idLen':"Eine ID hat 8 Ziffern.",'friends.notFound':"Kein Konto mit dieser ID.",'friends.isYourself':"Das ist deine eigene ID 🙂",'friends.already':"Ihr seid schon befreundet.",'friends.pending':"Es läuft bereits eine Anfrage.",'friends.sentTo':"Anfrage an {nom} gesendet.",'friends.sendFailed':"Senden fehlgeschlagen.",'friends.addedGift':"Freund hinzugefügt — er bekommt 1 Woche Premium gratis ✨",'friends.added':"Freund hinzugefügt.",'friends.acceptFailed':"Anfrage konnte nicht angenommen werden.",'friends.needAccount':"Erstelle dein Konto, um deine ID zu erhalten und Freunde hinzuzufügen.",'friends.yourId':"Deine ID — teile sie, damit man dich hinzufügen kann",'friends.copy':"Kopieren",'friends.addWithId':"Freund per ID hinzufügen",'friends.send':"Senden",'friends.explain':"Dein Freund erhält eine Anfrage zum Annehmen. Ohne Premium bekommt er {semaine}, wenn er annimmt.",'friends.oneWeek':"1 Woche gratis",'friends.giftsLeft':"Du hast noch {n} zu verschenken.",'friends.giftsUsed':"Du hast deine Geschenkwochen aufgebraucht.",'friends.received':"Erhaltene Anfragen",'friends.accept':"Annehmen",'friends.refuse':"Ablehnen",'friends.pendingSent':"Warten auf Antwort",'friends.cancel':"Abbrechen",'friends.emptyTitle':"Noch keine Freunde",'friends.emptyDesc':"Teile deine ID oben: die Rangliste füllt sich, sobald eine Anfrage angenommen wird.",'friends.loading':"Wird geladen…",'friends.loadError':"Deine Freunde konnten gerade nicht geladen werden.",'friends.eyebrow':"Turniere",'friends.title':"Diese Woche, mit Freunden",'friends.lede':"Sparrangliste der Woche. Setzt sich jeden Montag zurück.",'friends.lockedTitle':"Freundes-Rangliste",'friends.lockedDesc':"Die wöchentliche Rangliste ist nur für Premium — oder 1 Woche gratis, wenn dich ein Freund hinzufügt.",
 'badge.topEconomie':"Bester Sparer",'badge.topProgression':"Größte Steigerung",'badge.topSerie':"Längste Serie",'friends.you':"du",'email.weeklyLabel':"Wöchentliche E-Mail-Zusammenfassung",'email.weeklyOn':"Wochenrückblick aktiviert.",'email.weeklyOff':"Wochenrückblick deaktiviert.",
+'sub.section':"Dein Abo",'sub.plan':"Tarif",'sub.freePlan':"Kostenlos",'sub.premiumPlan':"Premium",'sub.renewsOn':"Verlängert sich am {date}",'sub.endsOn':"Premium aktiv bis {date}",'sub.cancel':"Abo kündigen",'sub.resume':"Abo fortsetzen",'sub.resumed':"Abo fortgesetzt — schön, dass du bleibst 💜",'sub.resumeFailed':"Abo konnte nicht fortgesetzt werden, versuche es erneut.",'sub.confirmTitle':"Abo wirklich kündigen?",'sub.confirmDesc':"Du behältst Premium bis {date} — dieser Zeitraum ist bereits bezahlt. Danach geht es zurück auf Kostenlos: Serie, Ersparnisse und Ziele bleiben erhalten.",'sub.confirmDescNoDate':"Du behältst Premium bis zum Ende des bereits bezahlten Zeitraums. Danach geht es zurück auf Kostenlos: Serie, Ersparnisse und Ziele bleiben erhalten.",'sub.confirmBtn':"Kündigung bestätigen",'sub.keep':"Premium behalten",'sub.doneUntil':"Kündigung bestätigt — Premium bis {date}.",'sub.done':"Kündigung bestätigt.",'sub.failed':"Kündigung fehlgeschlagen. Versuche es erneut oder schreib an contact@worthit.app.",'sub.backToFree':"Du bist zurück im kostenlosen Tarif.",'sub.loading':"Lädt…",'sub.pastDue':"Zahlung offen — prüfe deine Zahlungsmethode.",'sub.giftedWeek':"Geschenkte Woche — es wird nichts abgebucht.",'sub.currentPlan':"Aktueller Tarif: Kostenlos",
+'ref.invalidCode':"Ungültiger Code.",'ref.ownCode':"Du kannst deinen eigenen Code nicht verwenden.",'ref.applied':"Code angewendet!",'ref.needAccount':"Melde dich an, um deinen Link zu erhalten.",'ref.linkCopied':"Link kopiert — schick ihn einem Freund!",
+'pay.alreadyPremium':"Dein Premium-Abo ist bereits aktiv.",'pay.needAccount':"Erstelle dein Konto, um Premium zu holen.",'pay.welcome':"Willkommen bei Premium ✨",'pay.demoSuffix':" (Demo-Modus)",'pay.confirmed':"Zahlung bestätigt — willkommen bei Premium ✨",'pay.canceled':"Zahlung abgebrochen — du bleibst kostenlos.",'pay.failed':"Die Zahlung konnte nicht starten. Versuche es gleich noch einmal.",
+'onb.needIncome':"Gib dein monatliches Einkommen an, um fortzufahren.",'onb.needRent':"Gib Miete und Nebenkosten an (0, wenn keine).",'onb.needFreq':"Wähle eine Häufigkeit, um fortzufahren.",'onb.needGoal':"Gib deinem Ziel einen Namen und einen Betrag.",'onb.profileUpdated':"Profil aktualisiert",'onb.profileCreated':"Profil erstellt — 20 Kerben zur Begrüßung!",
+'block.added':"„{mot}“ ist jetzt blockiert",'block.removed':"„{mot}“ freigegeben",'ext.confirmed':"+{total} € bestätigt — 24 h durchgehalten ✨",'victory.saved':"+{price} € behalten, +{crans}!",'shop.unlocked':"Gegenstand freigeschaltet!",'shop.themeApplied':"Design übernommen",'shop.avatarUpdated':"Avatar aktualisiert",'auth.signedOut':"Abgemeldet.",'when.today':"Heute",'when.yesterday':"Gestern",
+'authErr.exists':"Mit dieser E-Mail existiert bereits ein Konto.",'authErr.badCreds':"E-Mail oder Passwort falsch.",'authErr.short':"Mindestens 6 Zeichen.",'authErr.rate':"Zu viele Versuche — probiere es gleich noch einmal.",'authErr.unconfirmed':"Bestätige zuerst deine E-Mail (Link bei der Anmeldung gesendet).",'authErr.generic':"Etwas ist schiefgelaufen. Versuche es erneut.",'authErr.created':"Konto erstellt! Bestätige die E-Mail in deinem Postfach und melde dich dann an.",
 'hero.ctaPremium':"Premium ansehen",'hero.t1':"Keine Karte nötig",'hero.t2':"Jederzeit kündbar",'hero.t3':"Daten bleiben auf deinem Gerät",
 'mock.checkout':"sneaker-store.com — Kasse",'mock.product':"Sneakers Limited Edition",'mock.sub':"Warenkorb · Gratisversand",'mock.msg':"Das sind <strong>34 %</strong> von dem, was dir diesen Monat bleibt. Dein Ziel „Reise“ rückt weiter weg. Trotzdem kaufen?",'mock.left':"Diesen Monat übrig",'mock.wait':"Ich warte 24 h",'mock.buy':"Trotzdem kaufen",'mock.chip1':"12-Tage-Serie",'mock.chip2':"diese Woche behalten",
 'quiz.before':"Bevor wir starten — Frage",'quiz.skip':"Quiz überspringen →",'quiz.next':"Nächste Frage",'quiz.why':"Warum es Worthit gibt",
@@ -879,6 +907,12 @@ nl:{ui:{
 'victory.editAria':"Deze overwinning corrigeren",'victory.deleteAria':"Deze overwinning verwijderen",'victory.deletedToast':"Overwinning verwijderd.",'victory.editTitle':"Deze overwinning corrigeren",'victory.editSub':"Al meegetelde bedragen worden automatisch aangepast.",'victory.missing':"Geef de aankoop en de prijs op.",'victory.updated':"Overwinning bijgewerkt.",'victory.save':"Opslaan",'victory.itemPh':"De vermeden aankoop (bijv. sneakers…)",'victory.pricePh':"De prijs (€)",'victory.addTitle':"Waar heb je weerstand aan geboden?",'victory.addSub':"Dit bedrag gaat naar je doel, en je verdient crans.",'victory.addSave':"Mijn overwinning opslaan",'victory.alreadyTracked':"{n} weerstand(en) al bijgehouden door de extensie",
 'friends.copied':"ID gekopieerd — stuur hem naar je vriend.",'friends.copyFailed':"Kopiëren mislukt, noteer hem handmatig.",'friends.idLen':"Een ID bestaat uit 8 cijfers.",'friends.notFound':"Geen account met deze ID.",'friends.isYourself':"Dat is je eigen ID 🙂",'friends.already':"Jullie zijn al vrienden.",'friends.pending':"Er loopt al een verzoek.",'friends.sentTo':"Verzoek verstuurd naar {nom}.",'friends.sendFailed':"Versturen mislukt.",'friends.addedGift':"Vriend toegevoegd — die krijgt 1 gratis Premium-week ✨",'friends.added':"Vriend toegevoegd.",'friends.acceptFailed':"Kon dit verzoek niet accepteren.",'friends.needAccount':"Maak je account aan om je ID te krijgen en vrienden toe te voegen.",'friends.yourId':"Jouw ID — deel hem zodat je toegevoegd kunt worden",'friends.copy':"Kopiëren",'friends.addWithId':"Vriend toevoegen met ID",'friends.send':"Versturen",'friends.explain':"Je vriend krijgt een verzoek om te accepteren. Zonder Premium krijgt die {semaine} bij het accepteren.",'friends.oneWeek':"1 gratis week",'friends.giftsLeft':"Je hebt er nog {n} over om weg te geven.",'friends.giftsUsed':"Je hebt je gratis weken op.",'friends.received':"Ontvangen verzoeken",'friends.accept':"Accepteren",'friends.refuse':"Weigeren",'friends.pendingSent':"Wachten op reactie",'friends.cancel':"Annuleren",'friends.emptyTitle':"Nog geen vrienden",'friends.emptyDesc':"Deel je ID hierboven: het klassement vult zich zodra een verzoek wordt geaccepteerd.",'friends.loading':"Laden…",'friends.loadError':"Kon je vrienden nu niet laden.",'friends.eyebrow':"Toernooien",'friends.title':"Deze week, met vrienden",'friends.lede':"Spaarklassement van de week. Wordt elke maandag gereset.",'friends.lockedTitle':"Vriendenklassement",'friends.lockedDesc':"Het wekelijkse klassement is alleen voor Premium — of 1 gratis week als een vriend je toevoegt.",
 'badge.topEconomie':"Beste spaarder",'badge.topProgression':"Grootste vooruitgang",'badge.topSerie':"Langste reeks",'friends.you':"jij",'email.weeklyLabel':"Wekelijkse e-mailsamenvatting",'email.weeklyOn':"Weekoverzicht ingeschakeld.",'email.weeklyOff':"Weekoverzicht uitgeschakeld.",
+'sub.section':"Je abonnement",'sub.plan':"Abonnement",'sub.freePlan':"Gratis",'sub.premiumPlan':"Premium",'sub.renewsOn':"Wordt verlengd op {date}",'sub.endsOn':"Premium actief tot {date}",'sub.cancel':"Mijn abonnement opzeggen",'sub.resume':"Mijn abonnement hervatten",'sub.resumed':"Abonnement hervat — fijn dat je blijft 💜",'sub.resumeFailed':"Abonnement kon niet worden hervat, probeer opnieuw.",'sub.confirmTitle':"Je abonnement opzeggen?",'sub.confirmDesc':"Je houdt Premium tot {date} — die periode is al betaald. Daarna ga je terug naar Gratis: je reeks, je besparingen en je doelen blijven bewaard.",'sub.confirmDescNoDate':"Je houdt Premium tot het einde van de al betaalde periode. Daarna ga je terug naar Gratis: je reeks, je besparingen en je doelen blijven bewaard.",'sub.confirmBtn':"Opzegging bevestigen",'sub.keep':"Premium houden",'sub.doneUntil':"Opzegging bevestigd — Premium tot {date}.",'sub.done':"Opzegging bevestigd.",'sub.failed':"Opzeggen mislukt. Probeer opnieuw of mail naar contact@worthit.app.",'sub.backToFree':"Je zit weer op het gratis abonnement.",'sub.loading':"Laden…",'sub.pastDue':"Betaling in afwachting — controleer je betaalmethode.",'sub.giftedWeek':"Gratis week — er wordt niets afgeschreven.",'sub.currentPlan':"Huidig abonnement: Gratis",
+'ref.invalidCode':"Ongeldige code.",'ref.ownCode':"Je kunt je eigen code niet gebruiken.",'ref.applied':"Code toegepast!",'ref.needAccount':"Log in om je link te krijgen.",'ref.linkCopied':"Link gekopieerd — stuur hem naar een vriend!",
+'pay.alreadyPremium':"Je Premium-abonnement is al actief.",'pay.needAccount':"Maak je account aan om Premium te nemen.",'pay.welcome':"Welkom bij Premium ✨",'pay.demoSuffix':" (demomodus)",'pay.confirmed':"Betaling bevestigd — welkom bij Premium ✨",'pay.canceled':"Betaling geannuleerd — je blijft op Gratis.",'pay.failed':"De betaling kon niet starten. Probeer het zo meteen opnieuw.",
+'onb.needIncome':"Vul je maandinkomen in om verder te gaan.",'onb.needRent':"Vul je huur en vaste lasten in (0 als je die niet hebt).",'onb.needFreq':"Kies een frequentie om verder te gaan.",'onb.needGoal':"Geef je doel een naam en een bedrag.",'onb.profileUpdated':"Profiel bijgewerkt",'onb.profileCreated':"Profiel aangemaakt — 20 welkomstkerven!",
+'block.added':"‘{mot}’ is nu geblokkeerd",'block.removed':"‘{mot}’ gedeblokkeerd",'ext.confirmed':"+{total} € bevestigd — 24 u volgehouden ✨",'victory.saved':"+{price} € bewaard, +{crans}!",'shop.unlocked':"Item vrijgespeeld!",'shop.themeApplied':"Thema toegepast",'shop.avatarUpdated':"Avatar bijgewerkt",'auth.signedOut':"Uitgelogd.",'when.today':"Vandaag",'when.yesterday':"Gisteren",
+'authErr.exists':"Er bestaat al een account met dit e-mailadres.",'authErr.badCreds':"E-mailadres of wachtwoord onjuist.",'authErr.short':"Minimaal 6 tekens.",'authErr.rate':"Te veel pogingen — probeer het zo meteen opnieuw.",'authErr.unconfirmed':"Bevestig eerst je e-mailadres (link verstuurd bij je aanmelding).",'authErr.generic':"Er is iets misgegaan. Probeer opnieuw.",'authErr.created':"Account aangemaakt! Bevestig via je mailbox en log daarna in.",
 'hero.ctaPremium':"Bekijk Premium",'hero.t1':"Geen kaart nodig",'hero.t2':"Altijd opzegbaar",'hero.t3':"Data blijft op je apparaat",
 'mock.checkout':"sneaker-store.com — Afrekenen",'mock.product':"Sneakers limited edition",'mock.sub':"Winkelmand · gratis verzending",'mock.msg':"Dat is <strong>34%</strong> van wat je deze maand overhoudt. Je doel ‘Reis’ schuift op. Toch doen?",'mock.left':"Deze maand over",'mock.wait':"Ik wacht 24 u",'mock.buy':"Toch kopen",'mock.chip1':"12 dagen streak",'mock.chip2':"deze week bespaard",
 'quiz.before':"Voor we beginnen — vraag",'quiz.skip':"Quiz overslaan →",'quiz.next':"Volgende vraag",'quiz.why':"Waarom Worthit bestaat",
@@ -1501,8 +1535,8 @@ function setBilling(cycle){
   document.getElementById('price-sub').textContent = isAnnual ? t('tarifs.premSubAnnual') : t('tarifs.premSub');
 }
 async function subscribe(btn){
-  if(state.isPremium){ toast('Ton abonnement Premium est déjà actif.', 'crown'); return; }
-  if(!authSession){ toast('Crée ton compte pour passer Premium.','user'); nav('connexion'); return; }
+  if(state.isPremium){ toast(t('pay.alreadyPremium'), 'crown'); return; }
+  if(!authSession){ toast(t('pay.needAccount'),'user'); nav('connexion'); return; }
   const refCode = pendingReferral();
   const r = await authedApi('/api/create-checkout-session',{
     method:'POST', headers:{'Content-Type':'application/json'},
@@ -1512,20 +1546,128 @@ async function subscribe(btn){
     try{ localStorage.removeItem('worthit_ref_pending'); }catch(e){}
     window.location.href = r.url; return;
   }
+  // Le serveur refuse un second abonnement pour quelqu'un qui paie déjà : surtout ne pas
+  // basculer en « démo » ici, ce serait offrir le Premium sur une simple erreur.
+  if(r && r.error){ toast(r.error==='deja_abonne' ? t('pay.alreadyPremium') : t('pay.failed'),'crown'); return; }
   // Pas de backend Stripe joignable : mode démo local
   state.isPremium=true;
   saveLocal(); syncToServer();
   confettiBurst(btn);
-  toast('Bienvenue dans Premium ✨'+(r&&r.demo?' (mode démo)':''),'crown');
+  toast(t('pay.welcome')+(r&&r.demo?t('pay.demoSuffix'):''),'crown');
   renderAgent();
   nav('dashboard');
 }
-function downgrade(){
-  state.isPremium=false;
-  saveLocal();
-  toast('Tu es repassé en Gratuit.','shield');
-  renderAgent();
+
+/* ============================== ABONNEMENT : ÉTAT ET RÉSILIATION ==============================
+ * « Repasser en Gratuit » ne faisait que décocher une case dans le navigateur : l'abonnement
+ * Stripe continuait à prélever tous les mois. La résiliation passe désormais par le serveur,
+ * qui arrête le renouvellement chez Stripe — comme les CGU et le « Annulable en un clic »
+ * de la page d'accueil le promettent. */
+const subState = {loaded:false, loading:false, abonnement:null, premiumUntil:null};
+
+/* Date d'une victoire. Elle est stockée en ISO (et non en texte français) : c'est la seule
+ * façon qu'elle survive à un aller-retour serveur et qu'elle s'affiche dans la bonne langue.
+ * Les anciennes victoires enregistrées en clair (« Aujourd'hui »…) restent affichées telles quelles. */
+function victoryWhen(v){
+  const w = v && v.when;
+  if(!w) return '';
+  const d = new Date(w);
+  if(isNaN(d.getTime())) return String(w);            // ancien format texte : on n'y touche pas
+  const jour = (x)=>new Date(x.getFullYear(),x.getMonth(),x.getDate()).getTime();
+  const ecart = Math.round((jour(new Date()) - jour(d)) / 86400000);
+  if(ecart<=0) return t('when.today');
+  if(ecart===1) return t('when.yesterday');
+  try{ return new Intl.DateTimeFormat(state.lang,{day:'numeric',month:'short'}).format(d); }
+  catch(e){ return d.toISOString().slice(0,10); }
+}
+
+function dateLisible(iso){
+  if(!iso) return '';
+  try{ return new Intl.DateTimeFormat(state.lang,{day:'numeric',month:'long',year:'numeric'}).format(new Date(iso)); }
+  catch(e){ return String(iso).slice(0,10); }
+}
+
+async function loadSubscription(force){
+  if(subState.loading) return;
+  if(subState.loaded && !force) return;
+  if(!authSession){ subState.loaded=true; return; }
+  subState.loading = true;
+  try{
+    const r = await authedApi('/api/subscription');
+    if(r && !r.error){ subState.abonnement = r.abonnement||null; subState.premiumUntil = r.premiumUntil||null; }
+  }catch(e){ /* les Paramètres restent utilisables sans cette information */ }
+  subState.loading = false;
+  subState.loaded = true;
   render(true);
+}
+
+/* Ligne d'état sous « Abonnement » dans les Paramètres. */
+function ligneAbonnementHtml(){
+  const ab = subState.abonnement;
+  if(!state.isPremium) return '';
+  if(subState.loading || !subState.loaded) return `<span style="color:var(--ink-faint);font-size:12px;">${esc(t('sub.loading'))}</span>`;
+  if(!ab) return subState.premiumUntil
+    ? `<span style="color:var(--ink-dim);font-size:12px;">${esc(t('sub.endsOn',{date:dateLisible(subState.premiumUntil)}))}</span>`
+    : `<span style="color:var(--ink-dim);font-size:12px;">${esc(t('sub.giftedWeek'))}</span>`;
+  if(ab.statut==='past_due') return `<span style="color:#fbbf24;font-size:12px;">${esc(t('sub.pastDue'))}</span>`;
+  const cle = ab.resiliationProgrammee ? 'sub.endsOn' : 'sub.renewsOn';
+  return `<span style="color:var(--ink-dim);font-size:12px;">${esc(t(cle,{date:dateLisible(ab.finLe)}))}</span>`;
+}
+
+/* Bouton principal : résilier, ou reprendre si une résiliation est déjà programmée. */
+function boutonAbonnementHtml(){
+  const ab = subState.abonnement;
+  if(ab && ab.resiliationProgrammee){
+    return `<button onclick="reprendreAbonnement()" class="btn btn-neon btn-sm btn-block" style="margin-bottom:10px;">${esc(t('sub.resume'))}</button>`;
+  }
+  return `<button onclick="confirmerResiliation()" class="btn btn-ghost btn-sm btn-block" style="margin-bottom:10px;">${esc(t('sub.cancel'))}</button>`;
+}
+
+function confirmerResiliation(){
+  const ab = subState.abonnement;
+  const fin = ab ? ab.finLe : subState.premiumUntil;
+  const desc = fin ? t('sub.confirmDesc',{date:dateLisible(fin)}) : t('sub.confirmDescNoDate');
+  document.getElementById('modal-root').innerHTML = `<div class="modal-backdrop" onclick="if(event.target===this)closeModal()">
+    <div class="glass modal-card check-pop">
+      <div style="width:48px;height:48px;border-radius:14px;background:rgba(167,139,250,.15);border:1px solid rgba(167,139,250,.3);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:var(--v1);">${I('shield',20)}</div>
+      <h3 style="font-size:18px;font-weight:800;color:#fff;margin:0 0 6px;">${esc(t('sub.confirmTitle'))}</h3>
+      <p style="font-size:12.5px;color:var(--ink-dim);margin:0 0 20px;line-height:1.6;">${esc(desc)}</p>
+      <button onclick="resilierAbonnement(this)" class="btn btn-block" style="background:rgba(255,255,255,.06);color:#fff;border:1px solid var(--line);padding:14px;border-radius:13px;cursor:pointer;font-weight:700;">${esc(t('sub.confirmBtn'))}</button>
+      <button onclick="closeModal()" class="btn btn-neon btn-sm btn-block" style="margin-top:8px;">${esc(t('sub.keep'))}</button>
+    </div></div>`;
+}
+
+async function resilierAbonnement(btn){
+  if(btn){ btn.disabled = true; btn.style.opacity = '.6'; }
+  const r = authSession ? await authedApi('/api/subscription/cancel',{method:'POST'}) : null;
+  if(r && r.ok){
+    closeModal();
+    if(r.abonnement){
+      // Abonnement payant : le Premium reste actif jusqu'à la fin de la période déjà réglée.
+      subState.abonnement = r.abonnement;
+      toast(r.abonnement.finLe ? t('sub.doneUntil',{date:dateLisible(r.abonnement.finLe)}) : t('sub.done'),'shield');
+    } else {
+      // Rien à résilier chez Stripe (semaine offerte, mode démo) : on repasse en Gratuit tout de suite.
+      state.isPremium = false; saveLocal(); renderAgent();
+      toast(t('sub.backToFree'),'shield');
+    }
+    render(true);
+    return;
+  }
+  if(!authSession){
+    // Mode démo hors ligne : pas de compte, donc pas d'abonnement réel à arrêter.
+    closeModal(); state.isPremium=false; saveLocal(); renderAgent();
+    toast(t('sub.backToFree'),'shield'); render(true);
+    return;
+  }
+  if(btn){ btn.disabled = false; btn.style.opacity = '1'; }
+  toast(t('sub.failed'),'x');
+}
+
+async function reprendreAbonnement(){
+  const r = await authedApi('/api/subscription/resume',{method:'POST'});
+  if(r && r.ok){ subState.abonnement = r.abonnement; toast(t('sub.resumed'),'crown'); render(true); return; }
+  toast(t('sub.resumeFailed'),'x');
 }
 
 /* État des amis, chargé depuis le serveur (aucune donnée fictive). */
@@ -1940,7 +2082,7 @@ async function submitAuth(){
     if(!authSession){
       // Inscription avec confirmation e-mail activée : pas de session immédiate.
       a.loading=false;
-      a.errors = { email: "Compte créé ! Vérifie ta boîte mail pour confirmer, puis connecte-toi." };
+      a.errors = { email: t('authErr.created') };
       switchAuthMode('connexion');
       return;
     }
@@ -2002,8 +2144,10 @@ async function signOut(){
   // même appareil verrait encore les amis/demandes de la session précédente (loaded bloque le refetch).
   Object.assign(friendsState, {monId:null, amis:[], demandesRecues:[], demandesEnvoyees:[], classement:[],
                                 semainesOffertesRestantes:0, loaded:false, loading:false, erreur:null});
+  // Même raison pour l'abonnement : sans ce reset, le compte suivant hériterait de l'état du précédent.
+  Object.assign(subState, {loaded:false, loading:false, abonnement:null, premiumUntil:null});
   saveLocal();
-  toast('Déconnecté.','user');
+  toast(t('auth.signedOut'),'user');
   nav('accueil');
 }
 
@@ -2073,20 +2217,20 @@ function onboardNext(){
   }
   if(o.step===1){
     o.income=document.getElementById('ob-income').value;
-    if(!(Number(o.income)>0)){ toast('Indique ton revenu mensuel pour continuer.','wallet'); return; }
+    if(!(Number(o.income)>0)){ toast(t('onb.needIncome'),'wallet'); return; }
   }
   if(o.step===2){
     o.rent=document.getElementById('ob-rent').value;
     o.charges=document.getElementById('ob-charges').value;
-    if(o.rent==='' || o.charges===''){ toast('Indique ton loyer et tes charges (0 si aucun).','home'); return; }
+    if(o.rent==='' || o.charges===''){ toast(t('onb.needRent'),'home'); return; }
   }
   if(o.step===3){
-    if(!o.impulseFreq){ toast('Choisis une fréquence pour continuer.','flame'); return; }
+    if(!o.impulseFreq){ toast(t('onb.needFreq'),'flame'); return; }
   }
   if(o.step===4){
     o.goalName=document.getElementById('ob-goal-name').value.trim();
     o.goalTarget=document.getElementById('ob-goal-target').value;
-    if(!o.goalName || !(Number(o.goalTarget)>0)){ toast('Donne un nom et un montant à ton objectif.','target'); return; }
+    if(!o.goalName || !(Number(o.goalTarget)>0)){ toast(t('onb.needGoal'),'target'); return; }
   }
   if(o.step<4){ o.step++; render(); return; }
   const existingNom = (state.profile && state.profile.nom) || state.auth.nom;
@@ -2102,7 +2246,7 @@ function onboardNext(){
     const premier = {id:(existingGoal&&existingGoal.id)||1, name:o.goalName, target:Number(o.goalTarget), current:(existingGoal&&existingGoal.current)||0};
     state.goals = [premier, ...state.goals.slice(1)];
     saveLocal();
-    toast('Profil mis à jour','check');
+    toast(t('onb.profileUpdated'),'check');
     nav('parametres');
   } else {
     state.goals = [{id:1, name:o.goalName, target:Number(o.goalTarget), current:0}];
@@ -2112,7 +2256,7 @@ function onboardNext(){
     state.week = WEEK_DAYS.map(d=>({day:d,amount:0}));
     state.victories = [];
     saveLocal();
-    toast('Profil créé — 20 crans de bienvenue !','coins');
+    toast(t('onb.profileCreated'),'coins');
     nav('dashboard');
   }
 }
@@ -2179,7 +2323,7 @@ function pageDashboard(){
         </div>
         <div style="display:flex;gap:10px;margin:20px 0;flex-wrap:wrap;">
           <button onclick="nav('boutique')" class="btn btn-ghost btn-sm">${I('bag',15)} Boutique (gratuit)</button>
-          <button onclick="downgrade()" class="btn btn-ghost btn-sm" style="opacity:.6;">Plan actuel : Gratuit</button>
+          <span class="btn btn-ghost btn-sm" style="opacity:.6;cursor:default;">${esc(t('sub.currentPlan'))}</span>
         </div>
         ${referralCardHtml(true)}
       </div>
@@ -2217,7 +2361,7 @@ function pageDashboard(){
             <div style="width:34px;height:34px;border-radius:10px;background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.25);display:flex;align-items:center;justify-content:center;color:var(--v1);flex-shrink:0;">${I('shield',15)}</div>
             <div style="flex:1;min-width:0;">
               <p style="font-size:13.5px;font-weight:600;color:#fff;margin:0 0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(v.item)}</p>
-              <p style="font-size:11.5px;color:var(--ink-faint);margin:0;">${esc(v.when)} · vers « ${esc(v.goal)} »</p>
+              <p style="font-size:11.5px;color:var(--ink-faint);margin:0;">${[esc(victoryWhen(v)), v.goal?`vers « ${esc(v.goal)} »`:''].filter(Boolean).join(' · ')}</p>
             </div>
             <span class="tabular grad-text" style="font-size:14px;font-weight:800;font-family:var(--font-d);flex-shrink:0;">+${v.price} €</span>
             <button onclick="editVictory(${i})" aria-label="${esc(t('victory.editAria'))}" style="background:none;border:none;cursor:pointer;color:var(--ink-faint);padding:2px;display:flex;flex-shrink:0;">${I('settings',13)}</button>
@@ -2260,7 +2404,7 @@ function pageDashboard(){
       </div>
       ${SavingsSimulator()}
       <div style="margin-top:20px;">
-        <button onclick="downgrade()" class="btn btn-ghost btn-sm" style="opacity:.7;">Repasser en Gratuit</button>
+        <button onclick="confirmerResiliation()" class="btn btn-ghost btn-sm" style="opacity:.7;">${esc(t('sub.cancel'))}</button>
       </div>
     </div>
   </section>`;
@@ -2369,13 +2513,13 @@ function addBlockKeyword(){
   if(!w) return;
   if(!state.blockKeywords.includes(w)) state.blockKeywords.push(w);
   saveLocal();
-  toast(`« ${w} » est maintenant bloqué`,'shield');
+  toast(t('block.added',{mot:w}),'shield');
   render();
 }
 function removeBlockKeyword(w){
   state.blockKeywords = state.blockKeywords.filter(x=>x!==w);
   saveLocal();
-  toast(`« ${w} » débloqué`,'shield');
+  toast(t('block.removed',{mot:w}),'shield');
   render();
 }
 function setPriceLimit(v){
@@ -2442,7 +2586,7 @@ function ingestAutoSavings(){
     state.sous += Math.max(5, Math.round(price/10));
     state.victoryCount = (state.victoryCount||0) + 1;
     const item = String(s.title || s.hostname || 'Achat évité').slice(0,60);
-    state.victories.unshift({item, price, when:'Résisté 24 h', goal: goal ? goal.name : 'ton objectif'});
+    state.victories.unshift({item, price, when:new Date().toISOString(), goal: goal ? goal.name : ''});
     applied++; total += price;
   }
   state.victories = state.victories.slice(0,6);
@@ -2454,7 +2598,7 @@ function ingestAutoSavings(){
   }catch(e){}
   if(applied){
     saveLocal();
-    toast(`+${total} € confirmés — résistances tenues 24 h ✨`,'trophy');
+    toast(t('ext.confirmed',{total:total}),'trophy');
     if(state.page==='dashboard' || state.page==='classement') render();
   }
 }
@@ -2513,11 +2657,11 @@ function saveVictory(){
   const gained = Math.max(5, Math.round(price/10));
   state.sous += gained; state.sousToday += gained;
   state.victoryCount = (state.victoryCount||0) + 1;
-  state.victories.unshift({item, price, when:"Aujourd'hui", goal: goal ? goal.name : 'ton objectif'});
+  state.victories.unshift({item, price, when:new Date().toISOString(), goal: goal ? goal.name : ''});
   state.victories = state.victories.slice(0,6);
   closeModal(); saveLocal();
   confettiBurst(null);
-  toast(`+${price} € gardés, +${crans(gained)} !`,'trophy');
+  toast(t('victory.saved',{price:price, crans:crans(gained)}),'trophy');
   render();
 }
 
@@ -2715,7 +2859,7 @@ function buyItem(tab,id,price,btn){
   saveLocal();
   document.getElementById('shop-sous').textContent = crans(state.sous);
   confettiBurst(btn);
-  toast('Objet débloqué !','gem');
+  toast(t('shop.unlocked'),'gem');
   const grid=document.getElementById('shop-grid');
   grid.innerHTML = shopGridHtml(tab);
   initTilt(grid);
@@ -2726,7 +2870,7 @@ function equipItem(tab,id){
     state.activeTheme=id;
     const th = SHOP_THEMES.find(t=>t.id===id);
     if(th){ document.documentElement.style.setProperty('--accent-1',th.c1); document.documentElement.style.setProperty('--accent-2',th.c2); }
-    toast('Thème appliqué','palette');
+    toast(t('shop.themeApplied'),'palette');
   }
   saveLocal();
   const grid=document.getElementById('shop-grid');
@@ -2737,8 +2881,8 @@ function equipItem(tab,id){
 /* ---- parrainage : composant carte + copie du lien ---- */
 function copyReferralLink(){
   const link = myReferralLink();
-  if(!link){ toast('Connecte-toi pour obtenir ton lien.','user'); return; }
-  const done = ()=>toast('Lien copié — envoie-le à un ami !','link');
+  if(!link){ toast(t('ref.needAccount'),'user'); return; }
+  const done = ()=>toast(t('ref.linkCopied'),'link');
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(link).then(done).catch(()=>toast(link,'link'));
   } else toast(link,'link');
@@ -2785,6 +2929,9 @@ function pageParametres(){
   }
   const p = state.profile;
   const tab = state.settingsTab || 'profil';
+  // L'état exact de l'abonnement vient de Stripe : on ne le demande qu'à l'ouverture de
+  // l'onglet Compte, pas à chaque rendu de l'app.
+  if(tab==='compte' && state.isPremium && !subState.loaded && !subState.loading) loadSubscription();
   const tabs = [
     {id:'profil', label:'Profil', icon:'user'},
     {id:'perso', label:'Personnalisation', icon:'palette'},
@@ -2838,13 +2985,14 @@ function pageParametres(){
       <p style="font-size:13px;font-weight:700;color:#fff;margin:0 0 14px;display:flex;align-items:center;gap:8px;">${I('settings',15)} Ton compte</p>
       <div style="display:flex;flex-direction:column;gap:10px;font-size:13.5px;color:var(--ink-dim);margin-bottom:20px;">
         <div style="display:flex;justify-content:space-between;gap:10px;"><span>E-mail</span><span style="color:#fff;text-align:right;">${esc(state.userEmail||'—')}</span></div>
-        <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;"><span>Abonnement</span><span style="text-align:right;">${state.isPremium?`<span class="badge-premium">${I('crown',9)} Premium</span>`:`<span style="color:#fff;">Gratuit</span>`}</span></div>
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;"><span>${esc(t('sub.section'))}</span><span style="text-align:right;">${state.isPremium?`<span class="badge-premium">${I('crown',9)} Premium</span>`:`<span style="color:#fff;">${esc(t('sub.freePlan'))}</span>`}</span></div>
+        ${state.isPremium?`<div style="display:flex;justify-content:flex-end;margin-top:-4px;">${ligneAbonnementHtml()}</div>`:''}
         <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;"><span>${esc(t('email.weeklyLabel'))}</span>
           <button onclick="toggleEmailWeekly()" role="switch" aria-checked="${state.emailWeekly!==false}" style="position:relative;width:40px;height:22px;border-radius:99px;border:none;cursor:pointer;background:${state.emailWeekly!==false?'var(--grad)':'rgba(255,255,255,.15)'};flex-shrink:0;transition:background .2s;"><span style="position:absolute;top:3px;left:${state.emailWeekly!==false?'21px':'3px'};width:16px;height:16px;border-radius:50%;background:#fff;transition:left .2s;"></span></button>
         </div>
       </div>
       ${state.isPremium
-        ? `<button onclick="downgrade()" class="btn btn-ghost btn-sm btn-block" style="margin-bottom:10px;">Repasser en Gratuit</button>`
+        ? boutonAbonnementHtml()
         : `<button onclick="nav('tarifs')" class="btn btn-gold btn-sm btn-block" style="margin-bottom:10px;">${I('crown',13)} Passer Premium — 4,99 €/mois</button>`}
       <button onclick="signOut()" class="btn btn-ghost btn-block">${I('x',14)} Se déconnecter</button>
     </div>
@@ -2873,7 +3021,7 @@ function pageParametres(){
     </div>
   </section>`;
 }
-function equipAvatarQuick(id){ state.activeAvatar=id; saveLocal(); render(); toast('Avatar mis à jour','user'); }
+function equipAvatarQuick(id){ state.activeAvatar=id; saveLocal(); render(); toast(t('shop.avatarUpdated'),'user'); }
 function editProfile(){
   const p = state.profile;
   const g = state.goals[0];
@@ -3235,12 +3383,12 @@ setInterval(ingestAutoSavings, 5000);
       state.isPremium=true;
       saveLocal();
       confettiBurst(null);
-      toast('Paiement confirmé — bienvenue dans Premium ✨','crown');
+      toast(t('pay.confirmed'),'crown');
       nav('dashboard');
     }
     try{ history.replaceState({},'',location.pathname); }catch(e){}
   } else if(params.get('checkout')==='cancel'){
-    toast('Paiement annulé — tu restes en Gratuit.','shield');
+    toast(t('pay.canceled'),'shield');
     try{ history.replaceState({},'',location.pathname); }catch(e){}
   }
 })();

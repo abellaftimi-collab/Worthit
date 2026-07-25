@@ -91,9 +91,37 @@ public/og.png       Image de partage (réseaux sociaux) — régénérable, voir
 server.js           Express : statique + /api/chat + /api/sync + /api/me
                     + /api/create-checkout-session + /api/verify-session + /api/webhook
 supabase/*.sql      Schéma de la base — à exécuter dans l'ordre, une seule fois chacune
-extension/          L'extension Chrome (installation manuelle pour l'instant)
+extension/          L'extension navigateur (Chrome/Edge ; voir extension/SAFARI.md pour iOS)
+public/sw.js        Service worker PWA (app installable, marche hors ligne)
+public/manifest.webmanifest   Manifeste PWA (icônes, écran d'accueil)
 test/smoke.js       Tests de fumée des routes API (`npm test`)
 ```
+
+## Plateformes — ce qui marche où
+
+| | Site / PWA | Interception à l'achat |
+|---|---|---|
+| **Ordinateur** (Mac, Windows, Linux) | ✅ | ✅ extension Chrome/Edge |
+| **Android** | ✅ installable (écran d'accueil) | ❌ Chrome Android ne gère pas les extensions |
+| **iPhone / iPad** | ✅ installable (Partager → Sur l'écran d'accueil) | ⚠️ possible dans **Safari** via un portage — voir `extension/SAFARI.md` |
+
+**La PWA** (dashboard, budget, Worthy, récap) fonctionne partout : c'est le même site,
+installable comme une app sur les deux mobiles.
+
+**L'interception au moment de l'achat** dépend de ce que le système autorise :
+- sur ordinateur, l'extension couvre tout le web ;
+- sur iPhone, un portage Safari (nécessite un Mac + Xcode) couvre le shopping **dans Safari**,
+  mais **jamais les applis natives** — iOS l'interdit à toute app, quel que soit le budget ;
+- sur Android, il faudrait une app native avec service d'accessibilité (chantier séparé).
+
+### Chemins d'achat interceptés
+
+Clic sur un bouton d'achat (texte, `aria-label`, `title`, ou image seule), soumission de
+formulaire de commande, et **arrivée directe sur une page panier/paiement**
+(`/checkout`, `/panier`, `/cart`, `/commande`, `/kasse`, `/afrekenen`…).
+Mots-clés couverts en fr/en/de/es/nl, y compris achat en 1 clic et portefeuilles
+(Apple Pay, PayPal, Klarna…). Les frontières de mots évitent les faux positifs du type
+« pa**rent**s » ou « trans**parent** ».
 
 ### Migrations Supabase
 

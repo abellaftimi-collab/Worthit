@@ -3,12 +3,48 @@
  * 1) Intercepte les clics sur les boutons d'achat et impose l'écran de pause.
  * 2) Masque (floute) les produits contenant tes mots-clés bloqués dans les pages de résultats.
  * 3) Se synchronise automatiquement avec ton compte quand tu visites ton dashboard Worthit.
- * Réglages : popup de l'extension (chrome.storage.sync) + synchro depuis le site.
+ * Réglages : popup de l'extension (wapi.storage.sync) + synchro depuis le site.
  */
 (function () {
   'use strict';
 
-  const BUY_WORDS = /(ajouter au panier|add to cart|add to bag|add to basket|buy now|acheter|payer maintenant|payer|commander|passer la commande|valider (ma |la )?commande|checkout|proceed to|place order|in den warenkorb|jetzt kaufen|zur kasse|comprar|añadir a la cesta|pagar|in winkelwagen|afrekenen|nu kopen|bestellen)/i;
+  /* Passerelle d'API : Safari expose 'browser', Chrome/Edge exposent 'chrome'.
+   * Un seul point d'entrée évite de dupliquer le code par navigateur. */
+  const wapi = (typeof browser !== 'undefined' && browser.runtime) ? browser : chrome;
+  
+  
+  /* Mots d'achat, volontairement larges : mieux vaut une pause de trop qu'un achat manqué.
+   * Couvre fr/en/de/es/nl, l'achat en 1 clic, le paiement express et les portefeuilles. */
+  const BUY_WORDS = new RegExp([
+    // français
+    'ajouter au panier', 'ajouter à la panier', 'au panier', 'acheter', 'achat en 1 ?-?clic',
+    'payer maintenant', 'payer', 'paiement', 'commander', 'je commande', 'passer (la |ma )?commande',
+    'valider (ma |la |mon )?(commande|panier)', 'finaliser (ma |la )?commande', 'confirmer (la |ma )?commande',
+    "procéder au paiement", 'régler', 'souscrire', "s'abonner", 'réserver', 'louer',
+    // anglais
+    'add to (cart|bag|basket|order)', 'buy( it)? now', 'buy', 'purchase', 'checkout', 'check out',
+    'proceed to', 'place( your)? order', 'complete (purchase|order)', 'confirm (order|purchase|payment)',
+    'pay now', 'pay', 'subscribe', 'rent', 'book now', 'one[- ]click', '1[- ]click',
+    // portefeuilles / paiement express
+    'apple pay', 'google pay', 'paypal', 'shop pay', 'klarna', 'express checkout', 'paiement express',
+    // allemand
+    'in den warenkorb', 'jetzt kaufen', 'kaufen', 'zur kasse', 'bestellen', 'kostenpflichtig bestellen',
+    // espagnol
+    'añadir a la cesta', 'agregar al carrito', 'comprar( ahora)?', 'pagar', 'realizar pedido', 'finalizar compra',
+    // néerlandais
+    'in winkelwagen', 'afrekenen', 'nu kopen', 'kopen', 'bestellen',
+  ].join('|'), 'i');
+  /* Frontières de mots. Sans elles, « rent » matchait dans pa*rent*s / diffé*rent*s / trans*parent*
+   * et déclenchait une pause d'achat sur des liens anodins.
+   * Classe explicite (lettres + accents) plutôt que \p{L} : pas de piège d'échappement et
+   * compatible avec les moteurs plus anciens (dont Safari). */
+  const LETTRE = 'A-Za-zÀ-ÖØ-öø-ÿ';
+  const BUY_WORDS_STRICT = new RegExp(
+    '(?:^|[^' + LETTRE + '])(?:' + BUY_WORDS.source + ')(?:[^' + LETTRE + ']|$)', 'i');
+
+  /* Chemins d'URL qui SONT déjà une étape d'achat (panier, paiement, commande).
+   * Arriver directement sur ces pages doit aussi déclencher la pause. */
+  const CHECKOUT_PATHS = /(^|\/)(checkout|check-out|panier|cart|basket|warenkorb|winkelwagen|carrito|cesta|commande|order(s)?\/?(new|create)?|bestellung|pedido|paiement|payment|pay|kasse|afrekenen|finalizar-compra|passer-commande)(\/|$|\?)/i;
 
   let cfg = { enabled: true, pauseAll: true, hideResults: true, blockSearch: true, pauseSeconds: 60, strictMode: false, pin: '', premium: false, apiBase: '', lang: 'fr', ctx: null, keywords: [], priceLimit: 0 };
 
@@ -75,7 +111,7 @@
         cfg.apiBase = nextApiBase;
         cfg.lang = nextLang;
         cfg.ctx = nextCtx;
-        chrome.storage.sync.set({ worthitCfg: cfg });
+        wapi.storage.sync.set({ worthitCfg: cfg });
       }
     } catch (e) {}
   }
@@ -97,8 +133,8 @@
     try { const u = new URL(location.href); return u.origin + u.pathname; }
     catch (e) { return String(location.href).split('?')[0]; }
   }
-  function localGet(keys) { return new Promise((res) => chrome.storage.local.get(keys, (r) => res(r || {}))); }
-  function localSet(obj) { return new Promise((res) => chrome.storage.local.set(obj, () => res())); }
+  function localGet(keys) { return new Promise((res) => wapi.storage.local.get(keys, (r) => res(r || {}))); }
+  function localSet(obj) { return new Promise((res) => wapi.storage.local.set(obj, () => res())); }
 
   async function recordResistance(price) {
     const p = Math.max(0, +price || 0);
@@ -312,7 +348,12 @@
   // Google & co changent l'URL sans recharger la page : on surveille aussi les changements d'URL.
   let lastUrl = location.href;
   setInterval(() => {
-    if (location.href !== lastUrl) { lastUrl = location.href; checkBlockedSearch(); }
+    if (location.href !== lastUrl) {
+      lastUrl = location.href;
+      checkBlockedSearch();
+      // Les boutiques en SPA changent d'URL sans recharger : on revérifie aussi le panier/paiement.
+      if (typeof checkPageAchat === 'function') setTimeout(checkPageAchat, 900);
+    }
   }, 800);
 
   /* ---------- 1) Pause à l'achat ---------- */
@@ -357,11 +398,11 @@
     };
 
     const ask = (message) => new Promise((resolve) => {
-      chrome.runtime.sendMessage({
+      wapi.runtime.sendMessage({
         type: 'worthy-nudge', apiBase: cfg.apiBase,
         body: { message, history: history.slice(-8), context: cfg.ctx },
       }, (res) => {
-        if (chrome.runtime.lastError || !res || res.error || !res.reply) return resolve(null);
+        if (wapi.runtime.lastError || !res || res.error || !res.reply) return resolve(null);
         resolve(res.reply);
       });
     });
@@ -503,36 +544,85 @@
     });
   }
 
+  /* Beaucoup de boutons d'achat n'ont pas de texte : icône seule, bouton Apple Pay/PayPal,
+   * image cliquable. On ratisse donc plusieurs sources avant de conclure. */
+  function labelOf(el) {
+    if (!el) return '';
+    let s = (el.innerText || '').trim();
+    if (!s) s = (el.value || '').trim();
+    if (!s) {
+      const img = el.querySelector && el.querySelector('img[alt]');
+      s = (el.getAttribute('aria-label') || el.getAttribute('title') || el.getAttribute('name') ||
+           el.getAttribute('data-testid') || el.getAttribute('id') ||
+           (img && img.getAttribute('alt')) || '').trim();
+    }
+    return s.slice(0, 160);
+  }
+
+  function pauseAvantAchat(cible, e) {
+    let until = 0;
+    try { until = +sessionStorage.getItem(allowKey) || 0; } catch (err) {}
+    if (Date.now() < until) return false;
+
+    const pageText = (document.title + ' ' + location.href + ' ' + labelOf(cible)).toLowerCase();
+    const kwHit = (cfg.keywords || []).find((k) => k && pageText.includes(String(k).toLowerCase()));
+    const price = detectPrice(cible || document.body);
+    const priceHit = cfg.priceLimit > 0 && price >= cfg.priceLimit;
+    if (!(cfg.pauseAll || kwHit || priceHit)) return false;
+
+    if (e) { e.preventDefault(); e.stopImmediatePropagation(); }
+    showOverlay(cible, price, kwHit);
+    return true;
+  }
+
   document.addEventListener('click', (e) => {
     if (!cfg.enabled || isWorthitApp()) return;
-    const btn = e.target && e.target.closest && e.target.closest('button, a, input[type="submit"], [role="button"]');
+    const btn = e.target && e.target.closest && e.target.closest(
+      'button, a, input[type="submit"], input[type="button"], [role="button"], [class*="buy" i], [class*="checkout" i], [class*="panier" i], [id*="buy" i], [id*="checkout" i]');
     if (!btn) return;
-    const label = ((btn.innerText || btn.value || btn.getAttribute('aria-label') || '') + '').slice(0, 140);
-    if (!BUY_WORDS.test(label)) return;
+    if (!BUY_WORDS_STRICT.test(labelOf(btn))) return;
+    pauseAvantAchat(btn, e);
+  }, true);
 
+  /* Certains sites valident l'achat par soumission de formulaire (bouton image, Entrée au clavier)
+   * sans qu'un clic sur un bouton reconnaissable ne passe : on intercepte aussi le submit. */
+  document.addEventListener('submit', (e) => {
+    if (!cfg.enabled || isWorthitApp()) return;
+    const form = e.target;
+    if (!form || !form.matches) return;
+    const indice = (labelOf(form) + ' ' + (form.getAttribute('action') || '')).toLowerCase();
+    if (!BUY_WORDS_STRICT.test(indice) && !CHECKOUT_PATHS.test(form.getAttribute('action') || '')) return;
+    // On resoumettra le formulaire si l'utilisateur confirme, plutôt que de « cliquer » un bouton.
+    pauseAvantAchat({ click: () => form.submit(), closest: () => null, querySelector: () => null,
+                      getAttribute: (a) => form.getAttribute(a), innerText: labelOf(form) }, e);
+  }, true);
+
+  /* Arriver directement sur une page panier/paiement est déjà un chemin d'achat :
+   * on impose la pause aussi là, une seule fois par page. */
+  let checkoutVu = '';
+  function checkPageAchat() {
+    if (!cfg.enabled || isWorthitApp() || !cfg.pauseAll) return;
+    if (document.getElementById('worthit-overlay')) return;
+    let chemin = '';
+    try { chemin = new URL(location.href).pathname; } catch (e) { return; }
+    if (!CHECKOUT_PATHS.test(chemin)) return;
+    if (checkoutVu === chemin) return; // déjà proposé pour cette page
     let until = 0;
     try { until = +sessionStorage.getItem(allowKey) || 0; } catch (err) {}
     if (Date.now() < until) return;
-
-    const pageText = (document.title + ' ' + location.href + ' ' + label).toLowerCase();
-    const kwHit = (cfg.keywords || []).find((k) => k && pageText.includes(String(k).toLowerCase()));
-    const price = detectPrice(btn);
-    const priceHit = cfg.priceLimit > 0 && price >= cfg.priceLimit;
-
-    if (!(cfg.pauseAll || kwHit || priceHit)) return;
-
-    e.preventDefault();
-    e.stopImmediatePropagation();
-    showOverlay(btn, price, kwHit);
-  }, true);
+    checkoutVu = chemin;
+    // Pas de cible à re-cliquer : l'utilisateur reste simplement sur la page s'il confirme.
+    showOverlay(null, detectPrice(document.body), null);
+  }
+  setTimeout(checkPageAchat, 1800);
 
   /* ---------- chargement des réglages (en dernier : toutes les fonctions sont prêtes) ---------- */
-  chrome.storage.sync.get(['worthitCfg'], (r) => {
+  wapi.storage.sync.get(['worthitCfg'], (r) => {
     if (r && r.worthitCfg) cfg = Object.assign(cfg, r.worthitCfg);
     checkBlockedSearch();
     maskProducts();
   });
-  chrome.storage.onChanged.addListener((changes) => {
+  wapi.storage.onChanged.addListener((changes) => {
     if (changes.worthitCfg && changes.worthitCfg.newValue) {
       cfg = Object.assign(cfg, changes.worthitCfg.newValue);
       checkBlockedSearch();

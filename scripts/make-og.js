@@ -88,6 +88,17 @@ function shoot(name, source, w, h) {
   console.log(`public/${name}.png — ${w}x${h}, ${(fs.statSync(dest).size / 1024).toFixed(1)} Ko`);
 }
 
+/* Icônes PWA. La version « maskable » garde le logo dans la zone sûre (~80 % centrés),
+ * sinon Android le rogne quand il applique sa forme (cercle, squircle…). */
+const iconePWA = (taille, maskable) => shell(`<div style="width:${taille}px;height:${taille}px;background:#08050f;
+  display:flex;align-items:center;justify-content:center;">
+  <span style="width:${Math.round(taille * (maskable ? 0.5 : 0.62))}px;height:${Math.round(taille * (maskable ? 0.5 : 0.62))}px;border-radius:50%;
+    background:linear-gradient(135deg,#a78bfa,#7c3aed);box-shadow:0 0 ${Math.round(taille * 0.25)}px rgba(167,139,250,.55);"></span>
+</div>`, taille, taille);
+
 shoot('og', og, 1200, 630);
 shoot('apple-touch-icon', icon, 180, 180);
+shoot('icon-192', iconePWA(192, false), 192, 192);
+shoot('icon-512', iconePWA(512, false), 512, 512);
+shoot('icon-maskable-512', iconePWA(512, true), 512, 512);
 fs.rmSync(TMP, { recursive: true, force: true });

@@ -1,0 +1,22 @@
+{
+  "name": "Worthit — Achète moins. Vis mieux.",
+  "short_name": "Worthit",
+  "description": "Une pause entre l'envie et l'achat : ton budget réel, une question honnête, ta décision.",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#08050f",
+  "theme_color": "#08050f",
+  "lang": "fr",
+  "categories": ["finance", "lifestyle", "productivity"],
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "J'ai résisté à un achat", "url": "/dashboard?action=victory" },
+    { "name": "Parler à Worthy", "url": "/dashboard?action=worthy" }
+  ]
+}

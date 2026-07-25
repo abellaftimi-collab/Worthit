@@ -9,6 +9,12 @@
 <link rel="canonical" href="https://worthit-bi9e.onrender.com/">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<!-- PWA : installable sur l'écran d'accueil (Android via le manifest, iPhone via les meta apple-*) -->
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Worthit">
+<meta name="mobile-web-app-capable" content="yes">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Worthit">
 <meta property="og:locale" content="fr_FR">
@@ -3149,6 +3155,12 @@ function renderAgent(){
 document.documentElement.dataset.worthitApp = '1'; // marqueur lu par l'extension Chrome (synchro + pas de blocage ici)
 loadLocal();
 ensureCurrentWeek(); // remet à zéro le compteur hebdo si une nouvelle semaine a commencé
+
+/* PWA : rend l'app installable et utilisable hors ligne (iPhone + Android).
+ * Silencieux : si le navigateur ne gère pas les service workers, rien ne change. */
+if('serviceWorker' in navigator && location.protocol !== 'file:'){
+  window.addEventListener('load', ()=>{ navigator.serviceWorker.register('/sw.js').catch(()=>{}); });
+}
 document.documentElement.lang = state.lang; // reflète la langue déjà choisie dès le premier rendu, pas juste après un clic
 /* L'URL d'arrivée gagne (lien partagé, F5, favori). Sur la racine seulement,
  * une première visite passe par l'intro. */

@@ -1,10 +1,14 @@
-/* Worthit — popup de réglages (chrome.storage.sync) */
+/* Passerelle d'API : Safari expose 'browser', Chrome/Edge exposent 'chrome'.
+ * Un seul point d'entrée évite de dupliquer le code par navigateur. */
+const wapi = (typeof browser !== 'undefined' && browser.runtime) ? browser : chrome;
+
+/* Worthit — popup de réglages (wapi.storage.sync) */
 let cfg = { enabled: true, pauseAll: true, hideResults: true, blockSearch: true, pauseSeconds: 60, strictMode: false, pin: '', keywords: [], priceLimit: 0 };
 
 const $ = (id) => document.getElementById(id);
 
 function save() {
-  chrome.storage.sync.set({ worthitCfg: cfg });
+  wapi.storage.sync.set({ worthitCfg: cfg });
 }
 function renderChips() {
   const box = $('chips');
@@ -29,7 +33,7 @@ function renderChips() {
   });
 }
 
-chrome.storage.sync.get(['worthitCfg'], (r) => {
+wapi.storage.sync.get(['worthitCfg'], (r) => {
   if (r && r.worthitCfg) cfg = Object.assign(cfg, r.worthitCfg);
   $('enabled').checked = cfg.enabled;
   $('pauseAll').checked = cfg.pauseAll;

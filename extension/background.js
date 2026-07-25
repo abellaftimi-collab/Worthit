@@ -1,3 +1,7 @@
+/* Passerelle d'API : Safari expose 'browser', Chrome/Edge exposent 'chrome'.
+ * Un seul point d'entrée évite de dupliquer le code par navigateur. */
+const wapi = (typeof browser !== 'undefined' && browser.runtime) ? browser : chrome;
+
 /*
  * Worthit — service worker
  * Seul rôle : appeler l'agent Worthy (/api/chat) pour le compte du content script.
@@ -10,7 +14,7 @@ const ORIGINES_AUTORISEES = [
   'http://localhost:3000',
 ];
 
-chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+wapi.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (!msg || msg.type !== 'worthy-nudge') return;
   const base = String(msg.apiBase || '').replace(/\/+$/, '');
   // On ne parle qu'à des origines connues : jamais à une URL arbitraire venue d'ailleurs.

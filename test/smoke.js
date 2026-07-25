@@ -117,6 +117,21 @@ test('l\'endpoint de récap refuse un appel sans le bon secret', async () => {
   assert.strictEqual(mauvais.status, 401, 'mauvais secret → 401');
 });
 
+test('un faux jeton Premium ne débloque pas le quota IA élargi', async () => {
+  // Le navigateur peut prétendre être Premium ; seul un jeton signé par le serveur compte.
+  // Sans le secret, impossible d'en forger un : la requête doit être traitée comme anonyme.
+  const r = await fetch(BASE + '/api/chat', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      message: 'test', context: {},
+      premiumAuth: { uid: 'pirate', exp: Date.now() + 9e9, token: 'f'.repeat(32) },
+    }),
+  });
+  assert.strictEqual(r.status, 200);
+  const j = await r.json();
+  assert.ok(j.reply && j.reply.length > 0, 'une réponse reste fournie (jamais de blocage sec)');
+});
+
 test('le lien de désinscription rejette un jeton invalide', async () => {
   const r = await fetch(BASE + '/api/unsubscribe?u=abc&t=faux');
   assert.strictEqual(r.status, 400);
@@ -147,6 +162,7 @@ test('les routes privées exigent une authentification', async () => {
     ['POST', '/api/friends/accept'],
     ['POST', '/api/friends/remove'],
     ['GET', '/api/export'],
+    ['GET', '/api/premium-token'],
     ['DELETE', '/api/account'],
   ];
   for (const [method, route] of routes) {

@@ -50,7 +50,7 @@
    * Arriver directement sur ces pages doit aussi déclencher la pause. */
   const CHECKOUT_PATHS = /(^|\/)(checkout|check-out|panier|cart|basket|warenkorb|winkelwagen|carrito|cesta|commande|order(s)?\/?(new|create)?|bestellung|pedido|paiement|payment|pay|kasse|afrekenen|finalizar-compra|passer-commande)(\/|$|\?)/i;
 
-  let cfg = { enabled: true, pauseAll: true, hideResults: true, blockSearch: true, pauseSeconds: 60, strictMode: false, pin: '', premium: false, apiBase: '', lang: 'fr', ctx: null, keywords: [], priceLimit: 0 };
+  let cfg = { enabled: true, pauseAll: true, hideResults: true, blockSearch: true, pauseSeconds: 60, strictMode: false, pin: '', premium: false, apiBase: '', lang: 'fr', ctx: null, premiumAuth: null, keywords: [], priceLimit: 0 };
 
   /* Mode strict : le seul moyen de passer un blocage est le code PIN fixé à l'avance.
    * (Friction volontaire, pas un coffre-fort : une extension reste désinstallable.) */
@@ -104,9 +104,11 @@
       const nextApiBase = (typeof d.apiBase === 'string') ? d.apiBase : cfg.apiBase;
       const nextLang = (typeof d.lang === 'string') ? d.lang : cfg.lang;
       const nextCtx = (d.ctx && typeof d.ctx === 'object') ? d.ctx : cfg.ctx;
+      const nextPa = (d.premiumAuth === undefined) ? cfg.premiumAuth : d.premiumAuth;
       const change = JSON.stringify(nextKeywords) !== JSON.stringify(cfg.keywords) || nextLimit !== cfg.priceLimit
         || nextPause !== cfg.pauseSeconds || nextPremium !== cfg.premium || nextApiBase !== cfg.apiBase
-        || nextLang !== cfg.lang || JSON.stringify(nextCtx) !== JSON.stringify(cfg.ctx);
+        || nextLang !== cfg.lang || JSON.stringify(nextCtx) !== JSON.stringify(cfg.ctx)
+        || JSON.stringify(nextPa) !== JSON.stringify(cfg.premiumAuth);
       if (change) {
         cfg.keywords = nextKeywords;
         cfg.priceLimit = nextLimit;
@@ -115,6 +117,7 @@
         cfg.apiBase = nextApiBase;
         cfg.lang = nextLang;
         cfg.ctx = nextCtx;
+        cfg.premiumAuth = nextPa;
         wapi.storage.sync.set({ worthitCfg: cfg });
       }
     } catch (e) {}
@@ -176,8 +179,20 @@
   }
   async function reportMaturedToSite() {
     if (!isWorthitApp()) return;
-    const { worthit_matured = [] } = await localGet(['worthit_matured']);
-    try { localStorage.setItem('worthit_savings_inbox', JSON.stringify(worthit_matured)); } catch (e) {}
+    const { worthit_matured = [], worthit_pending = {} } = await localGet(['worthit_matured', 'worthit_pending']);
+    try {
+      localStorage.setItem('worthit_savings_inbox', JSON.stringify(worthit_matured));
+      // Les résistances ENCORE en attente : le site s'en sert pour prévenir l'utilisateur
+      // qu'un achat est déjà suivi, et lui éviter de le saisir une seconde fois à la main.
+      localStorage.setItem('worthit_savings_pending', JSON.stringify(
+        Object.keys(worthit_pending).map((k) => ({
+          price: worthit_pending[k].price,
+          title: worthit_pending[k].title,
+          hostname: worthit_pending[k].hostname,
+          ts: worthit_pending[k].ts,
+        }))
+      ));
+    } catch (e) {}
   }
   /* Le site accuse réception des économies qu'il a créditées : on les retire alors de la file,
    * pour qu'elles ne soient jamais recomptées. */
@@ -404,7 +419,7 @@
     const ask = (message) => new Promise((resolve) => {
       wapi.runtime.sendMessage({
         type: 'worthy-nudge', apiBase: cfg.apiBase,
-        body: { message, history: history.slice(-8), context: cfg.ctx },
+        body: { message, history: history.slice(-8), context: cfg.ctx, premiumAuth: cfg.premiumAuth },
       }, (res) => {
         if (wapi.runtime.lastError || !res || res.error || !res.reply) return resolve(null);
         resolve(res.reply);

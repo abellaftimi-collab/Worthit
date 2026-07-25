@@ -347,6 +347,30 @@ app.delete('/api/account', requireAuth(async (req, res) => {
 function unsubToken(uid) {
   return crypto.createHash('sha256').update(uid + '|' + (CRON_SECRET || SUPABASE_SERVICE_KEY)).digest('hex').slice(0, 24);
 }
+
+/* ---------- Preuve de Premium pour l'extension ----------
+ * L'extension ne détient pas la session de l'utilisateur : elle ne peut donc pas prouver
+ * qu'il est Premium. Le site lui transmet un jeton signé par le serveur, à durée limitée.
+ * Un utilisateur qui bascule un drapeau dans son navigateur ne peut PAS le fabriquer. */
+const PREMIUM_SECRET = CRON_SECRET || SUPABASE_SERVICE_KEY || 'worthit-dev';
+function premiumToken(uid, exp) {
+  return crypto.createHmac('sha256', PREMIUM_SECRET).update(String(uid) + '|' + String(exp)).digest('hex').slice(0, 32);
+}
+function premiumTokenValide(p) {
+  if (!p || !p.uid || !p.exp || !p.token) return false;
+  if (Date.now() > Number(p.exp)) return false;                 // expiré
+  const attendu = premiumToken(p.uid, p.exp);
+  // Comparaison à temps constant : évite de fuiter le jeton par mesure de durée.
+  const a = Buffer.from(String(p.token)); const b = Buffer.from(attendu);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+app.get('/api/premium-token', requireAuth(async (req, res) => {
+  const { data } = await supa.from('profiles').select('*').eq('id', req.user.id).maybeSingle();
+  if (!isPremium(data)) return res.json({ premium: false });
+  const exp = Date.now() + 7 * 24 * 60 * 60 * 1000; // 7 jours, renouvelé à chaque visite du site
+  res.json({ premium: true, uid: req.user.id, exp, token: premiumToken(req.user.id, exp) });
+}));
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g,
     (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -787,19 +811,20 @@ function localBrain(raw, ctx) {
  * n'importe qui peut faire tourner la facture OpenAI. Au-delà du quota on ne bloque pas
  * l'utilisateur — le cerveau local répond, gratuitement. */
 const CHAT_WINDOW_MS = 5 * 60 * 1000;
-const CHAT_MAX_AI = 15;          // appels OpenAI autorisés par IP et par fenêtre
+const CHAT_MAX_AI = 15;          // visiteur anonyme : quota volontairement serré
+const CHAT_MAX_AI_PREMIUM = 60;  // Premium PROUVÉ par jeton signé : quota confortable
 const MAX_MESSAGE_LEN = 2000;
-const chatHits = new Map();      // ip -> { count, resetAt }
+const chatHits = new Map();      // clé -> { count, resetAt }
 
-function aiQuotaAvailable(ip) {
+function aiQuotaAvailable(cle, plafond) {
   const now = Date.now();
-  const hit = chatHits.get(ip);
+  const hit = chatHits.get(cle);
   if (!hit || now > hit.resetAt) {
-    chatHits.set(ip, { count: 1, resetAt: now + CHAT_WINDOW_MS });
+    chatHits.set(cle, { count: 1, resetAt: now + CHAT_WINDOW_MS });
     return true;
   }
   hit.count++;
-  return hit.count <= CHAT_MAX_AI;
+  return hit.count <= plafond;
 }
 // purge des entrées expirées pour que la Map ne grossisse pas indéfiniment
 setInterval(() => {
@@ -808,14 +833,18 @@ setInterval(() => {
 }, CHAT_WINDOW_MS).unref();
 
 app.post('/api/chat', async (req, res) => {
-  const { message, history, context } = req.body || {};
+  const { message, history, context, premiumAuth } = req.body || {};
   if (!message || typeof message !== 'string') return res.status(400).json({ error: 'message manquant' });
   if (message.length > MAX_MESSAGE_LEN) return res.status(400).json({ error: 'message_trop_long' });
 
   if (!OPENAI_KEY) {
     return res.json({ reply: localBrain(message, context), source: 'local' });
   }
-  if (!aiQuotaAvailable(req.ip)) {
+  /* Premium prouvé par jeton signé serveur : quota par compte (pas par IP) et plus large.
+   * Sans jeton valide, on retombe sur le quota anonyme, quoi que prétende le navigateur. */
+  const estPremium = premiumTokenValide(premiumAuth);
+  const cle = estPremium ? 'u:' + premiumAuth.uid : 'ip:' + req.ip;
+  if (!aiQuotaAvailable(cle, estPremium ? CHAT_MAX_AI_PREMIUM : CHAT_MAX_AI)) {
     return res.json({ reply: localBrain(message, context), source: 'local-quota' });
   }
   try {

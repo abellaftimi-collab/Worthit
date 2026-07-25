@@ -917,7 +917,11 @@ app.post('/api/create-checkout-session', requireAuth(async (req, res) => {
 /* Traduit un abonnement Stripe en quelques champs simples pour le front. */
 function vueAbonnement(sub) {
   if (!sub) return null;
-  const fin = sub.cancel_at || sub.current_period_end || null;
+  const article = sub.items && sub.items.data && sub.items.data[0];
+  // current_period_end a migré de l'abonnement vers ses articles dans les versions récentes
+  // de l'API Stripe : on lit les deux, sinon la date de fin disparaîtrait à la prochaine
+  // montée de version du SDK, et l'utilisateur ne saurait plus jusqu'à quand il a payé.
+  const fin = sub.cancel_at || sub.current_period_end || (article && article.current_period_end) || null;
   return {
     id: sub.id,
     statut: sub.status,                                    // active, trialing, past_due, canceled…

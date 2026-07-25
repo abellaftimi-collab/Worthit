@@ -42,14 +42,21 @@ body{background:#08050f;font-family:'Plus Jakarta Sans',system-ui,sans-serif;-we
 .d{font-family:'Unbounded','Plus Jakarta Sans',sans-serif}
 </style>${body}`;
 
+/* Logo Worthit : le point de la marque est devenu un bouton pause (l'achat suspendu).
+ * Une seule source SVG, réutilisée pour l'image de partage et toutes les icônes. */
+const LOGO = (taille) => `<svg width="${taille}" height="${taille}" viewBox="0 0 100 100">
+  <defs><linearGradient id="lg${taille}" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#a78bfa"/><stop offset="1" stop-color="#7c3aed"/></linearGradient></defs>
+  <path fill="url(#lg${taille})" fill-rule="evenodd" d="M50 6a44 44 0 1 1 0 88 44 44 0 0 1 0-88Zm-9 27a5 5 0 0 0-5 5v24a5 5 0 0 0 10 0V38a5 5 0 0 0-5-5Zm18 0a5 5 0 0 0-5 5v24a5 5 0 0 0 10 0V38a5 5 0 0 0-5-5Z"/>
+</svg>`;
+
 const og = shell(`<div style="position:relative;width:1200px;height:630px;overflow:hidden;
   background:radial-gradient(900px 620px at 22% 0%,rgba(124,58,237,.30),transparent 62%),
              radial-gradient(700px 520px at 100% 110%,rgba(167,139,250,.16),transparent 60%),#08050f;
   padding:74px 78px;display:flex;flex-direction:column;justify-content:space-between;">
 
   <div style="display:flex;align-items:center;gap:13px;">
-    <span style="width:19px;height:19px;border-radius:50%;
-      background:linear-gradient(135deg,#a78bfa,#7c3aed);box-shadow:0 0 26px rgba(167,139,250,.85);"></span>
+    <span style="display:flex;filter:drop-shadow(0 0 22px rgba(167,139,250,.7));">${LOGO(32)}</span>
     <span class="d" style="color:#fff;font-size:33px;font-weight:700;letter-spacing:-.02em;">worthit</span>
   </div>
 
@@ -72,8 +79,7 @@ const og = shell(`<div style="position:relative;width:1200px;height:630px;overfl
 
 const icon = shell(`<div style="width:180px;height:180px;background:#08050f;
   display:flex;align-items:center;justify-content:center;">
-  <span style="width:96px;height:96px;border-radius:50%;
-    background:linear-gradient(135deg,#a78bfa,#7c3aed);box-shadow:0 0 46px rgba(167,139,250,.6);"></span>
+  <span style="display:flex;filter:drop-shadow(0 0 34px rgba(167,139,250,.5));">${LOGO(116)}</span>
 </div>`, 180, 180);
 
 function shoot(name, source, w, h) {
@@ -92,8 +98,9 @@ function shoot(name, source, w, h) {
  * sinon Android le rogne quand il applique sa forme (cercle, squircle…). */
 const iconePWA = (taille, maskable) => shell(`<div style="width:${taille}px;height:${taille}px;background:#08050f;
   display:flex;align-items:center;justify-content:center;">
-  <span style="width:${Math.round(taille * (maskable ? 0.5 : 0.62))}px;height:${Math.round(taille * (maskable ? 0.5 : 0.62))}px;border-radius:50%;
-    background:linear-gradient(135deg,#a78bfa,#7c3aed);box-shadow:0 0 ${Math.round(taille * 0.25)}px rgba(167,139,250,.55);"></span>
+  <span style="display:flex;filter:drop-shadow(0 0 ${Math.round(taille * 0.16)}px rgba(167,139,250,.5));">
+    ${LOGO(Math.round(taille * (maskable ? 0.56 : 0.70)))}
+  </span>
 </div>`, taille, taille);
 
 shoot('og', og, 1200, 630);

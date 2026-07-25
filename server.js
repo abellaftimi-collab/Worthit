@@ -351,6 +351,15 @@ function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g,
     (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
+/* Logo Worthit en SVG inline. Les clients mail modernes le gèrent ; ceux qui ne le gèrent pas
+ * n'afficheront rien de cassé (juste l'espace), le nom « worthit » restant lisible à côté. */
+function logoSvg(size) {
+  const id = 'wm' + size;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 100 100" style="vertical-align:middle;display:inline-block;">
+    <defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a78bfa"/><stop offset="1" stop-color="#7c3aed"/></linearGradient></defs>
+    <path fill="url(#${id})" fill-rule="evenodd" d="M50 6a44 44 0 1 1 0 88 44 44 0 0 1 0-88Zm-9 27a5 5 0 0 0-5 5v24a5 5 0 0 0 10 0V38a5 5 0 0 0-5-5Zm18 0a5 5 0 0 0-5 5v24a5 5 0 0 0 10 0V38a5 5 0 0 0-5-5Z"/>
+  </svg>`;
+}
 
 async function sendEmail(to, subject, html) {
   if (!RESEND_API_KEY) return { dryRun: true };
@@ -377,7 +386,7 @@ function recapEmailHtml(p, uid) {
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
       <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background:linear-gradient(165deg,#1a102c,#0c0716);border-radius:20px;overflow:hidden;border:1px solid rgba(167,139,250,.3);">
         <tr><td style="padding:30px 30px 8px;">
-          <div style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#a78bfa;vertical-align:middle;"></div>
+          ${logoSvg(20)}
           <span style="color:#fff;font-size:17px;font-weight:800;letter-spacing:-.02em;vertical-align:middle;margin-left:7px;">worthit</span>
         </td></tr>
         <tr><td style="padding:8px 30px 4px;">
@@ -455,7 +464,7 @@ app.post('/api/cron/weekly-recap', async (req, res) => {
 app.get('/api/unsubscribe', async (req, res) => {
   const uid = String(req.query.u || '');
   const token = String(req.query.t || '');
-  const page = (titre, msg) => `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><body style="margin:0;background:#0c0716;color:#fff;font-family:system-ui,sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center;text-align:center;"><div style="max-width:380px;padding:30px;"><div style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#a78bfa;"></div> <span style="font-weight:800;">worthit</span><h1 style="font-size:20px;margin:18px 0 8px;">${titre}</h1><p style="color:#b9adcf;font-size:14px;line-height:1.6;">${msg}</p><a href="${APP_URL}" style="color:#a78bfa;font-size:13px;">Retour à Worthit</a></div></body>`;
+  const page = (titre, msg) => `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><body style="margin:0;background:#0c0716;color:#fff;font-family:system-ui,sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center;text-align:center;"><div style="max-width:380px;padding:30px;">${logoSvg(18)} <span style="font-weight:800;vertical-align:middle;">worthit</span><h1 style="font-size:20px;margin:18px 0 8px;">${titre}</h1><p style="color:#b9adcf;font-size:14px;line-height:1.6;">${msg}</p><a href="${APP_URL}" style="color:#a78bfa;font-size:13px;">Retour à Worthit</a></div></body>`;
   if (!supa || !uid || token !== unsubToken(uid)) {
     return res.status(400).send(page('Lien invalide', "Ce lien de désinscription n'est pas valide ou a expiré."));
   }

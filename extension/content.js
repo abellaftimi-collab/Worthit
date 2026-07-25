@@ -11,6 +11,10 @@
   /* Passerelle d'API : Safari expose 'browser', Chrome/Edge exposent 'chrome'.
    * Un seul point d'entrée évite de dupliquer le code par navigateur. */
   const wapi = (typeof browser !== 'undefined' && browser.runtime) ? browser : chrome;
+
+  /* Logo Worthit (bouton pause) — inline pour ne dépendre d'aucun fichier de la page. */
+  const LOGO_MARK = '<svg width="18" height="18" viewBox="0 0 100 100" style="display:block;flex-shrink:0;filter:drop-shadow(0 0 10px rgba(167,139,250,.7))"><defs><linearGradient id="wxg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a78bfa"/><stop offset="1" stop-color="#7c3aed"/></linearGradient></defs><path fill="url(#wxg)" fill-rule="evenodd" d="M50 6a44 44 0 1 1 0 88 44 44 0 0 1 0-88Zm-9 27a5 5 0 0 0-5 5v24a5 5 0 0 0 10 0V38a5 5 0 0 0-5-5Zm18 0a5 5 0 0 0-5 5v24a5 5 0 0 0 10 0V38a5 5 0 0 0-5-5Z"/></svg>';
+
   
   
   /* Mots d'achat, volontairement larges : mieux vaut une pause de trop qu'un achat manqué.
@@ -290,7 +294,7 @@
       <div id="worthit-search-block" style="position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(5,3,10,.94);backdrop-filter:blur(14px);font-family:'Segoe UI',system-ui,sans-serif;">
         <div style="max-width:430px;width:100%;background:linear-gradient(165deg,#1a102c,#0c0716);border:1px solid rgba(167,139,250,.35);border-radius:22px;padding:32px 28px;box-shadow:0 40px 90px rgba(0,0,0,.6),0 0 50px rgba(124,58,237,.2);animation:worthitPop .45s cubic-bezier(.34,1.56,.64,1) both;">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;">
-            <span style="width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#7c3aed);box-shadow:0 0 12px rgba(167,139,250,.8);"></span>
+            ${LOGO_MARK}
             <span style="color:#fff;font-size:16px;font-weight:800;letter-spacing:-.02em;">worthit</span>
             <span style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.4);">Recherche bloquée</span>
           </div>
@@ -465,7 +469,7 @@
       <div id="worthit-overlay" style="position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(5,3,10,.82);backdrop-filter:blur(6px);font-family:'Segoe UI',system-ui,sans-serif;">
         <div style="max-width:400px;width:100%;background:linear-gradient(165deg,#1a102c,#0c0716);border:1px solid rgba(167,139,250,.35);border-radius:22px;padding:30px 26px;box-shadow:0 40px 90px rgba(0,0,0,.6),0 0 50px rgba(124,58,237,.2);animation:worthitPop .45s cubic-bezier(.34,1.56,.64,1) both;">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:18px;">
-            <span style="width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#7c3aed);box-shadow:0 0 12px rgba(167,139,250,.8);"></span>
+            ${LOGO_MARK}
             <span style="color:#fff;font-size:16px;font-weight:800;letter-spacing:-.02em;">worthit</span>
             <span style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.4);">${worthy ? 'Worthy · Premium' : 'Pause anti-impulsion'}</span>
           </div>

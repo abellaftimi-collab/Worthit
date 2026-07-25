@@ -384,6 +384,15 @@ function I(name,size,sw){
   return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="'+sw+'" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(ICONS[name]||'')+'</svg>';
 }
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+/* Logo Worthit : le point de la marque est un bouton pause — l'achat suspendu.
+ * id de dégradé unique par taille, sinon plusieurs SVG sur la page se marchent dessus. */
+function logoMark(size, glow){
+  const id = 'wlg'+size;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 100 100" aria-hidden="true" style="display:block;flex-shrink:0;${glow?`filter:drop-shadow(0 0 ${Math.round(size*0.7)}px rgba(167,139,250,.55));`:''}">
+    <defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a78bfa"/><stop offset="1" stop-color="#7c3aed"/></linearGradient></defs>
+    <path fill="url(#${id})" fill-rule="evenodd" d="M50 6a44 44 0 1 1 0 88 44 44 0 0 1 0-88Zm-9 27a5 5 0 0 0-5 5v24a5 5 0 0 0 10 0V38a5 5 0 0 0-5-5Zm18 0a5 5 0 0 0-5 5v24a5 5 0 0 0 10 0V38a5 5 0 0 0-5-5Z"/>
+  </svg>`;
+}
 const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ---- pont vers le backend (fallback démo si absent) ---- */
@@ -1118,7 +1127,7 @@ function Navbar(){
     <div class="glass" style="border-left:none;border-right:none;border-top:none;">
       <div class="container" style="max-width:1300px;padding-top:16px;padding-bottom:16px;display:flex;align-items:center;justify-content:space-between;">
         <button onclick="nav('accueil')" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;">
-          <span style="width:9px;height:9px;border-radius:50%;background:var(--grad);box-shadow:0 0 12px rgba(167,139,250,.7);"></span>
+          ${logoMark(19, true)}
           <span style="color:#fff;font-family:var(--font-d);font-size:18px;font-weight:700;letter-spacing:-.02em;">worthit</span>
           ${state.isPremium?`<span class="badge-premium">${I('crown',11)} Premium</span>`:''}
         </button>
@@ -1185,7 +1194,7 @@ function Footer(){
   return `<footer style="background:#040207;border-top:1px solid var(--line-soft);padding:36px 24px;">
     <div class="container" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:18px;">
       <div style="display:flex;align-items:center;gap:8px;">
-        <span style="width:8px;height:8px;border-radius:50%;background:var(--grad);"></span>
+        ${logoMark(17)}
         <span style="color:#fff;font-family:var(--font-d);font-size:14.5px;font-weight:700;">worthit</span>
       </div>
       <div style="display:flex;gap:20px;flex-wrap:wrap;">
@@ -1218,7 +1227,7 @@ function HeroScene(){
           <span style="width:8px;height:8px;border-radius:50%;background:rgba(74,222,128,.75);"></span>
           <span style="margin-left:6px;">${esc(t('mock.checkout'))}</span>
         </span>
-        <span style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#fff;"><span style="width:8px;height:8px;border-radius:50%;background:var(--grad);box-shadow:0 0 10px rgba(167,139,250,.8);"></span>worthit</span>
+        <span style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#fff;">${logoMark(15)}worthit</span>
       </div>
       <div style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.02);margin-bottom:14px;">
         <div style="width:44px;height:44px;border-radius:11px;background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.22);display:flex;align-items:center;justify-content:center;color:var(--v1);flex-shrink:0;">${I('bag',19)}</div>

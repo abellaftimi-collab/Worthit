@@ -224,13 +224,44 @@
   /* Texte représentatif d'un lien. Beaucoup de fiches produit ne contiennent qu'une image :
    * sans aria-label / title / alt, elles seraient totalement invisibles pour le filtre. */
   function linkText(a) {
-    let t = (a.innerText || '').trim();
-    if (!t) {
-      const img = a.querySelector('img[alt]');
-      t = (a.getAttribute('aria-label') || a.getAttribute('title') ||
-           (img && img.getAttribute('alt')) || '').trim();
-    }
+    // textContent et non innerText : innerText force un recalcul de mise en page à chaque
+    // lien, ce qui coûte cher sur une grille de 50 produits relue à chaque changement.
+    const img = a.querySelector('img[alt]');
+    // On CONCATÈNE au lieu de n'utiliser l'aria-label qu'en dernier recours : sur Nike,
+    // le lien de l'image porte le nom du produit dans son aria-label alors que son texte
+    // visible ne contient qu'un badge (« Meilleure vente ») — le mot-clé passait à travers.
+    const t = [
+      (a.textContent || '').trim(),
+      a.getAttribute('aria-label') || '',
+      a.getAttribute('title') || '',
+      (img && img.getAttribute('alt')) || '',
+    ].join(' ').replace(/\s+/g, ' ').trim();
     return t.slice(0, 300).toLowerCase();
+  }
+
+  /* Remonte du lien jusqu'à la VRAIE fiche produit.
+   * Beaucoup de boutiques (Nike, Zalando…) découpent une fiche en deux liens : un pour
+   * l'image, un pour le titre. Masquer celui de l'image ne floutait que la photo et
+   * laissait le nom et le prix parfaitement lisibles — soit précisément ce qu'il fallait
+   * cacher. On remonte donc tant que le conteneur ne porte quasiment aucun texte. */
+  const SEL_CARTE = 'li,article,[class*="product" i],[class*="item" i],[class*="card" i],[data-testid*="card" i]';
+  function tropGrand(el) {
+    const r = el.getBoundingClientRect();
+    return r.width > window.innerWidth * 0.92 && r.height > window.innerHeight * 0.7;
+  }
+  function carteDe(a) {
+    let card = a.closest(SEL_CARTE) || a;
+    for (let i = 0; i < 4 && card.parentElement; i++) {
+      if ((card.textContent || '').trim().length >= 12) break;   // porte déjà nom + prix
+      const parent = card.parentElement;
+      if (tropGrand(parent)) break;                              // on ne floute pas la page
+      // Garde-fou décisif : dès que le parent rassemble PLUSIEURS fiches, c'est la grille.
+      // Sans lui, une fiche au titre pas encore chargé faisait remonter jusqu'à la grille
+      // et un seul mot-clé floutait tous les produits de la page.
+      if (parent.querySelectorAll(SEL_CARTE).length > 1) break;
+      card = parent;
+    }
+    return card;
   }
   function maskProducts() {
     if (!cfg.enabled || !cfg.hideResults || !(cfg.keywords || []).length) return;
@@ -241,38 +272,60 @@
     // budget recalculé à chaque passage : le masquage ne s'épuise plus définitivement
     let budget = MASK_LIMIT - document.querySelectorAll('.worthit-masked').length;
     if (budget <= 0) return;
-    const links = document.querySelectorAll('a:not([data-worthit-checked])');
+    const links = document.querySelectorAll('a');
     let checked = 0;
     for (const a of links) {
-      if (checked++ > 500) break;
+      if (checked++ > 1500) break;                 // garde-fou anti-emballement
       const t = linkText(a);
-      // Pas encore de texte (chargement différé) : on ne le marque pas, on le rejugera au prochain passage.
       if (!t) continue;
-      a.setAttribute('data-worthit-checked', '1');
+      // Signature du libellé plutôt qu'un drapeau « déjà vu » définitif : sur un site qui
+      // remplit ses titres après coup (React, chargement différé), un lien inspecté trop tôt
+      // était marqué et plus JAMAIS réexaminé, même une fois son nom de produit arrivé.
+      const sig = t.length + '|' + t.slice(0, 40);
+      if (a.dataset.worthitSig === sig) continue;
+      a.dataset.worthitSig = sig;
       const hit = kws.find(k => t.includes(k));
       if (!hit) continue;
-      const card = a.closest('li,article,[class*="product" i],[class*="item" i],[class*="card" i]') || a;
-      if (card.dataset.worthitMasked) continue;
-      const r = card.getBoundingClientRect();
-      // garde-fou : ne jamais flouter un conteneur qui couvre presque toute la page
-      if (r.width > window.innerWidth * 0.92 && r.height > window.innerHeight * 0.7) continue;
+      const card = carteDe(a);
+      // On teste la classe, pas un attribut à nous : quand la boutique réécrit className
+      // (re-rendu React), le floutage saute et doit être remis — pas considéré comme déjà fait.
+      if (card.classList.contains('worthit-masked')) continue;
+      if (tropGrand(card)) continue;
       card.dataset.worthitMasked = '1';
       card.classList.add('worthit-masked');
       card.title = 'Masqué par Worthit (mot-clé « ' + hit + ' »)';
       if (--budget <= 0) return;
     }
   }
-  let maskTimer = null;
-  const mo = new MutationObserver(() => {
+  /* Débounce AVEC plafond. Une page marchande mute en permanence (carrousels, images
+   * différées, pubs) : un clearTimeout à chaque mutation repoussait le passage suivant
+   * à l'infini, et plus rien n'était masqué après le premier écran. */
+  let maskTimer = null, premiereMutation = 0;
+  function planifierMasquage() {
+    const maintenant = Date.now();
+    if (!premiereMutation) premiereMutation = maintenant;
     clearTimeout(maskTimer);
-    maskTimer = setTimeout(() => { checkBlockedSearch(); maskProducts(); }, 500);
-  });
+    const attente = (maintenant - premiereMutation > 1500) ? 0 : 400;
+    maskTimer = setTimeout(() => {
+      premiereMutation = 0;
+      checkBlockedSearch();
+      maskProducts();
+    }, attente);
+  }
+  // Seulement childList/subtree : nos propres ajouts de classe et de title sont des
+  // mutations d'ATTRIBUTS, donc ils ne se redéclenchent pas eux-mêmes.
+  const mo = new MutationObserver(planifierMasquage);
   if (document.body) mo.observe(document.body, { childList: true, subtree: true });
   document.addEventListener('DOMContentLoaded', () => {
     if (document.body) mo.observe(document.body, { childList: true, subtree: true });
     maskProducts();
   });
-  setTimeout(maskProducts, 1500);
+  // Filet de sécurité : beaucoup de boutiques renseignent les alt/aria-label APRÈS coup.
+  // C'est une mutation d'attribut, que l'observateur ci-dessus ne surveille pas — d'où
+  // quelques passages espacés pendant le chargement.
+  [800, 1500, 3000, 6000, 10000].forEach((d) => setTimeout(maskProducts, d));
+  // Le défilement déclenche le chargement différé des grilles : on repasse derrière.
+  window.addEventListener('scroll', planifierMasquage, { passive: true });
 
   /* ---------- 2 bis) Blocage de la recherche elle-même ----------
    * Plus fort que le floutage : si la requête tapée contient un mot-clé bloqué,

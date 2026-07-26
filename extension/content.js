@@ -52,18 +52,23 @@
 
   let cfg = { enabled: true, pauseAll: true, hideResults: true, blockSearch: true, blockSites: true, pauseSeconds: 60, strictMode: false, pin: '', premium: false, apiBase: '', lang: 'fr', ctx: null, premiumAuth: null, keywords: [], priceLimit: 0 };
 
-  /* Mode strict : le seul moyen de passer un blocage est le code PIN fixé à l'avance.
-   * (Friction volontaire, pas un coffre-fort : une extension reste désinstallable.) */
+  /* Traduction : i18n.js est chargé juste avant ce fichier (voir le manifest).
+   * La langue vient du compte (cfg.lang, synchronisée depuis le site) ; tant qu'elle n'est
+   * pas connue, i18n.js part sur celle du navigateur. */
+  const wt = (cle, vars) => self.WorthitI18n.t(cle, vars);
+
+  /* Mode strict (parental) : le seul moyen de passer un blocage est le code PIN fixé à
+   * l'avance. (Friction volontaire, pas un coffre-fort : une extension reste désinstallable.) */
   function strictActive() {
     return !!(cfg.strictMode && cfg.pin && String(cfg.pin).length);
   }
   /* Champ de saisie du code, réutilisé par les deux pop-ups (achat + recherche). */
   function pinGateHtml(id) {
     return `<div style="margin-top:12px;padding-top:14px;border-top:1px solid rgba(255,255,255,.1);">
-      <p style="font-size:11.5px;color:rgba(255,255,255,.45);margin:0 0 8px;text-align:center;">Débloquer avec le code</p>
+      <p style="font-size:11.5px;color:rgba(255,255,255,.45);margin:0 0 8px;text-align:center;">${wt('pin.unlockWith')}</p>
       <div style="display:flex;gap:8px;">
         <input id="${id}-pin" type="password" inputmode="numeric" autocomplete="off" placeholder="••••" style="flex:1;text-align:center;letter-spacing:.3em;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.15);border-radius:11px;padding:11px;color:#fff;font-family:inherit;font-size:15px;"/>
-        <button id="${id}-unlock" style="padding:11px 16px;border-radius:11px;border:none;cursor:pointer;background:rgba(255,255,255,.1);color:#fff;font-size:13px;font-family:inherit;">Débloquer</button>
+        <button id="${id}-unlock" style="padding:11px 16px;border-radius:11px;border:none;cursor:pointer;background:rgba(255,255,255,.1);color:#fff;font-size:13px;font-family:inherit;">${wt('pin.unlock')}</button>
       </div>
       <p id="${id}-err" style="font-size:11px;color:#f87171;margin:8px 0 0;text-align:center;height:14px;"></p>
     </div>`;
@@ -75,7 +80,7 @@
     if (!input || !btn) return;
     const tryUnlock = () => {
       if (String(input.value) === String(cfg.pin)) onSuccess();
-      else { err.textContent = 'Code incorrect.'; input.value = ''; input.focus(); }
+      else { err.textContent = wt('pin.wrong'); input.value = ''; input.focus(); }
     };
     btn.addEventListener('click', tryUnlock);
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); } });
@@ -116,6 +121,7 @@
         cfg.premium = nextPremium;
         cfg.apiBase = nextApiBase;
         cfg.lang = nextLang;
+        self.WorthitI18n.setLang(nextLang);
         cfg.ctx = nextCtx;
         cfg.premiumAuth = nextPa;
         wapi.storage.sync.set({ worthitCfg: cfg });
@@ -319,7 +325,7 @@
       if (tropGrand(card)) continue;
       card.dataset.worthitMasked = '1';
       card.classList.add('worthit-masked');
-      card.title = 'Masqué par Worthit (mot-clé « ' + hit + ' »)';
+      card.title = wt('o.masked', { mot: hit });
       if (--budget <= 0) break;
     }
 
@@ -374,7 +380,7 @@
       if (!carte || carte.classList.contains('worthit-masked')) continue;
       carte.dataset.worthitMasked = '1';
       carte.classList.add('worthit-masked');
-      carte.title = 'Masqué par Worthit (mot-clé « ' + hit + ' »)';
+      carte.title = wt('o.masked', { mot: hit });
       if (--budget <= 0) break;
     }
     return budget;
@@ -441,8 +447,8 @@
   function showBlockScreen(hit, texte, type) {
     if (document.getElementById('worthit-search-block')) return;
     const site = type === 'site';
-    const etiquette = site ? 'Site bloqué' : 'Recherche bloquée';
-    const titre = site ? `Tu es sur ${esc(texte)}.` : `Tu cherches « ${esc(texte)} ».`;
+    const etiquette = site ? wt('b.siteLabel') : wt('b.searchLabel');
+    const titre = site ? wt('b.siteTitle', { site: esc(texte) }) : wt('b.searchTitle', { q: esc(texte) });
     const strict = strictActive();
     const host = document.createElement('div');
     host.id = 'worthit-search-host';
@@ -456,16 +462,16 @@
           </div>
           <h2 style="color:#fff;font-size:20px;font-weight:800;margin:0 0 12px;line-height:1.35;">${titre}</h2>
           <p style="color:rgba(255,255,255,.62);font-size:14px;line-height:1.6;margin:0 0 24px;">
-            Tu as toi-même bloqué <strong style="color:rgba(255,255,255,.85);">« ${esc(hit)} »</strong> un jour où tu avais les idées claires.<br/>
-            Rien n'a changé depuis, à part l'envie du moment.
+            ${wt('b.reason', { mot: esc(hit) })}<br/>
+            ${wt('b.unchanged')}
           </p>
           <div style="display:flex;flex-direction:column;gap:9px;">
-            <button id="worthit-sb-leave" style="padding:14px;border-radius:13px;border:none;cursor:pointer;background:linear-gradient(135deg,#a78bfa,#7c3aed);color:#fff;font-size:14.5px;font-weight:700;font-family:inherit;">${strict ? '← Retour' : '💪 Je fais autre chose'}</button>
+            <button id="worthit-sb-leave" style="padding:14px;border-radius:13px;border:none;cursor:pointer;background:linear-gradient(135deg,#a78bfa,#7c3aed);color:#fff;font-size:14.5px;font-weight:700;font-family:inherit;">${strict ? wt('o.back') : wt('b.leave')}</button>
             ${strict
               ? pinGateHtml('worthit-sb')
-              : `<button id="worthit-sb-stay" style="padding:12px;border-radius:13px;border:1px solid rgba(255,255,255,.18);cursor:pointer;background:transparent;color:rgba(255,255,255,.75);font-size:13px;font-family:inherit;">Voir quand même (5 min)</button>`}
+              : `<button id="worthit-sb-stay" style="padding:12px;border-radius:13px;border:1px solid rgba(255,255,255,.18);cursor:pointer;background:transparent;color:rgba(255,255,255,.75);font-size:13px;font-family:inherit;">${wt('b.stay')}</button>`}
           </div>
-          <p style="font-size:10.5px;color:rgba(255,255,255,.3);margin:18px 0 0;text-align:center;">Worthit est du côté de l'acheteur, jamais du vendeur.</p>
+          <p style="font-size:10.5px;color:rgba(255,255,255,.3);margin:18px 0 0;text-align:center;">${wt('o.footer')}</p>
         </div>
       </div>
       <style>@keyframes worthitPop{from{opacity:0;transform:scale(.6) translateY(30px);}to{opacity:1;transform:scale(1) translateY(0);}}</style>`;
@@ -595,20 +601,20 @@
       });
     });
 
-    const item = kwHit || (document.title || '').slice(0, 60) || 'cet achat';
-    const premierMsg = price > 0
-      ? `Je m'apprête à acheter « ${item} » à ${price} €. Pose-moi une question qui m'aide à décider.`
-      : `Je m'apprête à acheter « ${item} ». Pose-moi une question qui m'aide à décider.`;
+    const item = kwHit || (document.title || '').slice(0, 60) || wt('o.thisPurchase');
+    // Le message est écrit dans la langue de l'utilisateur : c'est aussi ce qui indique
+    // à Worthy dans quelle langue répondre, en plus du contexte envoyé au serveur.
+    const premierMsg = price > 0 ? wt('w.askPrice', { item, prix: price }) : wt('w.ask', { item });
 
-    const loading = bulle('bot', 'Worthy réfléchit…');
+    const loading = bulle('bot', wt('w.thinking'));
     ask(premierMsg).then((reply) => {
       history.push({ who: 'user', text: premierMsg });
       // Repli hors-ligne : si l'IA ne répond pas, Worthy garde une question honnête générique.
-      loading.textContent = reply || 'Besoin réel, ou envie du moment ? Dans une semaine, tu y penseras encore ?';
+      loading.textContent = reply || wt('w.fallback1');
       if (reply) history.push({ who: 'bot', text: reply });
       tours = 1;
       input.disabled = false;
-      input.placeholder = 'Ta réponse à Worthy…';
+      input.placeholder = wt('w.yourAnswer');
       input.focus();
     });
 
@@ -618,14 +624,14 @@
       if (!v || tours >= MAX) return;
       bulle('user', v);
       history.push({ who: 'user', text: v });
-      input.value = ''; input.disabled = true; input.placeholder = 'Worthy réfléchit…';
-      const l2 = bulle('bot', 'Worthy réfléchit…');
+      input.value = ''; input.disabled = true; input.placeholder = wt('w.thinking');
+      const l2 = bulle('bot', wt('w.thinking'));
       ask(v).then((reply) => {
-        l2.textContent = reply || 'Tu connais déjà la réponse, au fond. Prends la nuit.';
+        l2.textContent = reply || wt('w.fallback2');
         if (reply) history.push({ who: 'bot', text: reply });
         tours++;
-        if (tours < MAX) { input.disabled = false; input.placeholder = 'Ta réponse à Worthy…'; input.focus(); }
-        else { input.placeholder = 'Worthy a dit l\'essentiel.'; send.disabled = true; send.style.opacity = '.4'; send.style.cursor = 'default'; }
+        if (tours < MAX) { input.disabled = false; input.placeholder = wt('w.yourAnswer'); input.focus(); }
+        else { input.placeholder = wt('w.said'); send.disabled = true; send.style.opacity = '.4'; send.style.cursor = 'default'; }
       });
     };
     send.addEventListener('click', repondre);
@@ -633,39 +639,42 @@
   }
 
   function overlayHtml(price, kwHit, wait, strict, worthy) {
-    const priceTxt = price > 0 ? `<strong>${price.toLocaleString('fr-FR')} €</strong>` : 'cet achat';
+    // Le symbole ne se place pas au même endroit selon la langue : « 149 € » mais « €149 ».
+    const priceTxt = price > 0
+      ? `<strong>${wt('o.price', { n: price.toLocaleString(self.WorthitI18n.locale()) })}</strong>`
+      : wt('o.thisPurchase');
     const reason = kwHit
-      ? `Tu as toi-même bloqué le mot-clé <strong>« ${kwHit} »</strong> un jour où tu avais les idées claires.`
+      ? wt('o.reasonKw', { mot: esc(kwHit) })
       : (cfg.priceLimit > 0 && price >= cfg.priceLimit
-        ? `C'est au-dessus de ton seuil de <strong>${cfg.priceLimit} €</strong>.`
-        : `L'envie dure moins de 20 minutes. Le regret, lui, revient à chaque relevé de compte.`);
+        ? wt('o.reasonLimit', { seuil: cfg.priceLimit })
+        : wt('o.reasonGeneric'));
     // Premium : au lieu du texte figé, un vrai échange avec Worthy (rempli en asynchrone).
     const corps = worthy
       ? `<div id="worthit-worthy" style="margin:0 0 20px;">
            <div id="ww-thread" style="display:flex;flex-direction:column;gap:8px;max-height:210px;overflow-y:auto;margin-bottom:10px;"></div>
            <div id="ww-inputrow" style="display:flex;gap:7px;">
-             <input id="ww-input" disabled placeholder="Worthy réfléchit…" style="flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);border-radius:11px;padding:9px 11px;color:#fff;font-size:13px;font-family:inherit;outline:none;"/>
+             <input id="ww-input" disabled placeholder="${wt('w.thinking')}" style="flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);border-radius:11px;padding:9px 11px;color:#fff;font-size:13px;font-family:inherit;outline:none;"/>
              <button id="ww-send" style="padding:9px 13px;border-radius:11px;border:none;cursor:pointer;background:linear-gradient(135deg,#a78bfa,#7c3aed);color:#fff;font-size:14px;font-family:inherit;">→</button>
            </div>
          </div>`
-      : `<p style="color:rgba(255,255,255,.62);font-size:14px;line-height:1.6;margin:0 0 22px;">${reason}<br/>Question honnête : besoin réel, ou envie du moment ?</p>`;
+      : `<p style="color:rgba(255,255,255,.62);font-size:14px;line-height:1.6;margin:0 0 22px;">${reason}<br/>${wt('o.honest')}</p>`;
     return `
       <div id="worthit-overlay" style="position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(5,3,10,.82);backdrop-filter:blur(6px);font-family:'Segoe UI',system-ui,sans-serif;">
         <div style="max-width:400px;width:100%;background:linear-gradient(165deg,#1a102c,#0c0716);border:1px solid rgba(167,139,250,.35);border-radius:22px;padding:30px 26px;box-shadow:0 40px 90px rgba(0,0,0,.6),0 0 50px rgba(124,58,237,.2);animation:worthitPop .45s cubic-bezier(.34,1.56,.64,1) both;">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:18px;">
             ${LOGO_MARK}
             <span style="color:#fff;font-size:16px;font-weight:800;letter-spacing:-.02em;">worthit</span>
-            <span style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.4);">${worthy ? 'Worthy · Premium' : 'Pause anti-impulsion'}</span>
+            <span style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.4);">${worthy ? wt('o.eyebrowWorthy') : wt('o.eyebrowPause')}</span>
           </div>
-          <h2 style="color:#fff;font-size:19px;font-weight:800;margin:0 0 ${worthy ? '16' : '10'}px;line-height:1.35;">Une seconde. Tu allais dépenser ${priceTxt}.</h2>
+          <h2 style="color:#fff;font-size:19px;font-weight:800;margin:0 0 ${worthy ? '16' : '10'}px;line-height:1.35;">${wt('o.title', { prix: priceTxt })}</h2>
           ${corps}
           <div style="display:flex;flex-direction:column;gap:9px;">
-            <button id="worthit-wait" style="padding:14px;border-radius:13px;border:none;cursor:pointer;background:linear-gradient(135deg,#a78bfa,#7c3aed);color:#fff;font-size:14.5px;font-weight:700;font-family:inherit;">${strict ? '← Retour' : "💪 J'attends 24 h"}</button>
+            <button id="worthit-wait" style="padding:14px;border-radius:13px;border:none;cursor:pointer;background:linear-gradient(135deg,#a78bfa,#7c3aed);color:#fff;font-size:14.5px;font-weight:700;font-family:inherit;">${strict ? wt('o.back') : wt('o.wait24')}</button>
             ${strict
               ? pinGateHtml('worthit')
-              : `<button id="worthit-buy" ${wait > 0 ? 'disabled' : ''} style="padding:12px;border-radius:13px;border:1px solid rgba(255,255,255,.18);cursor:${wait > 0 ? 'not-allowed' : 'pointer'};background:transparent;color:rgba(255,255,255,${wait > 0 ? '.38' : '.75'});font-size:13px;font-family:inherit;transition:color .3s ease;">${wait > 0 ? `J'achète dans ${wait} s…` : "J'achète quand même"}</button>`}
+              : `<button id="worthit-buy" ${wait > 0 ? 'disabled' : ''} style="padding:12px;border-radius:13px;border:1px solid rgba(255,255,255,.18);cursor:${wait > 0 ? 'not-allowed' : 'pointer'};background:transparent;color:rgba(255,255,255,${wait > 0 ? '.38' : '.75'});font-size:13px;font-family:inherit;transition:color .3s ease;">${wait > 0 ? wt('o.buyIn', { n: wait }) : wt('o.buyAnyway')}</button>`}
           </div>
-          <p style="font-size:10.5px;color:rgba(255,255,255,.3);margin:16px 0 0;text-align:center;">Worthit est du côté de l'acheteur, jamais du vendeur.</p>
+          <p style="font-size:10.5px;color:rgba(255,255,255,.3);margin:16px 0 0;text-align:center;">${wt('o.footer')}</p>
         </div>
       </div>
       <style>@keyframes worthitPop{from{opacity:0;transform:scale(.6) translateY(30px);}to{opacity:1;transform:scale(1) translateY(0);}}</style>`;
@@ -699,7 +708,7 @@
       // Tu résistes : on note l'économie en attente (confirmée après 24 h, dédup par URL).
       recordResistance(price);
       const badge = document.createElement('div');
-      badge.textContent = '🔥 Bien joué. Ta série continue.';
+      badge.textContent = wt('o.streak');
       badge.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:2147483647;background:#1a102c;border:1px solid rgba(167,139,250,.4);color:#fff;padding:12px 18px;border-radius:999px;font-family:system-ui;font-size:13.5px;box-shadow:0 12px 30px rgba(0,0,0,.5);';
       document.documentElement.appendChild(badge);
       setTimeout(() => badge.remove(), 3500);
@@ -716,11 +725,11 @@
       timer = setInterval(() => {
         wait--;
         if (wait > 0) {
-          buyBtn.textContent = `J'achète dans ${wait} s…`;
+          buyBtn.textContent = wt('o.buyIn', { n: wait });
         } else {
           clearInterval(timer); timer = null;
           buyBtn.disabled = false;
-          buyBtn.textContent = "J'achète quand même";
+          buyBtn.textContent = wt('o.buyAnyway');
           buyBtn.style.cursor = 'pointer';
           buyBtn.style.color = 'rgba(255,255,255,.75)';
         }
@@ -807,6 +816,7 @@
   /* ---------- chargement des réglages (en dernier : toutes les fonctions sont prêtes) ---------- */
   wapi.storage.sync.get(['worthitCfg'], (r) => {
     if (r && r.worthitCfg) cfg = Object.assign(cfg, r.worthitCfg);
+    self.WorthitI18n.setLang(cfg.lang);   // la langue du compte l'emporte sur celle du navigateur
     if (checkBlockedSite()) return;
     checkBlockedSearch();
     maskProducts();
@@ -814,6 +824,7 @@
   wapi.storage.onChanged.addListener((changes) => {
     if (changes.worthitCfg && changes.worthitCfg.newValue) {
       cfg = Object.assign(cfg, changes.worthitCfg.newValue);
+      self.WorthitI18n.setLang(cfg.lang);
       if (checkBlockedSite()) return;
       checkBlockedSearch();
       maskProducts();

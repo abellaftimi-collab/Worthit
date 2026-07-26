@@ -40,68 +40,71 @@
 </style>
 </head>
 <body>
+  <!-- Les libellés sont remplis par popup.js depuis i18n.js : data-i18n = texte,
+       data-i18n-ph = placeholder. Le HTML ne porte plus aucune phrase en dur. -->
   <h1><span class="dot"></span>worthit</h1>
-  <p class="sub">Du côté de l'acheteur, jamais du vendeur.</p>
+  <p class="sub" data-i18n="p.sub"></p>
 
   <div class="row">
-    <label class="lbl" for="enabled">Protection active</label>
+    <label class="lbl" for="enabled" data-i18n="p.enabled"></label>
     <span class="switch"><input type="checkbox" id="enabled" checked><span class="slider"></span></span>
   </div>
   <div class="row">
-    <label class="lbl" for="pauseAll">Pause sur tous les achats</label>
+    <label class="lbl" for="pauseAll" data-i18n="p.pauseAll"></label>
     <span class="switch"><input type="checkbox" id="pauseAll" checked><span class="slider"></span></span>
   </div>
   <div class="row">
-    <label class="lbl" for="hideResults">Masquer les produits bloqués</label>
+    <label class="lbl" for="hideResults" data-i18n="p.hideResults"></label>
     <span class="switch"><input type="checkbox" id="hideResults" checked><span class="slider"></span></span>
   </div>
   <div class="row">
-    <label class="lbl" for="blockSearch">Bloquer la recherche entière</label>
+    <label class="lbl" for="blockSearch" data-i18n="p.blockSearch"></label>
     <span class="switch"><input type="checkbox" id="blockSearch" checked><span class="slider"></span></span>
   </div>
   <div class="row">
-    <label class="lbl" for="blockSites">Bloquer le site entier<br><small style="opacity:.55;">nike.com si « nike » est bloqué</small></label>
+    <label class="lbl" for="blockSites"><span data-i18n="p.blockSites"></span><br><small style="opacity:.55;" data-i18n="p.blockSitesHint"></small></label>
     <span class="switch"><input type="checkbox" id="blockSites" checked><span class="slider"></span></span>
   </div>
 
-  <p class="h">Mots-clés bloqués</p>
+  <p class="h" data-i18n="p.keywords"></p>
   <div class="chips" id="chips"></div>
   <div class="add-row">
-    <input type="text" id="kw" placeholder="Ex : sneakers, gaming…">
-    <button class="btn" id="add">Bloquer</button>
+    <input type="text" id="kw" data-i18n-ph="p.kwPh">
+    <button class="btn" id="add" data-i18n="p.block"></button>
   </div>
 
-  <p class="h">Seuil de prix</p>
+  <p class="h" data-i18n="p.priceTitle"></p>
   <div class="price-row">
-    <span>Pause imposée au-delà de</span>
+    <span data-i18n="p.pauseAbove"></span>
     <input type="number" id="priceLimit" min="0" placeholder="0">
     <span>€</span>
   </div>
 
-  <p class="h">Minuteur avant achat</p>
+  <p class="h" data-i18n="p.timerTitle"></p>
   <div class="price-row">
-    <span>Attendre</span>
+    <span data-i18n="p.wait"></span>
     <input type="number" id="pauseSeconds" min="0" max="600" placeholder="60">
-    <span>sec.</span>
+    <span data-i18n="p.sec"></span>
   </div>
 
   <div class="card">
     <div class="card-head">
       <span class="lock"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1a1206" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
-      <span class="t">Mode strict — code PIN</span>
+      <span class="t" data-i18n="p.strictTitle"></span>
     </div>
     <div class="row">
-      <label class="lbl" for="strictMode">Exiger un code pour passer un blocage</label>
+      <label class="lbl" for="strictMode" data-i18n="p.strictToggle"></label>
       <span class="switch"><input type="checkbox" id="strictMode"><span class="slider"></span></span>
     </div>
     <div class="pin-row">
-      <label for="pin">Code</label>
+      <label for="pin" data-i18n="p.code"></label>
       <input type="password" id="pin" inputmode="numeric" autocomplete="off" placeholder="••••">
     </div>
-    <p class="foot">Sans code, le mode strict reste inactif. Le pop-up n'offrira alors que « Retour » ou le bon code. Friction volontaire — une extension reste désinstallable.</p>
+    <p class="foot" data-i18n="p.strictFoot"></p>
   </div>
 
-  <p class="foot">Astuce : 0 = pas de seuil / pas de minuteur. Ouvre ton dashboard Worthit pour synchroniser tes réglages automatiquement. <a href="https://worthit-bi9e.onrender.com" target="_blank">Worthit</a></p>
+  <p class="foot"><span data-i18n="p.tip"></span> <a href="https://worthit-bi9e.onrender.com" target="_blank">Worthit</a></p>
+  <script src="i18n.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

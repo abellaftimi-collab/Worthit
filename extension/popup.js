@@ -3,9 +3,19 @@
 const wapi = (typeof browser !== 'undefined' && browser.runtime) ? browser : chrome;
 
 /* Worthit — popup de réglages (wapi.storage.sync) */
-let cfg = { enabled: true, pauseAll: true, hideResults: true, blockSearch: true, blockSites: true, pauseSeconds: 60, strictMode: false, pin: '', keywords: [], priceLimit: 0 };
+let cfg = { enabled: true, pauseAll: true, hideResults: true, blockSearch: true, blockSites: true, pauseSeconds: 60, strictMode: false, pin: '', keywords: [], priceLimit: 0, lang: '' };
 
 const $ = (id) => document.getElementById(id);
+const wt = (cle, vars) => self.WorthitI18n.t(cle, vars);
+
+/* Remplit tous les libellés marqués data-i18n / data-i18n-ph. Appelé une première fois
+ * avec la langue du navigateur, puis à nouveau quand la langue du compte est connue. */
+function appliquerTraductions() {
+  document.documentElement.lang = self.WorthitI18n.lang;
+  document.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = wt(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-ph]').forEach((el) => { el.placeholder = wt(el.dataset.i18nPh); });
+}
+appliquerTraductions();
 
 function save() {
   wapi.storage.sync.set({ worthitCfg: cfg });
@@ -14,7 +24,10 @@ function renderChips() {
   const box = $('chips');
   box.innerHTML = '';
   if (!cfg.keywords.length) {
-    box.innerHTML = '<span style="font-size:11px;color:rgba(255,255,255,.35);">Aucun mot-clé pour l\'instant.</span>';
+    const vide = document.createElement('span');
+    vide.style.cssText = 'font-size:11px;color:rgba(255,255,255,.35);';
+    vide.textContent = wt('p.noKeyword');
+    box.appendChild(vide);
     return;
   }
   cfg.keywords.forEach((k) => {
@@ -23,7 +36,7 @@ function renderChips() {
     chip.textContent = k + ' ';
     const x = document.createElement('button');
     x.textContent = '✕';
-    x.title = 'Retirer';
+    x.title = wt('p.remove');
     x.addEventListener('click', () => {
       cfg.keywords = cfg.keywords.filter((w) => w !== k);
       save(); renderChips();
@@ -35,6 +48,9 @@ function renderChips() {
 
 wapi.storage.sync.get(['worthitCfg'], (r) => {
   if (r && r.worthitCfg) cfg = Object.assign(cfg, r.worthitCfg);
+  // La langue choisie dans le compte l'emporte sur celle du navigateur.
+  self.WorthitI18n.setLang(cfg.lang);
+  appliquerTraductions();
   $('enabled').checked = cfg.enabled;
   $('pauseAll').checked = cfg.pauseAll;
   $('hideResults').checked = cfg.hideResults !== false;

@@ -110,10 +110,15 @@
       const nextLang = (typeof d.lang === 'string') ? d.lang : cfg.lang;
       const nextCtx = (d.ctx && typeof d.ctx === 'object') ? d.ctx : cfg.ctx;
       const nextPa = (d.premiumAuth === undefined) ? cfg.premiumAuth : d.premiumAuth;
+      // Mode strict (parental) piloté depuis l'appli. Les champs ne sont présents QUE si
+      // l'utilisateur y a touché là-bas : sinon un réglage fait ici serait écrasé.
+      const nextStrict = (d.strictMode === undefined) ? cfg.strictMode : !!d.strictMode;
+      const nextPin = (d.pin === undefined) ? cfg.pin : String(d.pin || '').replace(/\s/g, '').slice(0, 12);
       const change = JSON.stringify(nextKeywords) !== JSON.stringify(cfg.keywords) || nextLimit !== cfg.priceLimit
         || nextPause !== cfg.pauseSeconds || nextPremium !== cfg.premium || nextApiBase !== cfg.apiBase
         || nextLang !== cfg.lang || JSON.stringify(nextCtx) !== JSON.stringify(cfg.ctx)
-        || JSON.stringify(nextPa) !== JSON.stringify(cfg.premiumAuth);
+        || JSON.stringify(nextPa) !== JSON.stringify(cfg.premiumAuth)
+        || nextStrict !== cfg.strictMode || nextPin !== cfg.pin;
       if (change) {
         cfg.keywords = nextKeywords;
         cfg.priceLimit = nextLimit;
@@ -124,8 +129,26 @@
         self.WorthitI18n.setLang(nextLang);
         cfg.ctx = nextCtx;
         cfg.premiumAuth = nextPa;
+        cfg.strictMode = nextStrict;
+        cfg.pin = nextPin;
         wapi.storage.sync.set({ worthitCfg: cfg });
       }
+      publierEtatVersSite();
+    } catch (e) {}
+  }
+
+  /* Retour d'information vers l'appli : elle doit pouvoir afficher l'état réel même quand
+   * le mode strict a été réglé depuis le popup. On ne renvoie JAMAIS le code lui-même,
+   * seulement le fait qu'il en existe un — le site n'a aucune raison de le connaître. */
+  function publierEtatVersSite() {
+    if (!isWorthitApp()) return;
+    try {
+      localStorage.setItem('worthit_ext_state', JSON.stringify({
+        installee: true,
+        strictMode: !!cfg.strictMode,
+        hasPin: !!(cfg.pin && String(cfg.pin).length),
+        ts: Date.now(),
+      }));
     } catch (e) {}
   }
   setTimeout(syncFromSite, 1200);
@@ -817,6 +840,7 @@
   wapi.storage.sync.get(['worthitCfg'], (r) => {
     if (r && r.worthitCfg) cfg = Object.assign(cfg, r.worthitCfg);
     self.WorthitI18n.setLang(cfg.lang);   // la langue du compte l'emporte sur celle du navigateur
+    publierEtatVersSite();                // l'appli affiche l'état réel du mode strict
     if (checkBlockedSite()) return;
     checkBlockedSearch();
     maskProducts();

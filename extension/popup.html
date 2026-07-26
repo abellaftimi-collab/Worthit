@@ -8,7 +8,7 @@
   h1 .dot{width:9px;height:9px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#7c3aed);box-shadow:0 0 10px rgba(167,139,250,.8);}
   .sub{font-size:11px;color:rgba(255,255,255,.45);margin:0 0 16px;}
   .row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;font-size:13px;}
-  .switch{position:relative;width:38px;height:21px;flex-shrink:0;}
+  .switch{position:relative;width:38px;height:21px;flex-shrink:0;cursor:pointer;display:inline-block;}
   .switch input{opacity:0;width:0;height:0;}
   .slider{position:absolute;inset:0;border-radius:99px;background:rgba(255,255,255,.15);transition:.25s;cursor:pointer;}
   .slider:before{content:"";position:absolute;left:3px;top:3px;width:15px;height:15px;border-radius:50%;background:#fff;transition:.25s;}
@@ -47,23 +47,23 @@
 
   <div class="row">
     <label class="lbl" for="enabled" data-i18n="p.enabled"></label>
-    <span class="switch"><input type="checkbox" id="enabled" checked><span class="slider"></span></span>
+    <label class="switch" for="enabled"><input type="checkbox" id="enabled" checked><span class="slider"></span></label>
   </div>
   <div class="row">
     <label class="lbl" for="pauseAll" data-i18n="p.pauseAll"></label>
-    <span class="switch"><input type="checkbox" id="pauseAll" checked><span class="slider"></span></span>
+    <label class="switch" for="pauseAll"><input type="checkbox" id="pauseAll" checked><span class="slider"></span></label>
   </div>
   <div class="row">
     <label class="lbl" for="hideResults" data-i18n="p.hideResults"></label>
-    <span class="switch"><input type="checkbox" id="hideResults" checked><span class="slider"></span></span>
+    <label class="switch" for="hideResults"><input type="checkbox" id="hideResults" checked><span class="slider"></span></label>
   </div>
   <div class="row">
     <label class="lbl" for="blockSearch" data-i18n="p.blockSearch"></label>
-    <span class="switch"><input type="checkbox" id="blockSearch" checked><span class="slider"></span></span>
+    <label class="switch" for="blockSearch"><input type="checkbox" id="blockSearch" checked><span class="slider"></span></label>
   </div>
   <div class="row">
     <label class="lbl" for="blockSites"><span data-i18n="p.blockSites"></span><br><small style="opacity:.55;" data-i18n="p.blockSitesHint"></small></label>
-    <span class="switch"><input type="checkbox" id="blockSites" checked><span class="slider"></span></span>
+    <label class="switch" for="blockSites"><input type="checkbox" id="blockSites" checked><span class="slider"></span></label>
   </div>
 
   <p class="h" data-i18n="p.keywords"></p>
@@ -94,7 +94,7 @@
     </div>
     <div class="row">
       <label class="lbl" for="strictMode" data-i18n="p.strictToggle"></label>
-      <span class="switch"><input type="checkbox" id="strictMode"><span class="slider"></span></span>
+      <label class="switch" for="strictMode"><input type="checkbox" id="strictMode"><span class="slider"></span></label>
     </div>
     <div class="pin-row">
       <label for="pin" data-i18n="p.code"></label>

@@ -320,10 +320,64 @@
       card.dataset.worthitMasked = '1';
       card.classList.add('worthit-masked');
       card.title = 'Masqué par Worthit (mot-clé « ' + hit + ' »)';
-      // Budget épuisé : on rend la main pour ne pas figer la page, et on reprend juste
-      // après — sinon le reste de la grille resterait en clair jusqu'au prochain événement.
-      if (--budget <= 0) { setTimeout(maskProducts, 250); return; }
+      if (--budget <= 0) break;
     }
+
+    if (budget > 0) budget = masquerFichesSansLien(kws, budget);
+    // Budget épuisé : on rend la main pour ne pas figer la page, et on reprend juste
+    // après — sinon le reste de la grille resterait en clair jusqu'au prochain événement.
+    if (budget <= 0) setTimeout(maskProducts, 250);
+  }
+
+  /* Un prix : la signature d'une fiche produit. Sert de garde-fou à la passe ci-dessous,
+   * pour ne pas flouter un paragraphe qui mentionne simplement la marque.
+   * « eur » n'est reconnu qu'entouré de frontières de mot, sinon « 3 meilleurs » passerait. */
+  const PRIX = /(?:\d[\d\s.,]*\s?[€£$])|(?:[€£$]\s?\d)|(?:\d[\d\s.,]*\s?\b(?:eur|euros?|usd|gbp)\b)/i;
+  const PRIX_TOUS = new RegExp(PRIX.source, 'gi');
+  // Conteneurs de page : jamais une fiche produit, quoi qu'ils contiennent.
+  const BALISES_PAGE = /^(?:BODY|HTML|MAIN|NAV|HEADER|FOOTER|ASIDE|FORM)$/;
+
+  /* Deuxième passe : les fiches qui ne sont PAS des liens.
+   * Google Shopping construit ses vignettes en <div> rendus cliquables par JavaScript —
+   * aucun <a> dans toute la chaîne, donc la passe précédente ne les voyait même pas.
+   * On part du texte qui porte le mot-clé et on remonte jusqu'au premier bloc qui contient
+   * AUSSI un prix : c'est la fiche, et c'est ce qui évite de flouter n'importe quel texte. */
+  function masquerFichesSansLien(kws, budget) {
+    const marcheur = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
+    let noeud, vus = 0;
+    while ((noeud = marcheur.nextNode())) {
+      if (vus++ > 4000) break;
+      const texte = (noeud.data || '').toLowerCase();
+      if (texte.length < 3) continue;
+      const hit = kws.find((k) => texte.includes(k));
+      if (!hit) continue;
+      let el = noeud.parentElement;
+      if (!el) continue;
+      if (el.closest('a')) continue;                  // déjà couvert par la passe des liens
+      if (el.closest('.worthit-masked')) continue;    // déjà sous un flou
+      let carte = null;
+      for (let i = 0; i < 6 && el; i++) {
+        if (BALISES_PAGE.test(el.tagName)) break;     // on ne remonte pas jusqu'à la page
+        if (tropGrand(el)) break;                     // ni jusqu'à un bloc plein écran
+        const t = (el.textContent || '').trim();
+        if (t.length > 600) break;                    // un article, pas une fiche
+        const prix = t.match(PRIX_TOUS);
+        if (prix) {
+          // Plusieurs prix = une LISTE de produits, pas une fiche : on n'a pas trouvé de
+          // fiche isolée, mieux vaut ne rien flouter que de flouter tout un bloc.
+          // (Une fiche en promo affiche légitimement 2 ou 3 montants.)
+          if (prix.length <= 3) carte = el;
+          break;
+        }
+        el = el.parentElement;
+      }
+      if (!carte || carte.classList.contains('worthit-masked')) continue;
+      carte.dataset.worthitMasked = '1';
+      carte.classList.add('worthit-masked');
+      carte.title = 'Masqué par Worthit (mot-clé « ' + hit + ' »)';
+      if (--budget <= 0) break;
+    }
+    return budget;
   }
   /* Débounce AVEC plafond. Une page marchande mute en permanence (carrousels, images
    * différées, pubs) : un clearTimeout à chaque mutation repoussait le passage suivant

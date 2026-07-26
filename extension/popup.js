@@ -3,7 +3,7 @@
 const wapi = (typeof browser !== 'undefined' && browser.runtime) ? browser : chrome;
 
 /* Worthit — popup de réglages (wapi.storage.sync) */
-let cfg = { enabled: true, pauseAll: true, hideResults: true, blockSearch: true, pauseSeconds: 60, strictMode: false, pin: '', keywords: [], priceLimit: 0 };
+let cfg = { enabled: true, pauseAll: true, hideResults: true, blockSearch: true, blockSites: true, pauseSeconds: 60, strictMode: false, pin: '', keywords: [], priceLimit: 0 };
 
 const $ = (id) => document.getElementById(id);
 
@@ -39,6 +39,7 @@ wapi.storage.sync.get(['worthitCfg'], (r) => {
   $('pauseAll').checked = cfg.pauseAll;
   $('hideResults').checked = cfg.hideResults !== false;
   $('blockSearch').checked = cfg.blockSearch !== false;
+  $('blockSites').checked = cfg.blockSites !== false;
   $('priceLimit').value = cfg.priceLimit || '';
   $('pauseSeconds').value = (cfg.pauseSeconds === undefined) ? 60 : cfg.pauseSeconds;
   $('strictMode').checked = !!cfg.strictMode;
@@ -50,6 +51,7 @@ $('enabled').addEventListener('change', (e) => { cfg.enabled = e.target.checked;
 $('pauseAll').addEventListener('change', (e) => { cfg.pauseAll = e.target.checked; save(); });
 $('hideResults').addEventListener('change', (e) => { cfg.hideResults = e.target.checked; save(); });
 $('blockSearch').addEventListener('change', (e) => { cfg.blockSearch = e.target.checked; save(); });
+$('blockSites').addEventListener('change', (e) => { cfg.blockSites = e.target.checked; save(); });
 $('priceLimit').addEventListener('change', (e) => { cfg.priceLimit = Math.max(0, +e.target.value || 0); save(); });
 $('pauseSeconds').addEventListener('change', (e) => { cfg.pauseSeconds = Math.min(600, Math.max(0, +e.target.value || 0)); save(); });
 $('strictMode').addEventListener('change', (e) => { cfg.strictMode = e.target.checked; save(); });

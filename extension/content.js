@@ -50,7 +50,7 @@
    * Arriver directement sur ces pages doit aussi déclencher la pause. */
   const CHECKOUT_PATHS = /(^|\/)(checkout|check-out|panier|cart|basket|warenkorb|winkelwagen|carrito|cesta|commande|order(s)?\/?(new|create)?|bestellung|pedido|paiement|payment|pay|kasse|afrekenen|finalizar-compra|passer-commande)(\/|$|\?)/i;
 
-  let cfg = { enabled: true, pauseAll: true, hideResults: true, blockSearch: true, pauseSeconds: 60, strictMode: false, pin: '', premium: false, apiBase: '', lang: 'fr', ctx: null, premiumAuth: null, keywords: [], priceLimit: 0 };
+  let cfg = { enabled: true, pauseAll: true, hideResults: true, blockSearch: true, blockSites: true, pauseSeconds: 60, strictMode: false, pin: '', premium: false, apiBase: '', lang: 'fr', ctx: null, premiumAuth: null, keywords: [], priceLimit: 0 };
 
   /* Mode strict : le seul moyen de passer un blocage est le code PIN fixé à l'avance.
    * (Friction volontaire, pas un coffre-fort : une extension reste désinstallable.) */
@@ -252,13 +252,21 @@
   function carteDe(a) {
     let card = a.closest(SEL_CARTE) || a;
     for (let i = 0; i < 4 && card.parentElement; i++) {
-      if ((card.textContent || '').trim().length >= 12) break;   // porte déjà nom + prix
       const parent = card.parentElement;
-      if (tropGrand(parent)) break;                              // on ne floute pas la page
-      // Garde-fou décisif : dès que le parent rassemble PLUSIEURS fiches, c'est la grille.
-      // Sans lui, une fiche au titre pas encore chargé faisait remonter jusqu'à la grille
-      // et un seul mot-clé floutait tous les produits de la page.
-      if (parent.querySelectorAll(SEL_CARTE).length > 1) break;
+      if (tropGrand(parent)) break;                              // on ne floute jamais la page
+      if ((parent.textContent || '').trim().length > 600) break; // un article, pas une fiche
+      // Critère d'arrêt : le parent rassemble-t-il PLUSIEURS entrées distinctes ?
+      // On regarde vers quoi pointent ses enfants directs. Une grille de produits ou une
+      // liste de résultats mène vers des cibles différentes → on s'arrête à l'entrée
+      // courante. Une fiche, elle, a beau contenir deux liens (image + titre), ils mènent
+      // au MÊME produit → on peut continuer à remonter jusqu'à elle.
+      // (Tolérance à 2 : une fiche porte parfois un lien de variante en plus.)
+      const cibles = new Set();
+      for (const enfant of parent.children) {
+        const lien = enfant.matches('a[href]') ? enfant : enfant.querySelector('a[href]');
+        if (lien) cibles.add(lien.getAttribute('href'));
+      }
+      if (cibles.size > 2) break;
       card = parent;
     }
     return card;
@@ -272,11 +280,21 @@
     // budget recalculé à chaque passage : le masquage ne s'épuise plus définitivement
     let budget = MASK_LIMIT - document.querySelectorAll('.worthit-masked').length;
     if (budget <= 0) return;
+    // Sur le site bloqué lui-même, TOUS les liens pointent vers le domaine : inclure l'URL
+    // floutrait jusqu'au menu et au pied de page. Ailleurs (Google, Amazon…), l'URL est
+    // justement l'information la plus fiable — le lien « Chaussures » ne dit pas « nike »
+    // mais pointe vers nike.com.
+    const surLeDomaine = kws.some((k) => domaineCourant().includes(k));
     const links = document.querySelectorAll('a');
     let checked = 0;
     for (const a of links) {
       if (checked++ > 1500) break;                 // garde-fou anti-emballement
-      const t = linkText(a);
+      let t = linkText(a);
+      if (!surLeDomaine) {
+        // a.href résout les liens relatifs en URL absolue : exactement ce qu'on veut comparer.
+        const url = (a.href || '').toLowerCase();
+        if (url && !url.startsWith('javascript:')) t = t ? t + ' ' + url : url;
+      }
       if (!t) continue;
       // Signature du libellé plutôt qu'un drapeau « déjà vu » définitif : sur un site qui
       // remplit ses titres après coup (React, chargement différé), un lien inspecté trop tôt
@@ -308,6 +326,7 @@
     const attente = (maintenant - premiereMutation > 1500) ? 0 : 400;
     maskTimer = setTimeout(() => {
       premiereMutation = 0;
+      if (checkBlockedSite()) return;
       checkBlockedSearch();
       maskProducts();
     }, attente);
@@ -353,8 +372,13 @@
     try { return Date.now() < (+sessionStorage.getItem(searchAllowKey) || 0); } catch (e) { return false; }
   }
 
-  function showSearchBlock(hit, query) {
+  /* Écran de pause plein écran. Deux usages : une RECHERCHE qui contient un mot-clé,
+   * et un SITE entier dont le nom de domaine contient un mot-clé (nike.com → « nike »). */
+  function showBlockScreen(hit, texte, type) {
     if (document.getElementById('worthit-search-block')) return;
+    const site = type === 'site';
+    const etiquette = site ? 'Site bloqué' : 'Recherche bloquée';
+    const titre = site ? `Tu es sur ${esc(texte)}.` : `Tu cherches « ${esc(texte)} ».`;
     const strict = strictActive();
     const host = document.createElement('div');
     host.id = 'worthit-search-host';
@@ -364,9 +388,9 @@
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;">
             ${LOGO_MARK}
             <span style="color:#fff;font-size:16px;font-weight:800;letter-spacing:-.02em;">worthit</span>
-            <span style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.4);">Recherche bloquée</span>
+            <span style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.4);">${etiquette}</span>
           </div>
-          <h2 style="color:#fff;font-size:20px;font-weight:800;margin:0 0 12px;line-height:1.35;">Tu cherches « ${esc(query)} ».</h2>
+          <h2 style="color:#fff;font-size:20px;font-weight:800;margin:0 0 12px;line-height:1.35;">${titre}</h2>
           <p style="color:rgba(255,255,255,.62);font-size:14px;line-height:1.6;margin:0 0 24px;">
             Tu as toi-même bloqué <strong style="color:rgba(255,255,255,.85);">« ${esc(hit)} »</strong> un jour où tu avais les idées claires.<br/>
             Rien n'a changé depuis, à part l'envie du moment.
@@ -414,7 +438,34 @@
     const q = currentSearchQuery().toLowerCase();
     if (!q) return;
     const hit = (cfg.keywords || []).find((k) => k && q.includes(String(k).toLowerCase()));
-    if (hit) showSearchBlock(hit, currentSearchQuery());
+    if (hit) showBlockScreen(hit, currentSearchQuery(), 'search');
+  }
+
+  /* ---------- 2 ter) Blocage du site entier ----------
+   * Flouter les produits un par un ne tient pas sur une vraie boutique : le nom du
+   * produit n'est pas toujours dans le texte du lien, la grille se recharge sans arrêt,
+   * et il reste toujours une image qui passe. Si le nom de domaine contient un mot-clé
+   * bloqué (nike.com → « nike »), on arrête tout à l'entrée. */
+  function domaineCourant() {
+    return String(location.hostname || '').toLowerCase().replace(/^www\./, '');
+  }
+  function motCleDuDomaine() {
+    if (!cfg.enabled || cfg.blockSites === false) return null;
+    const h = domaineCourant();
+    if (!h || isWorthitApp()) return null;
+    // Trois lettres minimum pour bloquer un domaine : un mot-clé de deux lettres (« tv »,
+    // une faute de frappe) se retrouve dans une bonne partie du web et bloquerait tout.
+    return (cfg.keywords || []).find((k) => {
+      const mot = String(k || '').toLowerCase().trim();
+      return mot.length >= 3 && h.includes(mot);
+    }) || null;
+  }
+  function checkBlockedSite() {
+    if (searchAllowedNow()) return false;         // échappatoire 5 min déjà accordée
+    const hit = motCleDuDomaine();
+    if (!hit) return false;
+    showBlockScreen(hit, domaineCourant(), 'site');
+    return true;
   }
 
   // Google & co changent l'URL sans recharger la page : on surveille aussi les changements d'URL.
@@ -422,6 +473,7 @@
   setInterval(() => {
     if (location.href !== lastUrl) {
       lastUrl = location.href;
+      checkBlockedSite();
       checkBlockedSearch();
       // Les boutiques en SPA changent d'URL sans recharger : on revérifie aussi le panier/paiement.
       if (typeof checkPageAchat === 'function') setTimeout(checkPageAchat, 900);
@@ -691,12 +743,14 @@
   /* ---------- chargement des réglages (en dernier : toutes les fonctions sont prêtes) ---------- */
   wapi.storage.sync.get(['worthitCfg'], (r) => {
     if (r && r.worthitCfg) cfg = Object.assign(cfg, r.worthitCfg);
+    if (checkBlockedSite()) return;
     checkBlockedSearch();
     maskProducts();
   });
   wapi.storage.onChanged.addListener((changes) => {
     if (changes.worthitCfg && changes.worthitCfg.newValue) {
       cfg = Object.assign(cfg, changes.worthitCfg.newValue);
+      if (checkBlockedSite()) return;
       checkBlockedSearch();
       maskProducts();
     }

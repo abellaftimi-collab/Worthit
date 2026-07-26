@@ -89,6 +89,28 @@ Rien à configurer dans le dashboard Stripe : la résiliation passe par l'API, p
 client. `GET /api/subscription` renvoie l'état réel (statut, date de fin, résiliation programmée)
 et n'est appelé qu'à l'ouverture de l'onglet Compte.
 
+## Mise en veille de Render (plan gratuit)
+
+Sur le plan gratuit, l'instance s'endort après ~15 min sans trafic. Le visiteur suivant attend
+alors une bonne minute devant **l'écran de chargement de Render** — sa marque, pas la nôtre.
+C'est la pire première impression possible, et elle touche tout le monde, y compris quelqu'un
+qui arrive par un lien de parrainage.
+
+Trois façons d'y répondre, de la plus fiable à la moins :
+
+1. **Plan payant Render** (Starter, ~7 $/mois) — plus aucune mise en veille. Le seul vrai remède.
+2. **Un pinger externe** (cron-job.org, UptimeRobot — gratuits) qui appelle `/healthz` toutes
+   les 5 à 10 minutes. Fiable, mais à configurer une fois à la main.
+3. **`.github/workflows/keep-awake.yml`** (déjà en place, rien à faire) : même ping toutes les
+   10 minutes depuis GitHub Actions. Gratuit et illimité tant que le dépôt est public, mais
+   GitHub retarde souvent les workflows planifiés, et **désactive les planifications après
+   60 jours sans commit**. Réduit fortement les réveils à froid sans les supprimer.
+
+Garder un service éveillé 24/7 consomme ~730 des 750 heures d'instance offertes chaque mois :
+ça passe pour **un** service gratuit, pas deux.
+
+`/healthz` renvoie trois octets exprès — pinger `/` enverrait les 400 Ko de la page à chaque fois.
+
 ## Règles de sécurité (importantes)
 
 - Les clés ne vont **que** dans `.env`, jamais dans le code, jamais côté front, jamais dans Git.

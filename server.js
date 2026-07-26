@@ -182,6 +182,15 @@ app.use((req, res, next) => {
   next();
 });
 
+/* Sonde de vie, volontairement minuscule. Sert à garder l'instance Render éveillée :
+ * sur le plan gratuit, elle s'endort après ~15 min sans trafic et le visiteur suivant
+ * attend une bonne minute devant l'écran de chargement de Render — pas devant Worthit.
+ * Pinger « / » renverrait les 400 Ko de la page à chaque fois ; ici c'est quelques octets. */
+app.get('/healthz', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.type('text/plain').send('ok');
+});
+
 app.use(express.json({ limit: '256kb' }));
 
 /* Supabase servi par nous plutôt que par un CDN tiers : un CDN compromis pourrait exécuter

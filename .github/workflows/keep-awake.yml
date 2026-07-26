@@ -1,0 +1,37 @@
+name: Garder le service éveillé
+
+# Sur le plan gratuit de Render, l'instance s'endort après ~15 min sans trafic. Le visiteur
+# suivant attend alors une bonne minute devant l'écran de chargement de Render — sa marque,
+# pas la nôtre. Ce ping régulier évite la mise en veille.
+#
+# Limites à connaître :
+#  - GitHub retarde souvent les workflows planifiés (parfois de 15 min et plus) : ce filet
+#    réduit fortement les réveils à froid, il ne les supprime pas.
+#  - GitHub désactive les planifications après 60 jours SANS aucun commit sur le dépôt.
+#  - Render offre 750 heures d'instance par mois : de quoi tenir UN service éveillé en
+#    permanence (~730 h), pas deux.
+# Le vrai remède reste le plan payant Render (pas de mise en veille du tout).
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch: {}
+
+# Un seul ping à la fois : si un run traîne, le suivant ne s'empile pas dessus.
+concurrency:
+  group: keep-awake
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Réveiller worthit-bi9e.onrender.com
+        run: |
+          # --max-time large : un réveil à froid peut prendre près d'une minute.
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 90 "${APP_URL}/healthz")
+          echo "HTTP $code"
+          test "$code" = "200"
+        env:
+          APP_URL: https://worthit-bi9e.onrender.com

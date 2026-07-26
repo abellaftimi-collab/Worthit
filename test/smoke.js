@@ -117,6 +117,16 @@ test('Supabase est servi par nous, pas par un CDN tiers', async () => {
   assert.doesNotMatch(html, /<script src="https?:\/\//, 'aucun script tiers ne doit être chargé');
 });
 
+test('la sonde de vie répond, et reste minuscule', async () => {
+  // Elle est appelée toutes les 10 min pour empêcher la mise en veille de Render :
+  // si elle se mettait à renvoyer la page entière, ce serait 400 Ko à chaque ping.
+  const r = await fetch(BASE + '/healthz');
+  assert.strictEqual(r.status, 200);
+  const corps = await r.text();
+  assert.strictEqual(corps, 'ok');
+  assert.ok(corps.length < 50, 'la sonde doit rester légère');
+});
+
 test('une route d\'API inconnue répond en JSON, pas en HTML', async () => {
   const r = await fetch(BASE + '/api/route-qui-nexiste-pas');
   assert.strictEqual(r.status, 404);

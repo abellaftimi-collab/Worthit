@@ -59,9 +59,34 @@ wapi.storage.sync.get(['worthitCfg'], (r) => {
   $('priceLimit').value = cfg.priceLimit || '';
   $('pauseSeconds').value = (cfg.pauseSeconds === undefined) ? 60 : cfg.pauseSeconds;
   $('strictMode').checked = !!cfg.strictMode;
-  $('pin').value = cfg.pin || '';
+  // Le code n'est JAMAIS pré-rempli : un champ mot de passe rempli se lit en deux clics
+  // dans les outils de développement, et se réécrit sans connaître l'ancien.
+  $('pin').value = '';
+  majStrictUI();
   renderChips();
 });
+
+/* Le mode strict est « verrouillé » dès qu'il protège vraiment quelque chose : actif ET
+ * doté d'un code. Dans cet état, l'affaiblir (le couper, changer ou retirer le code)
+ * exige le code actuel — sinon il suffisait de décocher la case pour tout lever. */
+function verrouille() { return !!(cfg.strictMode && cfg.pin); }
+function majStrictUI() {
+  $('currentPinRow').hidden = !verrouille();
+  if (!verrouille()) $('currentPin').value = '';
+}
+function erreurStrict(cle, succes) {
+  const el = $('strictErr');
+  el.textContent = cle ? wt(cle) : '';
+  el.style.color = succes ? '#86efac' : '#f87171';   // confirmation en vert, refus en rouge
+}
+/* Vérifie le code actuel quand il le faut. Renvoie true si l'action peut se poursuivre. */
+function codeActuelValide() {
+  if (!verrouille()) return true;
+  const saisi = ($('currentPin').value || '').trim();
+  if (!saisi) { erreurStrict('p.needCurrent'); return false; }
+  if (saisi !== String(cfg.pin)) { erreurStrict('p.wrongCurrent'); $('currentPin').value = ''; return false; }
+  return true;
+}
 
 $('enabled').addEventListener('change', (e) => { cfg.enabled = e.target.checked; save(); });
 $('pauseAll').addEventListener('change', (e) => { cfg.pauseAll = e.target.checked; save(); });
@@ -70,8 +95,37 @@ $('blockSearch').addEventListener('change', (e) => { cfg.blockSearch = e.target.
 $('blockSites').addEventListener('change', (e) => { cfg.blockSites = e.target.checked; save(); });
 $('priceLimit').addEventListener('change', (e) => { cfg.priceLimit = Math.max(0, +e.target.value || 0); save(); });
 $('pauseSeconds').addEventListener('change', (e) => { cfg.pauseSeconds = Math.min(600, Math.max(0, +e.target.value || 0)); save(); });
-$('strictMode').addEventListener('change', (e) => { cfg.strictMode = e.target.checked; save(); });
-$('pin').addEventListener('change', (e) => { cfg.pin = (e.target.value || '').replace(/\s/g, '').slice(0, 12); save(); });
+$('strictMode').addEventListener('change', (e) => {
+  erreurStrict('');
+  if (e.target.checked) {
+    // Activer ne retire aucune protection : rien à demander. Mais sans code, le mode
+    // strict ne protégerait rien — on refuse, comme le fait déjà l'appli.
+    if (!cfg.pin) { e.target.checked = false; erreurStrict('p.needCodeFirst'); return; }
+    cfg.strictMode = true; save(); majStrictUI(); return;
+  }
+  // Désactiver, en revanche, lève la protection : le code actuel est exigé.
+  if (!codeActuelValide()) { e.target.checked = true; return; }
+  cfg.strictMode = false;
+  $('currentPin').value = '';
+  save(); majStrictUI();
+});
+
+$('pinSave').addEventListener('click', () => {
+  erreurStrict('');
+  if (!codeActuelValide()) return;                 // changer le code demande l'ancien
+  const nouveau = ($('pin').value || '').replace(/\s/g, '').slice(0, 12);
+  if (!nouveau) {
+    // Champ vide = retirer le code. Le mode strict tombe avec lui, il n'aurait plus de sens.
+    cfg.pin = ''; cfg.strictMode = false;
+    $('strictMode').checked = false;
+    save(); majStrictUI(); erreurStrict('p.pinCleared', true);
+    return;
+  }
+  if (nouveau.length < 4) { erreurStrict('p.pinTooShort'); return; }
+  cfg.pin = nouveau;
+  $('pin').value = ''; $('currentPin').value = '';
+  save(); majStrictUI(); erreurStrict('p.pinSaved', true);
+});
 function addKw() {
   const v = ($('kw').value || '').trim();
   if (!v) return;

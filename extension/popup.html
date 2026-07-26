@@ -96,10 +96,18 @@
       <label class="lbl" for="strictMode" data-i18n="p.strictToggle"></label>
       <label class="switch" for="strictMode"><input type="checkbox" id="strictMode"><span class="slider"></span></label>
     </div>
-    <div class="pin-row">
-      <label for="pin" data-i18n="p.code"></label>
-      <input type="password" id="pin" inputmode="numeric" autocomplete="off" placeholder="••••">
+    <!-- N'apparaît que si un code protège déjà quelque chose : c'est lui qu'il faut
+         fournir pour désactiver le mode strict ou changer le code. -->
+    <div class="pin-row" id="currentPinRow" hidden>
+      <label for="currentPin" data-i18n="p.currentCode"></label>
+      <input type="password" id="currentPin" inputmode="numeric" autocomplete="off" placeholder="••••">
     </div>
+    <div class="pin-row">
+      <label for="pin" data-i18n="p.newCode"></label>
+      <input type="password" id="pin" inputmode="numeric" autocomplete="off" placeholder="••••">
+      <button class="btn" id="pinSave" style="flex-shrink:0;" data-i18n="p.save"></button>
+    </div>
+    <p id="strictErr" style="font-size:11px;color:#f87171;margin:8px 0 0;min-height:13px;"></p>
     <p class="foot" data-i18n="p.strictFoot"></p>
   </div>
 

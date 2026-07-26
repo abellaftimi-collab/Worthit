@@ -220,7 +220,7 @@
     st.textContent = '.worthit-masked{filter:blur(10px) grayscale(.65) !important;opacity:.4 !important;pointer-events:none !important;user-select:none !important;transition:filter .3s ease;}';
     document.documentElement.appendChild(st);
   }
-  const MASK_LIMIT = 80; // garde-fou : jamais plus de 80 éléments masqués sur une même page
+  const MASK_LIMIT = 80; // garde-fou : au plus 80 nouvelles fiches masquées par passage
   /* Texte représentatif d'un lien. Beaucoup de fiches produit ne contiennent qu'une image :
    * sans aria-label / title / alt, elles seraient totalement invisibles pour le filtre. */
   function linkText(a) {
@@ -277,31 +277,39 @@
     const kws = cfg.keywords.map(k => String(k).toLowerCase()).filter(Boolean);
     if (!kws.length) return;
     injectStyle();
-    // budget recalculé à chaque passage : le masquage ne s'épuise plus définitivement
-    let budget = MASK_LIMIT - document.querySelectorAll('.worthit-masked').length;
-    if (budget <= 0) return;
+    // Budget PAR PASSAGE, et non cumulé sur la page. Le plafond cumulé condamnait le
+    // défilement infini : passé 80 fiches masquées, tout ce qui se chargeait ensuite
+    // s'affichait en clair. Le rôle du plafond est d'empêcher un passage de s'emballer,
+    // pas d'arrêter de protéger au bout d'un moment.
+    let budget = MASK_LIMIT;
     // Sur le site bloqué lui-même, TOUS les liens pointent vers le domaine : inclure l'URL
     // floutrait jusqu'au menu et au pied de page. Ailleurs (Google, Amazon…), l'URL est
     // justement l'information la plus fiable — le lien « Chaussures » ne dit pas « nike »
     // mais pointe vers nike.com.
     const surLeDomaine = kws.some((k) => domaineCourant().includes(k));
     const links = document.querySelectorAll('a');
-    let checked = 0;
+    let juges = 0;
     for (const a of links) {
-      if (checked++ > 1500) break;                 // garde-fou anti-emballement
       let t = linkText(a);
-      if (!surLeDomaine) {
-        // a.href résout les liens relatifs en URL absolue : exactement ce qu'on veut comparer.
-        const url = (a.href || '').toLowerCase();
-        if (url && !url.startsWith('javascript:')) t = t ? t + ' ' + url : url;
+      // L'URL ne compte que pour les liens qui SORTENT du site courant. Sur une page de
+      // résultats pour « puma », l'adresse de la page contient déjà le mot : tous les liens
+      // internes (menu, filtres, recherches associées) le contiennent donc aussi, et on
+      // floutait l'interface entière. Un lien interne reste jugé sur son texte.
+      if (!surLeDomaine && a.href && a.origin && a.origin !== location.origin) {
+        const url = a.href.toLowerCase();
+        if (!url.startsWith('javascript:')) t = t ? t + ' ' + url : url;
       }
       if (!t) continue;
       // Signature du libellé plutôt qu'un drapeau « déjà vu » définitif : sur un site qui
       // remplit ses titres après coup (React, chargement différé), un lien inspecté trop tôt
       // était marqué et plus JAMAIS réexaminé, même une fois son nom de produit arrivé.
       const sig = t.length + '|' + t.slice(0, 40);
-      if (a.dataset.worthitSig === sig) continue;
+      if (a.dataset.worthitSig === sig) continue;   // déjà jugé sur ce texte : ne coûte rien
       a.dataset.worthitSig = sig;
+      // Le plafond ne compte QUE le travail réel. Avant, il comptait chaque lien relu,
+      // donc au-delà de 1500 liens sur la page — vite atteint en défilement infini —
+      // les nouveaux produits, situés en fin de document, n'étaient jamais examinés.
+      if (juges++ > 400) break;
       const hit = kws.find(k => t.includes(k));
       if (!hit) continue;
       const card = carteDe(a);
@@ -312,7 +320,9 @@
       card.dataset.worthitMasked = '1';
       card.classList.add('worthit-masked');
       card.title = 'Masqué par Worthit (mot-clé « ' + hit + ' »)';
-      if (--budget <= 0) return;
+      // Budget épuisé : on rend la main pour ne pas figer la page, et on reprend juste
+      // après — sinon le reste de la grille resterait en clair jusqu'au prochain événement.
+      if (--budget <= 0) { setTimeout(maskProducts, 250); return; }
     }
   }
   /* Débounce AVEC plafond. Une page marchande mute en permanence (carrousels, images

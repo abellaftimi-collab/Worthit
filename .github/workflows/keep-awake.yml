@@ -27,7 +27,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - name: Réveiller worthit-bi9e.onrender.com
+      # On vise volontairement l'adresse .onrender.com et non worthits.com : elle reste
+      # valable même avec un domaine personnalisé, et le ping ne dépend alors d'aucun
+      # réglage DNS. Un domaine mal configuré ne doit pas empêcher le service de rester éveillé.
+      - name: Réveiller le service
         run: |
           # --max-time large : un réveil à froid peut prendre près d'une minute.
           code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 90 "${APP_URL}/healthz")

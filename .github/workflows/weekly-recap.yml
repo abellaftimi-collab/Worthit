@@ -20,5 +20,8 @@ jobs:
           cat /tmp/out.json
           test "$code" = "200"
         env:
+          # Adresse .onrender.com volontairement : elle joint le service sans dépendre du
+          # DNS du domaine personnalisé. Les liens DANS les emails, eux, viennent de la
+          # variable APP_URL définie sur Render — c'est là qu'il faut mettre worthits.com.
           APP_URL: https://worthit-bi9e.onrender.com
           CRON_SECRET: ${{ secrets.CRON_SECRET }}

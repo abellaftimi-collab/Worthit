@@ -10,6 +10,8 @@ const wapi = (typeof browser !== 'undefined' && browser.runtime) ? browser : chr
  * du manifest le débloquent proprement.
  */
 const ORIGINES_AUTORISEES = [
+  'https://worthits.com',
+  // Conservé : une extension pas encore rechargée continue de parler à l'ancienne adresse.
   'https://worthit-bi9e.onrender.com',
   'http://localhost:3000',
 ];

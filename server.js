@@ -34,7 +34,7 @@ const crypto = require('crypto');
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';         // fournisseur d'email (resend.com)
 const RESEND_FROM = process.env.RESEND_FROM || 'Worthit <onboarding@resend.dev>';
 const CRON_SECRET = process.env.CRON_SECRET || '';               // protège l'endpoint de récap
-const APP_URL = (process.env.APP_URL || 'https://worthit-bi9e.onrender.com').replace(/\/+$/, '');
+const APP_URL = (process.env.APP_URL || 'https://worthits.com').replace(/\/+$/, '');
 
 /* ---------- identifie l'utilisateur connecté depuis le header Authorization: Bearer <token> ---------- */
 async function getUser(req) {

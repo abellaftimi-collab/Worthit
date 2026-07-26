@@ -1,10 +1,10 @@
 {
   "manifest_version": 3,
   "name": "Worthit — garde-fou anti-achat-impulsif",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Une pause de 24 h entre l'envie et l'achat. Ton budget, une question honnête, ta décision.",
   "permissions": ["storage"],
-  "host_permissions": ["https://worthit-bi9e.onrender.com/*", "http://localhost:3000/*"],
+  "host_permissions": ["https://worthits.com/*", "https://worthit-bi9e.onrender.com/*", "http://localhost:3000/*"],
   "background": { "service_worker": "background.js" },
   "content_scripts": [
     {

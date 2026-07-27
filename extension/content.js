@@ -17,34 +17,50 @@
 
   
   
-  /* Mots d'achat, volontairement larges : mieux vaut une pause de trop qu'un achat manqué.
+  /* Deux niveaux de certitude, et pas un seul comme avant.
+   *
+   * MOTS_FORTS : une formulation qui ne veut dire qu'une chose — on est en train de payer.
+   * MOTS_FAIBLES : un verbe seul (« Buy », « Acheter », « Order »…). Sur un site immobilier
+   *   ou une place de marché, c'est le plus souvent un ONGLET pour parcourir le catalogue.
+   *   Zillow a littéralement <a href="/homes/for_sale/">Buy</a> dans sa barre de navigation :
+   *   cliquer dessus déclenchait une pause d'achat alors qu'on voulait juste regarder.
+   *   Ces mots-là exigent donc un indice supplémentaire (voir estActionDachat).
    * Couvre fr/en/de/es/nl, l'achat en 1 clic, le paiement express et les portefeuilles. */
-  const BUY_WORDS = new RegExp([
+  const MOTS_FORTS = [
     // français
-    'ajouter au panier', 'ajouter à la panier', 'au panier', 'acheter', 'achat en 1 ?-?clic',
-    'payer maintenant', 'payer', 'paiement', 'commander', 'je commande', 'passer (la |ma )?commande',
-    'valider (ma |la |mon )?(commande|panier)', 'finaliser (ma |la )?commande', 'confirmer (la |ma )?commande',
-    "procéder au paiement", 'régler', 'souscrire', "s'abonner", 'réserver', 'louer',
+    'ajouter au panier', 'ajouter à la panier', 'au panier', 'achat en 1 ?-?clic',
+    'payer maintenant', 'passer (la |ma )?commande', 'valider (ma |la |mon )?(commande|panier)',
+    'finaliser (ma |la )?commande', 'confirmer (la |ma )?commande', 'procéder au paiement',
     // anglais
-    'add to (cart|bag|basket|order)', 'buy( it)? now', 'buy', 'purchase', 'checkout', 'check out',
+    'add to (cart|bag|basket|order)', 'buy( it)? now', 'checkout', 'check out',
     'proceed to', 'place( your)? order', 'complete (purchase|order)', 'confirm (order|purchase|payment)',
-    'pay now', 'pay', 'subscribe', 'rent', 'book now', 'one[- ]click', '1[- ]click',
+    'pay now', 'one[- ]click', '1[- ]click',
     // portefeuilles / paiement express
     'apple pay', 'google pay', 'paypal', 'shop pay', 'klarna', 'express checkout', 'paiement express',
     // allemand
-    'in den warenkorb', 'jetzt kaufen', 'kaufen', 'zur kasse', 'bestellen', 'kostenpflichtig bestellen',
+    'in den warenkorb', 'jetzt kaufen', 'zur kasse', 'kostenpflichtig bestellen',
     // espagnol
-    'añadir a la cesta', 'agregar al carrito', 'comprar( ahora)?', 'pagar', 'realizar pedido', 'finalizar compra',
+    'añadir a la cesta', 'agregar al carrito', 'comprar ahora', 'realizar pedido', 'finalizar compra',
     // néerlandais
-    'in winkelwagen', 'afrekenen', 'nu kopen', 'kopen', 'bestellen',
-  ].join('|'), 'i');
+    'in winkelwagen', 'afrekenen', 'nu kopen',
+  ];
+  const MOTS_FAIBLES = [
+    'acheter', 'payer', 'paiement', 'commander', 'je commande', 'régler',
+    'souscrire', "s'abonner", 'réserver', 'louer',
+    'buy', 'purchase', 'pay', 'subscribe', 'rent', 'book now', 'order',
+    'kaufen', 'bestellen', 'comprar', 'pagar', 'kopen',
+  ];
   /* Frontières de mots. Sans elles, « rent » matchait dans pa*rent*s / diffé*rent*s / trans*parent*
    * et déclenchait une pause d'achat sur des liens anodins.
    * Classe explicite (lettres + accents) plutôt que \p{L} : pas de piège d'échappement et
    * compatible avec les moteurs plus anciens (dont Safari). */
   const LETTRE = 'A-Za-zÀ-ÖØ-öø-ÿ';
-  const BUY_WORDS_STRICT = new RegExp(
-    '(?:^|[^' + LETTRE + '])(?:' + BUY_WORDS.source + ')(?:[^' + LETTRE + ']|$)', 'i');
+  const motsEn = (liste) => new RegExp(
+    '(?:^|[^' + LETTRE + '])(?:' + liste.join('|') + ')(?:[^' + LETTRE + ']|$)', 'i');
+  const ACHAT_FORT = motsEn(MOTS_FORTS);
+  const ACHAT_FAIBLE = motsEn(MOTS_FAIBLES);
+  // Conservé pour le formulaire et la synchro : « est-ce que ça parle d'achat, au sens large ? »
+  const BUY_WORDS_STRICT = motsEn(MOTS_FORTS.concat(MOTS_FAIBLES));
 
   /* Chemins d'URL qui SONT déjà une étape d'achat (panier, paiement, commande).
    * Arriver directement sur ces pages doit aussi déclencher la pause. */
@@ -665,9 +681,11 @@
 
   function overlayHtml(price, kwHit, wait, strict, worthy) {
     // Le symbole ne se place pas au même endroit selon la langue : « 149 € » mais « €149 ».
-    const priceTxt = price > 0
-      ? `<strong>${wt('o.price', { n: price.toLocaleString(self.WorthitI18n.locale()) })}</strong>`
-      : wt('o.thisPurchase');
+    // Sans montant, on change carrément de phrase : injecter « cet achat » là où la tournure
+    // attend une somme donnait « Tu allais dépenser cet achat. », cassé dans les 5 langues.
+    const titre = price > 0
+      ? wt('o.title', { prix: `<strong>${wt('o.price', { n: price.toLocaleString(self.WorthitI18n.locale()) })}</strong>` })
+      : wt('o.titleNoPrice');
     const reason = kwHit
       ? wt('o.reasonKw', { mot: esc(kwHit) })
       : (cfg.priceLimit > 0 && price >= cfg.priceLimit
@@ -691,7 +709,7 @@
             <span style="color:#fff;font-size:16px;font-weight:800;letter-spacing:-.02em;">worthit</span>
             <span style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.4);">${worthy ? wt('o.eyebrowWorthy') : wt('o.eyebrowPause')}</span>
           </div>
-          <h2 style="color:#fff;font-size:19px;font-weight:800;margin:0 0 ${worthy ? '16' : '10'}px;line-height:1.35;">${wt('o.title', { prix: priceTxt })}</h2>
+          <h2 style="color:#fff;font-size:19px;font-weight:800;margin:0 0 ${worthy ? '16' : '10'}px;line-height:1.35;">${titre}</h2>
           ${corps}
           <div style="display:flex;flex-direction:column;gap:9px;">
             <button id="worthit-wait" style="padding:14px;border-radius:13px;border:none;cursor:pointer;background:linear-gradient(135deg,#a78bfa,#7c3aed);color:#fff;font-size:14.5px;font-weight:700;font-family:inherit;">${strict ? wt('o.back') : wt('o.wait24')}</button>
@@ -797,12 +815,50 @@
     return true;
   }
 
+  /* Un prix VRAIMENT à côté de l'élément — contrairement à detectPrice(), qui se rabat sur
+   * la page entière et trouve donc toujours quelque chose sur un site marchand.
+   * Ici c'est un indice de contexte : un bouton « Buy » collé à un prix est un vrai bouton
+   * d'achat ; un onglet « Buy » de barre de navigation n'a aucun prix autour de lui. */
+  function prixJusteACote(el) {
+    const re = /(\d{1,4}(?:[  .,]\d{3})*(?:[.,]\d{2})?)\s?(?:€|EUR|\$|£)|(?:€|EUR|\$|£)\s?\d/i;
+    let node = el;
+    for (let d = 0; d < 3 && node && node !== document.body; d++, node = node.parentElement) {
+      if (re.test(node.innerText || '')) return true;
+    }
+    return false;
+  }
+
+  /* Un mot faible ne suffit pas : il faut un signe que c'est bien une action de paiement,
+   * pas un lien de catalogue. Rejeté d'office dans une barre de navigation ou des onglets. */
+  function estActionDachat(el) {
+    if (!el || !el.closest) return false;
+    // On y parcourt, on n'y paie pas.
+    if (el.closest('nav, [role="navigation"], [role="menubar"], [role="tablist"], [role="tab"], [aria-label*="breadcrumb" i], .breadcrumb')) return false;
+    // Déjà sur une page panier/paiement : le moindre bouton d'achat y est crédible.
+    try { if (CHECKOUT_PATHS.test(new URL(location.href).pathname)) return true; } catch (err) {}
+    // Un vrai contrôle d'action plutôt qu'un simple lien de navigation.
+    const tag = (el.tagName || '').toUpperCase();
+    if (tag === 'BUTTON') return true;
+    if (tag === 'INPUT' && /^(submit|button|image)$/i.test(el.type || '')) return true;
+    // Un lien qui mène explicitement au panier ou au paiement.
+    const href = el.getAttribute('href');
+    if (href && CHECKOUT_PATHS.test(href)) return true;
+    // Dernier indice : un prix juste à côté.
+    return prixJusteACote(el);
+  }
+
   document.addEventListener('click', (e) => {
     if (!cfg.enabled || isWorthitApp()) return;
     const btn = e.target && e.target.closest && e.target.closest(
       'button, a, input[type="submit"], input[type="button"], [role="button"], [class*="buy" i], [class*="checkout" i], [class*="panier" i], [id*="buy" i], [id*="checkout" i]');
     if (!btn) return;
-    if (!BUY_WORDS_STRICT.test(labelOf(btn))) return;
+    const libelle = labelOf(btn);
+    // Une formulation sans ambiguïté déclenche la pause immédiatement.
+    // Un simple verbe doit d'abord prouver qu'il s'agit d'une action de paiement.
+    if (!ACHAT_FORT.test(libelle)) {
+      if (!ACHAT_FAIBLE.test(libelle)) return;
+      if (!estActionDachat(btn)) return;
+    }
     pauseAvantAchat(btn, e);
   }, true);
 

@@ -1,0 +1,14 @@
+{
+  "extName": {
+    "message": "Worthit — anti-achat-impulsif",
+    "description": "Nom de l'extension affiché dans le navigateur et sur le Chrome Web Store."
+  },
+  "extDesc": {
+    "message": "Une pause de 24 h entre l'envie et l'achat. Ton budget, une question honnête, ta décision.",
+    "description": "Description de l'extension affichée dans le navigateur et sur le Chrome Web Store."
+  },
+  "extActionTitle": {
+    "message": "Worthit",
+    "description": "Infobulle du bouton dans la barre d'outils."
+  }
+}

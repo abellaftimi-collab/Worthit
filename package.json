@@ -1,7 +1,7 @@
 {
   "name": "worthit",
   "version": "1.0.0",
-  "description": "Worthit — le garde-fou anti-achat-impulsif. Site + backend Stripe + agent IA.",
+  "description": "Worthit — the impulse-buy blocker. Site + Stripe backend + AI agent.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

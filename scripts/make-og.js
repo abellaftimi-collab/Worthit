@@ -64,16 +64,16 @@ const og = shell(`<div style="position:relative;width:1200px;height:630px;overfl
     <div style="display:inline-block;padding:9px 19px;border-radius:999px;
       border:1px solid rgba(255,255,255,.13);background:rgba(255,255,255,.045);
       color:rgba(246,243,251,.72);font-size:20px;font-weight:600;margin-bottom:30px;">
-      Du côté de l'acheteur, pas du vendeur
+      On the buyer's side, not the seller's
     </div>
     <h1 class="d" style="font-size:97px;font-weight:800;line-height:1.03;letter-spacing:-.035em;color:#f6f3fb;">
-      Achète moins.<br>
-      <span style="background:linear-gradient(135deg,#a78bfa,#7c3aed);-webkit-background-clip:text;background-clip:text;color:transparent;">Vis mieux.</span>
+      Buy less.<br>
+      <span style="background:linear-gradient(135deg,#a78bfa,#7c3aed);-webkit-background-clip:text;background-clip:text;color:transparent;">Live more.</span>
     </h1>
   </div>
 
   <p style="font-size:29px;line-height:1.45;color:rgba(246,243,251,.62);max-width:930px;">
-    Une pause entre l'envie et l'achat : ton budget réel, une question honnête, ta décision.
+    A pause between the urge and the purchase: your real budget, an honest question, your call.
   </p>
 </div>`, 1200, 630);
 

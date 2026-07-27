@@ -1,0 +1,14 @@
+{
+  "extName": {
+    "message": "Worthit — freno a las compras impulsivas",
+    "description": "Nombre de la extensión mostrado en el navegador y en la Chrome Web Store."
+  },
+  "extDesc": {
+    "message": "Una pausa de 24 h entre el impulso y la compra. Tu presupuesto, una pregunta honesta, tu decisión.",
+    "description": "Descripción de la extensión mostrada en el navegador y en la Chrome Web Store."
+  },
+  "extActionTitle": {
+    "message": "Worthit",
+    "description": "Información sobre herramientas del botón de la barra."
+  }
+}

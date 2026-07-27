@@ -1,6 +1,10 @@
 # Worthit
 
-Le garde-fou anti-achat-impulsif : site complet + backend Express avec abonnement Stripe et agent IA « Worthy ».
+L'anti-achat-impulsif : site complet + backend Express avec abonnement Stripe et agent IA « Worthy ».
+
+L'interface est en **anglais par défaut** et bascule automatiquement sur la langue du
+navigateur si elle est reconnue (fr / es / de / nl). Le choix manuel de l'utilisateur,
+lui, l'emporte toujours et reste mémorisé.
 
 ## Démarrage rapide (2 minutes, sans aucune clé)
 

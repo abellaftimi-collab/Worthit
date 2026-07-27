@@ -1,0 +1,14 @@
+{
+  "extName": {
+    "message": "Worthit — rem op impulsaankopen",
+    "description": "Naam van de extensie in de browser en in de Chrome Web Store."
+  },
+  "extDesc": {
+    "message": "Een pauze van 24 uur tussen de drang en de aankoop. Jouw budget, een eerlijke vraag, jouw beslissing.",
+    "description": "Beschrijving van de extensie in de browser en in de Chrome Web Store."
+  },
+  "extActionTitle": {
+    "message": "Worthit",
+    "description": "Tooltip van de knop in de werkbalk."
+  }
+}

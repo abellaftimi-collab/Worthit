@@ -352,10 +352,17 @@
     },
   };
 
-  /* Repli sur la langue du navigateur tant que le compte n'a rien synchronisé. */
+  /* Repli sur la langue du navigateur tant que le compte n'a rien synchronisé.
+   * navigator.languages est parcouru dans l'ordre de préférence de l'utilisateur ; à défaut
+   * de langue reconnue, on retombe sur l'ANGLAIS et non le français. */
   function langueParDefaut() {
-    const l = String((self.navigator && navigator.language) || 'fr').slice(0, 2).toLowerCase();
-    return T[l] ? l : 'fr';
+    const nav = self.navigator || {};
+    const candidates = (nav.languages && nav.languages.length) ? nav.languages : [nav.language];
+    for (const brut of candidates) {
+      const l = String(brut || '').slice(0, 2).toLowerCase();
+      if (T[l]) return l;
+    }
+    return 'en';
   }
   let langue = langueParDefaut();
 
@@ -363,9 +370,9 @@
     get lang() { return langue; },
     setLang(l) { if (l && T[l]) langue = l; },
     /* Les libellés de dates/prix suivent la même langue que le texte. */
-    locale() { return { fr: 'fr-FR', en: 'en-GB', es: 'es-ES', de: 'de-DE', nl: 'nl-NL' }[langue] || 'fr-FR'; },
+    locale() { return { fr: 'fr-FR', en: 'en-GB', es: 'es-ES', de: 'de-DE', nl: 'nl-NL' }[langue] || 'en-GB'; },
     t(cle, vars) {
-      let s = (T[langue] && T[langue][cle]) || T.fr[cle] || cle;
+      let s = (T[langue] && T[langue][cle]) || T.en[cle] || cle;
       // split/join et non replace() : replace() ne remplace que la première occurrence.
       if (vars) for (const k in vars) s = s.split('{' + k + '}').join(vars[k]);
       return s;

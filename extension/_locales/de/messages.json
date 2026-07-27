@@ -1,0 +1,14 @@
+{
+  "extName": {
+    "message": "Worthit — Schutz vor Impulskäufen",
+    "description": "Name der Erweiterung im Browser und im Chrome Web Store."
+  },
+  "extDesc": {
+    "message": "24 Stunden Pause zwischen Lust und Kauf. Dein Budget, eine ehrliche Frage, deine Entscheidung.",
+    "description": "Beschreibung der Erweiterung im Browser und im Chrome Web Store."
+  },
+  "extActionTitle": {
+    "message": "Worthit",
+    "description": "Tooltip der Schaltfläche in der Symbolleiste."
+  }
+}

@@ -50,7 +50,9 @@
    * Arriver directement sur ces pages doit aussi déclencher la pause. */
   const CHECKOUT_PATHS = /(^|\/)(checkout|check-out|panier|cart|basket|warenkorb|winkelwagen|carrito|cesta|commande|order(s)?\/?(new|create)?|bestellung|pedido|paiement|payment|pay|kasse|afrekenen|finalizar-compra|passer-commande)(\/|$|\?)/i;
 
-  let cfg = { enabled: true, pauseAll: true, hideResults: true, blockSearch: true, blockSites: true, pauseSeconds: 60, strictMode: false, pin: '', premium: false, apiBase: '', lang: 'fr', ctx: null, premiumAuth: null, keywords: [], priceLimit: 0 };
+  // lang vide et non 'fr' : tant que le compte n'a rien synchronisé, i18n.js choisit seul
+  // d'après la langue du navigateur. Forcer 'fr' ici imposait le français au monde entier.
+  let cfg = { enabled: true, pauseAll: true, hideResults: true, blockSearch: true, blockSites: true, pauseSeconds: 60, strictMode: false, pin: '', premium: false, apiBase: '', lang: '', ctx: null, premiumAuth: null, keywords: [], priceLimit: 0 };
 
   /* Traduction : i18n.js est chargé juste avant ce fichier (voir le manifest).
    * La langue vient du compte (cfg.lang, synchronisée depuis le site) ; tant qu'elle n'est

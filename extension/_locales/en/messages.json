@@ -1,0 +1,14 @@
+{
+  "extName": {
+    "message": "Worthit — impulse-buy blocker",
+    "description": "Extension name shown in the browser and on the Chrome Web Store."
+  },
+  "extDesc": {
+    "message": "A 24-hour pause between the urge and the purchase. Your budget, an honest question, your call.",
+    "description": "Extension description shown in the browser and on the Chrome Web Store."
+  },
+  "extActionTitle": {
+    "message": "Worthit",
+    "description": "Tooltip on the toolbar button."
+  }
+}

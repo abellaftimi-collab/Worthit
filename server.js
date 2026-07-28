@@ -165,12 +165,13 @@ app.use((req, res, next) => {
   res.setHeader('Content-Security-Policy', [
     "default-src 'self'",
     // Le front est un fichier unique : ses scripts et styles sont en ligne, d'où 'unsafe-inline'.
-    // Aucun script tiers n'est autorisé — Supabase est servi depuis /vendor/ par ce serveur.
+    // Aucun script tiers n'est autorisé — Supabase et Amplitude sont servis depuis /vendor/ par ce serveur.
     "script-src 'self' 'unsafe-inline'",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
     "font-src 'self' data:",
-    "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+    // *.amplitude.com : ingestion analytics (api2), session replay (api-sr) et sa config (sr-client-cfg).
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.amplitude.com",
     "form-action 'self' https://checkout.stripe.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
@@ -214,6 +215,28 @@ app.get('/vendor/supabase.js', (req, res) => {
   if (!SUPABASE_UMD) return res.status(404).type('text/plain').send('supabase-js introuvable');
   res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
   res.sendFile(SUPABASE_UMD);
+});
+
+/* Amplitude (analytics + session replay), servi par nous pour la même raison que Supabase :
+ * pas de CDN tiers exécutant du code sur une page où l'utilisateur est connecté.
+ * Le paquet ne déclare pas de champ "exports", d'où la résolution par chemin direct. */
+const AMPLITUDE_UMD = (() => {
+  const essais = [
+    () => require.resolve('@amplitude/unified/lib/scripts/amplitude-min.umd.js'),
+    () => path.join(path.dirname(require.resolve('@amplitude/unified/package.json')), 'lib', 'scripts', 'amplitude-min.umd.js'),
+  ];
+  for (const essai of essais) {
+    try {
+      const p = essai();
+      if (require('fs').existsSync(p)) return p;
+    } catch (e) { /* on essaie la méthode suivante */ }
+  }
+  return null;
+})();
+app.get('/vendor/amplitude.js', (req, res) => {
+  if (!AMPLITUDE_UMD) return res.status(404).type('text/plain').send('amplitude introuvable');
+  res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
+  res.sendFile(AMPLITUDE_UMD);
 });
 
 app.use(express.static(path.join(__dirname, 'public')));

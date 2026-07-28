@@ -326,6 +326,9 @@ a{color:inherit;}
 <!-- Supabase servi par notre propre serveur (et non par un CDN tiers) : aucun script étranger
      ne s'exécute sur une page où l'utilisateur est connecté, et l'app marche hors ligne. -->
 <script src="/vendor/supabase.js"></script>
+
+<!-- Amplitude (analytics + session replay), servi par notre serveur pour la même raison. -->
+<script src="/vendor/amplitude.js"></script>
 </head>
 <body>
 <canvas id="bg-canvas"></canvas>
@@ -3594,6 +3597,16 @@ function renderAgent(){
 }
 
 /* ============================== INIT ============================== */
+/* Amplitude : une seule initialisation pour toute la vie de l'app.
+ * Garde comme pour Supabase : en mode artifact/démo le script /vendor/ n'existe pas,
+ * et l'absence d'analytics ne doit jamais casser la page. */
+// Amplitude ingestion key — public by design; move to an env var when you set up environments.
+const AMPLITUDE_API_KEY = '5369ec1cf20e300b25585fccc1ae6d94';
+if(typeof amplitude !== 'undefined' && amplitude.initAll){
+  amplitude.initAll(AMPLITUDE_API_KEY, {"analytics":{"autocapture":true},"sessionReplay":{"sampleRate":1}});
+  amplitude.track('Viewed Home Page', { prompt_version: 'BA400.4' }); // helps improve this setup flow — safe to remove once you've verified the event lands
+}
+
 document.documentElement.dataset.worthitApp = '1'; // marqueur lu par l'extension Chrome (synchro + pas de blocage ici)
 loadLocal();
 ensureCurrentWeek(); // remet à zéro le compteur hebdo si une nouvelle semaine a commencé

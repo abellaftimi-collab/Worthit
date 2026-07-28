@@ -64,7 +64,7 @@ const og = shell(`<div style="position:relative;width:1200px;height:630px;overfl
     <div style="display:inline-block;padding:9px 19px;border-radius:999px;
       border:1px solid rgba(255,255,255,.13);background:rgba(255,255,255,.045);
       color:rgba(246,243,251,.72);font-size:20px;font-weight:600;margin-bottom:30px;">
-      On the buyer's side, not the seller's
+      On the buyer's side, never the seller's
     </div>
     <h1 class="d" style="font-size:97px;font-weight:800;line-height:1.03;letter-spacing:-.035em;color:#f6f3fb;">
       Buy less.<br>

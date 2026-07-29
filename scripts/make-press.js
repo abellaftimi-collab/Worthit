@@ -14,6 +14,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
+const { PRODUITS } = require('./lib/produits');
 
 const PUBLIC = path.join(__dirname, '..', 'public');
 const PRESSE = path.join(PUBLIC, 'press');
@@ -113,7 +114,13 @@ const pageMarchande = () => {
   for (let rang = 0; rang < 2; rang++) {
     for (let i = 0; i < 3; i++) {
       const x = 34 + i * 196, y = 92 + rang * 250;
-      s += carte(x, y, 172, 162) + barre(x, y + 176, 126, 11, .16) + barre(x, y + 196, 70, 11, .1);
+      // Une silhouette de produit dans chaque case : des rectangles vides donnaient
+      // l'impression d'une maquette inachevée plutôt que d'une boutique.
+      const prod = PRODUITS[(rang * 3 + i) % PRODUITS.length](104, 0.7);
+      s += carte(x, y, 172, 162)
+        + `<div style="position:absolute;left:${x}px;top:${y}px;width:172px;height:162px;
+            display:flex;align-items:center;justify-content:center">${prod}</div>`
+        + barre(x, y + 176, 126, 11, .16) + barre(x, y + 196, 70, 11, .1);
     }
   }
   s += barre(34, 38, 124, 15, .2) + barre(420, 38, 200, 15, .1);

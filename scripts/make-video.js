@@ -22,6 +22,8 @@ const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
 
+const { PRODUITS } = require('./lib/produits');
+
 const RACINE = path.join(__dirname, '..');
 const PUBLIC = path.join(RACINE, 'public');
 const SORTIE = path.join(PUBLIC, 'press');
@@ -112,6 +114,8 @@ function boutique(flou, masques) {
     s += `<div style="position:absolute;left:${x}px;top:${FICHE.y}px;width:${FICHE.larg}px;height:400px;
       ${m ? 'filter:blur(15px) grayscale(.65);opacity:.4;' : ''}">
       ${bloc(0, 0, FICHE.larg, FICHE.img, .07)}
+      <div style="position:absolute;left:0;top:0;width:${FICHE.larg}px;height:${FICHE.img}px;
+        display:flex;align-items:center;justify-content:center">${PRODUITS[i % PRODUITS.length](190, 0.8)}</div>
       ${barre(0, FICHE.img + 26, 270, .2, 17)}${barre(0, FICHE.img + 57, 140, .1)}</div>`;
   }
   return `<div style="position:absolute;inset:0;${flou ? `filter:blur(${flou}px);` : ''}">${s}</div>`;
@@ -172,8 +176,10 @@ const scenes = [
     const appui = t > 0.60 && t < 0.68;
     const eclat = fen(t, 0.60, 0.72) * (1 - fen(t, 0.74, 0.95));
     return `${boutique(0)}
-      <div style="position:absolute;left:${bx}px;top:${FICHE.y + FICHE.img + 26}px;
-        font-size:30px;font-weight:800;color:${C.encre}" class="d">€149</div>
+      <div class="d" style="position:absolute;left:${bx + FICHE.larg - 132}px;
+        top:${FICHE.y + FICHE.img - 66}px;padding:11px 20px;border-radius:14px;
+        font-size:27px;font-weight:800;color:${C.encre};background:rgba(8,5,15,.82);
+        border:1px solid rgba(255,255,255,.16)">€149</div>
       <div style="position:absolute;left:${bx}px;top:${by}px;width:${FICHE.larg}px;padding:21px 0;
         border-radius:16px;text-align:center;font-size:22px;font-weight:700;
         background:linear-gradient(135deg,#3b82f6,#1d4ed8);

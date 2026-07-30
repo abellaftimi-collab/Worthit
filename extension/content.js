@@ -31,6 +31,9 @@
     'ajouter au panier', 'ajouter à la panier', 'au panier', 'achat en 1 ?-?clic',
     'payer maintenant', 'passer (la |ma )?commande', 'valider (ma |la |mon )?(commande|panier)',
     'finaliser (ma |la )?commande', 'confirmer (la |ma )?commande', 'procéder au paiement',
+    // « régler » n'est un paiement que suivi de ce qu'on règle. Seul, il veut d'abord dire
+    // résoudre : « régler ça en face », « régler un différend », « régler les paramètres ».
+    'régler (ma |mon |mes |la |le )?(commande|panier|achats?|montant|total|facture)',
     // anglais
     'add to (cart|bag|basket|order)', 'buy( it)? now', 'checkout', 'check out',
     'proceed to', 'place( your)? order', 'complete (purchase|order)', 'confirm (order|purchase|payment)',
@@ -45,7 +48,7 @@
     'in winkelwagen', 'afrekenen', 'nu kopen',
   ];
   const MOTS_FAIBLES = [
-    'acheter', 'payer', 'paiement', 'commander', 'je commande', 'régler',
+    'acheter', 'payer', 'paiement', 'commander', 'je commande',
     'souscrire', "s'abonner", 'réserver', 'louer',
     'buy', 'purchase', 'pay', 'subscribe', 'rent', 'book now', 'order',
     'kaufen', 'bestellen', 'comprar', 'pagar', 'kopen',
@@ -836,14 +839,16 @@
     if (el.closest('nav, [role="navigation"], [role="menubar"], [role="tablist"], [role="tab"], [aria-label*="breadcrumb" i], .breadcrumb')) return false;
     // Déjà sur une page panier/paiement : le moindre bouton d'achat y est crédible.
     try { if (CHECKOUT_PATHS.test(new URL(location.href).pathname)) return true; } catch (err) {}
-    // Un vrai contrôle d'action plutôt qu'un simple lien de navigation.
-    const tag = (el.tagName || '').toUpperCase();
-    if (tag === 'BUTTON') return true;
-    if (tag === 'INPUT' && /^(submit|button|image)$/i.test(el.type || '')) return true;
-    // Un lien qui mène explicitement au panier ou au paiement.
+    // Un lien qui mène explicitement au panier ou au paiement : sans équivoque.
     const href = el.getAttribute('href');
     if (href && CHECKOUT_PATHS.test(href)) return true;
-    // Dernier indice : un prix juste à côté.
+    // Un vrai contrôle d'action plutôt qu'un lien de catalogue. Nécessaire, pas suffisant.
+    const tag = (el.tagName || '').toUpperCase();
+    const estControle = tag === 'BUTTON' || (tag === 'INPUT' && /^(submit|button|image)$/i.test(el.type || ''));
+    if (!estControle) return false;
+    // Et il faut encore un prix à proximité. Être un <button> ne prouvait rien : dans une
+    // interface, presque tout ce qui se clique en est un. Un jeu proposant « Y aller et
+    // régler ça en face » ouvrait ainsi une pause anti-achat en pleine partie.
     return prixJusteACote(el);
   }
 

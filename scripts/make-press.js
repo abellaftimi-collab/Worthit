@@ -38,7 +38,13 @@ const html = fs.readFileSync(path.join(PUBLIC, 'index.html'), 'utf8');
 const faces = html.match(/@font-face\{[\s\S]*?\}/g) || [];
 if (!faces.length) throw new Error('aucune @font-face trouvée dans public/index.html');
 
-const L = 1270, H = 760;
+/* Deux destinations, deux formats imposés : 1270x760 pour la galerie Product Hunt,
+ * 1280x800 pour le Chrome Web Store (qui n'accepte QUE 1280x800 ou 640x400 et refuse
+ * le reste au téléversement). `npm run press -- --store` bascule sur le second et
+ * préfixe les fichiers, pour que les deux jeux cohabitent dans public/press/. */
+const STORE = process.argv.includes('--store');
+const L = STORE ? 1280 : 1270, H = STORE ? 800 : 760;
+const PREFIXE = STORE ? 'store-' : '';
 
 /* Jetons de la charte, repris à l'identique de public/index.html. */
 const C = {
@@ -94,13 +100,20 @@ const LOGO = (t) => `<svg width="${t}" height="${t}" viewBox="0 0 100 100" style
 
 const entete = () => `<div class="marque">${LOGO(26)}<span class="d">worthit</span></div>`;
 
-/* Le signe de Worthy. L'emoji 🧠 se réduit à une tache rosâtre dans Chrome headless, et un
- * cerveau dessiné devient illisible sous 20 px : une étincelle reste nette et se lit
- * immédiatement comme « IA ». */
-const ETINCELLE = (t, couleur) => `<svg width="${t}" height="${t}" viewBox="0 0 24 24"
-  fill="${couleur}" style="display:block;flex-shrink:0">
-  <path d="M12 2.6l2.05 5.5 5.5 2.05-5.5 2.05L12 17.7l-2.05-5.5-5.5-2.05 5.5-2.05L12 2.6Z"/>
-  <path d="M18.6 15.4l.9 2.3 2.3.9-2.3.9-.9 2.3-.9-2.3-2.3-.9 2.3-.9.9-2.3Z" opacity=".7"/>
+/* Le visage de Worthy, repris trait pour trait de l'icône `worthy` de public/index.html :
+ * le visuel de presse doit montrer le même personnage que l'appli. Contour plutôt que
+ * remplissage, comme toutes les icônes de la marque — d'où le `color:` dans le style, dont
+ * héritent les parties pleines (yeux, joues) via currentColor. */
+const WORTHY = (t, couleur) => `<svg width="${t}" height="${t}" viewBox="0 0 24 24" fill="none"
+  stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+  style="display:block;flex-shrink:0;color:${couleur}">
+  <circle cx="12" cy="2.7" r="1.25" fill="currentColor" stroke="none"/><path d="M12 3.95V6.2"/>
+  <rect x="4" y="6.2" width="16" height="12.8" rx="5.6"/>
+  <circle cx="9.2" cy="12" r="1.65" fill="currentColor" stroke="none"/>
+  <circle cx="14.8" cy="12" r="1.65" fill="currentColor" stroke="none"/>
+  <circle cx="6.7" cy="14.6" r="1" fill="currentColor" stroke="none" opacity=".38"/>
+  <circle cx="17.3" cy="14.6" r="1" fill="currentColor" stroke="none" opacity=".38"/>
+  <path d="M10.1 15.7c.9.8 3 .8 3.9 0"/><path d="M2.3 11.2v2.8M21.7 11.2v2.8"/>
 </svg>`;
 
 /* Arrière-plan : une fausse page marchande, volontairement floutée et sans texte lisible.
@@ -182,7 +195,7 @@ const visuel2 = shell(`<div class="scene">
   <div class="rangee">
 
     <div class="colTexte">
-      <span class="eyebrow">${ETINCELLE(15, C.v1)} Worthy, your AI guardrail</span>
+      <span class="eyebrow">${WORTHY(15, C.v1)} Worthy, your AI guardrail</span>
       <h1 class="d h1">Not a blocker.<br><span class="grad">A conversation.</span></h1>
       <p class="lede">Worthy knows your income, your rent, your goal. So it asks the one question that actually lands — with your numbers, not generic advice.</p>
       <div style="display:flex;gap:10px;margin-top:26px;flex-wrap:wrap">
@@ -196,7 +209,7 @@ const visuel2 = shell(`<div class="scene">
         border-bottom:1px solid ${C.ligne};margin-bottom:16px;flex-shrink:0">
         <div style="width:38px;height:38px;border-radius:50%;flex-shrink:0;
           background:linear-gradient(135deg,#a78bfa,#7c3aed);display:flex;align-items:center;
-          justify-content:center">${ETINCELLE(19, "#fff")}</div>
+          justify-content:center">${WORTHY(19, "#fff")}</div>
         <div>
           <div style="font-size:15px;font-weight:700">Worthy</div>
           <div style="font-size:12px;color:${C.v1}">Online — never on the seller's side</div>
@@ -306,14 +319,14 @@ const visuel3 = shell(`<div class="scene">
 /* ------------------------------------------------------------------------------ rendu */
 function shoot(nom, source) {
   const src = path.join(TMP, nom + '.html');
-  const dest = path.join(PRESSE, nom + '.png');
+  const dest = path.join(PRESSE, PREFIXE + nom + '.png');
   fs.writeFileSync(src, source, 'utf8');
   execFileSync(CHROME, [
     '--headless=new', '--disable-gpu', '--hide-scrollbars', '--force-device-scale-factor=1',
     `--screenshot=${dest}`, `--window-size=${L},${H}`,
     'file:///' + src.replace(/\\/g, '/'),
   ], { stdio: 'pipe', timeout: 120000 });
-  console.log(`public/press/${nom}.png — ${L}x${H}, ${(fs.statSync(dest).size / 1024).toFixed(0)} Ko`);
+  console.log(`public/press/${PREFIXE}${nom}.png — ${L}x${H}, ${(fs.statSync(dest).size / 1024).toFixed(0)} Ko`);
 }
 
 fs.mkdirSync(PRESSE, { recursive: true });

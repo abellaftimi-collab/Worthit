@@ -9,6 +9,7 @@
     "test": "node --test",
     "og": "node scripts/make-og.js",
     "ext-icons": "node scripts/make-ext-icons.js",
+    "ext-zip": "node scripts/make-ext-zip.js",
     "press": "node scripts/make-press.js"
   },
   "engines": {

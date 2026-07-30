@@ -345,6 +345,7 @@ const ICONS = {
 sparkles:'<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/>',
 shield:'<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
 brain:'<path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/><path d="M17.599 6.5a3 3 0 0 0 .399-1.375"/><path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"/><path d="M3.477 10.896a4 4 0 0 1 .585-.396"/><path d="M19.938 10.5a4 4 0 0 1 .585.396"/><path d="M6 18a4 4 0 0 1-1.967-.516"/><path d="M19.967 17.484A4 4 0 0 1 18 18"/>',
+worthy:'<circle cx="12" cy="2.7" r="1.25" fill="currentColor" stroke="none"/><path d="M12 3.95V6.2"/><rect x="4" y="6.2" width="16" height="12.8" rx="5.6"/><circle cx="9.2" cy="12" r="1.65" fill="currentColor" stroke="none"/><circle cx="14.8" cy="12" r="1.65" fill="currentColor" stroke="none"/><circle cx="6.7" cy="14.6" r="1" fill="currentColor" stroke="none" opacity=".38"/><circle cx="17.3" cy="14.6" r="1" fill="currentColor" stroke="none" opacity=".38"/><path d="M10.1 15.7c.9.8 3 .8 3.9 0"/><path d="M2.3 11.2v2.8M21.7 11.2v2.8"/>',
 flame:'<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
 target:'<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
 users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
@@ -533,7 +534,7 @@ const FEATURES = [
    long:"Chaque jour sans achat impulsif allonge ta série. Casser une série de 30 jours pour un gadget à 15 € ? C'est toute la psychologie de Worthit : rendre la résistance plus gratifiante que l'achat."},
   {icon:'wallet',title:'Budget clair',desc:"Ce qu'il te reste, vraiment, ce mois-ci.",tier:'free',
    long:"Renseigne revenu, loyer et charges une seule fois : Worthit calcule ton vrai reste-à-vivre et le garde sous tes yeux. Fini le « je pense qu'il me reste à peu près… »."},
-  {icon:'brain',title:'Agent IA personnalisé',desc:"Des questions générées pour ton profil, jamais recyclées.",tier:'premium',
+  {icon:'worthy',title:'Agent IA personnalisé',desc:"Des questions générées pour ton profil, jamais recyclées.",tier:'premium',
    long:"Worthy connaît ton budget, ta fonction, tes faiblesses et tes objectifs. Au moment exact où tu hésites, il te pose LA question qui compte — jamais un sermon générique."},
   {icon:'target',title:'Dashboard perso',desc:"Objectifs, récompenses et simulateur, en un seul endroit.",tier:'premium',
    long:"Objectifs avec barres de progression, victoires enregistrées, graphique de ta semaine, récompenses à débloquer : tout ton combat contre l'achat impulsif, visualisé au même endroit."},
@@ -713,7 +714,7 @@ function rarityLabel(r){
 }
 const SHOWCASE_ITEMS = [
   {cat:'Extension',title:'Popup checkout',desc:"La question du jour, au bon moment.",icon:'cursorClick'},
-  {cat:'IA',title:'Question personnalisée',desc:"Générée pour toi, jamais recyclée.",icon:'brain'},
+  {cat:'IA',title:'Question personnalisée',desc:"Générée pour toi, jamais recyclée.",icon:'worthy'},
   {cat:'Extension',title:'Écran de blocage',desc:"Ta règle, posée un jour calme.",icon:'shield'},
   {cat:'Dashboard',title:'Budget en un regard',desc:"Ce qu'il reste, sans détour.",icon:'wallet'},
   {cat:'Dashboard',title:'Simulateur d’économies',desc:"Combien tu économises si tu résistes.",icon:'zap'},
@@ -751,7 +752,7 @@ fr:{ui:{
 'pay.alreadyPremium':"Ton abonnement Premium est déjà actif.",'pay.needAccount':"Crée ton compte pour passer Premium.",'pay.welcome':"Bienvenue dans Premium ✨",'pay.demoSuffix':" (mode démo)",'pay.confirmed':"Paiement confirmé — bienvenue dans Premium ✨",'pay.canceled':"Paiement annulé — tu restes en Gratuit.",'pay.failed':"Le paiement n'a pas pu démarrer. Réessaie dans un instant.",
 'onb.needIncome':"Indique ton revenu mensuel pour continuer.",'onb.needRent':"Indique ton loyer et tes charges (0 si aucun).",'onb.needFreq':"Choisis une fréquence pour continuer.",'onb.needGoal':"Donne un nom et un montant à ton objectif.",'onb.profileUpdated':"Profil mis à jour",'onb.profileCreated':"Profil créé — 20 crans de bienvenue !",
 'block.added':"« {mot} » est maintenant bloqué",'block.removed':"« {mot} » débloqué",'ext.confirmed':"+{total} € confirmés — résistances tenues 24 h ✨",'victory.saved':"+{price} € gardés, +{crans} !",'shop.unlocked':"Objet débloqué !",'shop.themeApplied':"Thème appliqué",'shop.avatarUpdated':"Avatar mis à jour",'auth.signedOut':"Déconnecté.",'when.today':"Aujourd'hui",'meta.title':"Worthit — Achète moins. Vis mieux.",'when.yesterday':"Hier",
-'nav.settings':"Paramètres",'common.back':"Retour",'common.continue':"Continuer",'common.apply':"Appliquer",'common.shop':"Boutique",'about.h2':"Le seul assistant qui gagne quand tu n'achètes pas",'tarifs.unlockCta':"Débloquer — 4,99 €/mois",
+'nav.settings':"Paramètres",'common.back':"Retour",'common.continue':"Continuer",'common.apply':"Appliquer",'common.shop':"Boutique",'about.s1t':"L'idée",'about.s1d':"Aucune IA shopping n'est du côté de l'acheteur. Worthit, si.",'about.s2t':"Le produit",'about.s2d':"Extension et dashboard. L'IA questionne au moment exact du doute.",'about.s3t':"La communauté",'about.s3d':"Le mouvement no-buy existe déjà. Worthit lui donne l'outil.",'about.s4t':"Le modèle",'about.s4d':"Gratuit pour t'essayer. Premium, 4,99 €/mois, pour l'agent qui te connaît vraiment.",'about.stat1':"de pause",'about.stat2':"par mois en Premium",'about.stat3':"côté acheteur",'demo.eyebrow':"Comment ça marche",'demo.h2':"30 secondes pour tout comprendre.",'demo.sub':"La pause au moment de l'achat, l'agent qui questionne, le blocage par mot-clé, tes économies qui montent.",'demo.silent':"Vidéo sans son — tout est sous-titré.",'demo.play':"Lire la démonstration",'about.h2':"Le seul assistant qui gagne quand tu n'achètes pas",'tarifs.unlockCta':"Débloquer — 4,99 €/mois",
 'onb.s1':"Ta situation",'onb.s2':"Tes revenus",'onb.s3':"Tes charges",'onb.s4':"Tes habitudes",'onb.s5':"Ton objectif",'onb.step':"Étape {n} / 5",'onb.fonctionPh':"Ta fonction / ton métier (ex : infirmière, dev…)",'onb.incomePh':"Revenu mensuel net (€)",'onb.rentPh':"Loyer (€)",'onb.chargesPh':"Charges fixes et abonnements (€)",'onb.weaknessQ':"Qu'est-ce qui te fait craquer ? Worthy s'en servira pour te poser les bonnes questions.",'onb.freqQ':"À quelle fréquence craques-tu pour un achat non prévu ?",'onb.goalQ':"Pour quoi économises-tu ? Chaque achat auquel tu résisteras fera avancer cet objectif.",'onb.goalNamePh':"Ton objectif (ex : Voyage, Permis…)",'onb.goalTargetPh':"Montant à atteindre (€)",'onb.createDash':"Créer mon dashboard",'onb.localOnly':"Stocké sur ton appareil uniquement. Aucune connexion bancaire.",
 'dash.needTitle':"Ton dashboard t'attend",'dash.needDesc':"Configure ton profil en 2 minutes — revenus, charges, objectif — et tout ici affichera TES chiffres, pas ceux d'une démo.",'dash.createProfile':"Créer mon profil",'dash.quizFirst':"Faire le quiz d'intro d'abord",'dash.eyebrow':"Dashboard",'dash.eyebrowPerso':"Dashboard perso",'dash.hello':"Bonjour {nom} 👋",'dash.glance':"Ton mois en un regard",'dash.streakDayOne':"{n} jour",'dash.streakDays':"{n} jours",'dash.left':"Reste ce mois-ci",'dash.saved':"Économisé en résistant",'dash.split':"Répartition du budget",'dash.rent':"Loyer",'dash.charges':"Charges",'dash.available':"Disponible",'dash.unlockTitle':"Débloque ton dashboard complet",'dash.unlockDesc':"Agent IA personnalisé, objectifs multiples, récompenses, simulateur d'économies et tournois entre amis.",'dash.shopFree':"Boutique (gratuit)",'dash.weekTitle':"Ta semaine de résistance",'dash.weekKept':"{n} € gardés",'dash.weekEmpty':"Chaque achat auquel tu résistes apparaîtra ici. Demande à Worthy quand l'envie monte.",'dash.victories':"Dernières victoires",'dash.victoriesEmpty':"Aucune victoire enregistrée pour l'instant. La première fois que tu renonces à un achat, note-la ici — c'est le début de ta série. 🔥",'dash.iResisted':"J'ai résisté à un achat",'dash.goals':"Tes objectifs",'dash.rewards':"Récompenses",'dash.spendShop':"Dépenser tes {monnaie} à la boutique",'dash.aiAgent':"Agent IA personnalisé",'dash.askQuestion':"Poser la question",'dash.towards':"vers « {nom} »",
 'blocks.title':"Limites et blocages",'blocks.desc':"Mots-clés sensibles et seuil de prix : la pause de 24 h s'impose à l'achat, et l'extension Chrome <strong>masque les produits</strong> correspondants. Synchronisé automatiquement avec l'extension quand tu visites cette page.",'blocks.empty':"Aucun mot-clé bloqué pour l'instant. Ajoute ce qui te fait craquer.",'blocks.kwPh':"Ex : sneakers, gaming, vinted…",'blocks.block':"Bloquer",'blocks.pauseAbove':"Pause imposée au-delà de",'blocks.active':"Actif",'blocks.removeAria':"Retirer {mot}",
@@ -815,7 +816,7 @@ en:{ui:{
 'pay.alreadyPremium':"Your Premium subscription is already active.",'pay.needAccount':"Create your account to go Premium.",'pay.welcome':"Welcome to Premium ✨",'pay.demoSuffix':" (demo mode)",'pay.confirmed':"Payment confirmed — welcome to Premium ✨",'pay.canceled':"Payment cancelled — you stay on Free.",'pay.failed':"Checkout could not start. Try again in a moment.",
 'onb.needIncome':"Enter your monthly income to continue.",'onb.needRent':"Enter your rent and bills (0 if none).",'onb.needFreq':"Pick a frequency to continue.",'onb.needGoal':"Give your goal a name and an amount.",'onb.profileUpdated':"Profile updated",'onb.profileCreated':"Profile created — 20 welcome notches!",
 'block.added':"“{mot}” is now blocked",'block.removed':"“{mot}” unblocked",'ext.confirmed':"+{total} € confirmed — 24 h resisted ✨",'victory.saved':"+{price} € kept, +{crans}!",'shop.unlocked':"Item unlocked!",'shop.themeApplied':"Theme applied",'shop.avatarUpdated':"Avatar updated",'auth.signedOut':"Signed out.",'when.today':"Today",'meta.title':"Worthit — Buy less. Live more.",'when.yesterday':"Yesterday",
-'nav.settings':"Settings",'common.back':"Back",'common.continue':"Continue",'common.apply':"Apply",'common.shop':"Shop",'about.h2':"The only assistant that wins when you don't buy",'tarifs.unlockCta':"Unlock — €4.99/month",
+'nav.settings':"Settings",'common.back':"Back",'common.continue':"Continue",'common.apply':"Apply",'common.shop':"Shop",'about.s1t':"The idea",'about.s1d':"No shopping AI is on the buyer's side. Worthit is.",'about.s2t':"The product",'about.s2d':"Extension and dashboard. The AI asks at the exact moment of doubt.",'about.s3t':"The community",'about.s3d':"The no-buy movement already exists. Worthit gives it a tool.",'about.s4t':"The model",'about.s4d':"Free to try. Premium, €4.99/month, for the agent that really knows you.",'about.stat1':"of pause",'about.stat2':"per month on Premium",'about.stat3':"buyer's side",'demo.eyebrow':"How it works",'demo.h2':"30 seconds to get the whole picture.",'demo.sub':"The pause at checkout, the agent that asks, keyword blocking, and your savings adding up.",'demo.silent':"Silent video — everything is captioned.",'demo.play':"Play the demo",'about.h2':"The only assistant that wins when you don't buy",'tarifs.unlockCta':"Unlock — €4.99/month",
 'onb.s1':"Your situation",'onb.s2':"Your income",'onb.s3':"Your expenses",'onb.s4':"Your habits",'onb.s5':"Your goal",'onb.step':"Step {n} / 5",'onb.fonctionPh':"Your job / role (e.g. nurse, developer…)",'onb.incomePh':"Net monthly income (€)",'onb.rentPh':"Rent (€)",'onb.chargesPh':"Fixed bills and subscriptions (€)",'onb.weaknessQ':"What makes you cave? Worthy will use it to ask you the right questions.",'onb.freqQ':"How often do you cave for an unplanned purchase?",'onb.goalQ':"What are you saving for? Every purchase you resist moves this goal forward.",'onb.goalNamePh':"Your goal (e.g. Trip, Driving licence…)",'onb.goalTargetPh':"Target amount (€)",'onb.createDash':"Create my dashboard",'onb.localOnly':"Stored on your device only. No bank connection.",
 'dash.needTitle':"Your dashboard is waiting",'dash.needDesc':"Set up your profile in 2 minutes — income, bills, goal — and everything here will show YOUR numbers, not a demo's.",'dash.createProfile':"Create my profile",'dash.quizFirst':"Take the intro quiz first",'dash.eyebrow':"Dashboard",'dash.eyebrowPerso':"Personal dashboard",'dash.hello':"Hello {nom} 👋",'dash.glance':"Your month at a glance",'dash.streakDayOne':"{n} day",'dash.streakDays':"{n} days",'dash.left':"Left this month",'dash.saved':"Saved by resisting",'dash.split':"Budget split",'dash.rent':"Rent",'dash.charges':"Bills",'dash.available':"Available",'dash.unlockTitle':"Unlock your full dashboard",'dash.unlockDesc':"Personalised AI agent, multiple goals, rewards, advanced savings simulator and tournaments with friends.",'dash.shopFree':"Shop (free)",'dash.weekTitle':"Your week of resistance",'dash.weekKept':"€{n} kept",'dash.weekEmpty':"Every purchase you resist will show up here. Ask Worthy when the urge hits.",'dash.victories':"Latest wins",'dash.victoriesEmpty':"No win recorded yet. The first time you walk away from a purchase, log it here — that's the start of your streak. 🔥",'dash.iResisted':"I resisted a purchase",'dash.goals':"Your goals",'dash.rewards':"Rewards",'dash.spendShop':"Spend your {monnaie} in the shop",'dash.aiAgent':"Personalised AI agent",'dash.askQuestion':"Ask the question",'dash.towards':"towards “{nom}”",
 'blocks.title':"Limits and blocks",'blocks.desc':"Sensitive keywords and a price threshold: the 24 h pause kicks in at checkout, and the Chrome extension <strong>blurs matching products</strong>. Synced automatically with the extension whenever you visit this page.",'blocks.empty':"No keyword blocked yet. Add what makes you cave.",'blocks.kwPh':"E.g. sneakers, gaming, vinted…",'blocks.block':"Block",'blocks.pauseAbove':"Force a pause above",'blocks.active':"Active",'blocks.removeAria':"Remove {mot}",
@@ -887,7 +888,7 @@ es:{ui:{
 'pay.alreadyPremium':"Tu suscripción Premium ya está activa.",'pay.needAccount':"Crea tu cuenta para pasar a Premium.",'pay.welcome':"Bienvenido a Premium ✨",'pay.demoSuffix':" (modo demo)",'pay.confirmed':"Pago confirmado — bienvenido a Premium ✨",'pay.canceled':"Pago cancelado — sigues en Gratis.",'pay.failed':"No se pudo iniciar el pago. Inténtalo en un momento.",
 'onb.needIncome':"Indica tus ingresos mensuales para continuar.",'onb.needRent':"Indica tu alquiler y tus gastos (0 si no tienes).",'onb.needFreq':"Elige una frecuencia para continuar.",'onb.needGoal':"Ponle un nombre y un importe a tu objetivo.",'onb.profileUpdated':"Perfil actualizado",'onb.profileCreated':"Perfil creado — ¡20 muescas de bienvenida!",
 'block.added':"«{mot}» ya está bloqueado",'block.removed':"«{mot}» desbloqueado",'ext.confirmed':"+{total} € confirmados — 24 h resistiendo ✨",'victory.saved':"+{price} € guardados, ¡+{crans}!",'shop.unlocked':"¡Objeto desbloqueado!",'shop.themeApplied':"Tema aplicado",'shop.avatarUpdated':"Avatar actualizado",'auth.signedOut':"Sesión cerrada.",'when.today':"Hoy",'meta.title':"Worthit — Compra menos. Vive mejor.",'when.yesterday':"Ayer",
-'nav.settings':"Ajustes",'common.back':"Volver",'common.continue':"Continuar",'common.apply':"Aplicar",'common.shop':"Tienda",'about.h2':"El único asistente que gana cuando no compras",'tarifs.unlockCta':"Desbloquear — 4,99 €/mes",
+'nav.settings':"Ajustes",'common.back':"Volver",'common.continue':"Continuar",'common.apply':"Aplicar",'common.shop':"Tienda",'about.s1t':"La idea",'about.s1d':"Ninguna IA de compras está del lado del comprador. Worthit sí.",'about.s2t':"El producto",'about.s2d':"Extensión y panel. La IA pregunta justo en el momento de la duda.",'about.s3t':"La comunidad",'about.s3d':"El movimiento no-buy ya existe. Worthit le da la herramienta.",'about.s4t':"El modelo",'about.s4d':"Gratis para probar. Premium, 4,99 €/mes, para el agente que te conoce de verdad.",'about.stat1':"de pausa",'about.stat2':"al mes en Premium",'about.stat3':"del lado del comprador",'demo.eyebrow':"Cómo funciona",'demo.h2':"30 segundos para entenderlo todo.",'demo.sub':"La pausa al comprar, el agente que pregunta, el bloqueo por palabra clave y tus ahorros subiendo.",'demo.silent':"Vídeo sin sonido: todo está subtitulado.",'demo.play':"Ver la demostración",'about.h2':"El único asistente que gana cuando no compras",'tarifs.unlockCta':"Desbloquear — 4,99 €/mes",
 'onb.s1':"Tu situación",'onb.s2':"Tus ingresos",'onb.s3':"Tus gastos",'onb.s4':"Tus hábitos",'onb.s5':"Tu objetivo",'onb.step':"Paso {n} / 5",'onb.fonctionPh':"Tu profesión / tu oficio (ej.: enfermera, programador…)",'onb.incomePh':"Ingresos netos mensuales (€)",'onb.rentPh':"Alquiler (€)",'onb.chargesPh':"Gastos fijos y suscripciones (€)",'onb.weaknessQ':"¿Qué te hace caer? Worthy lo usará para hacerte las preguntas adecuadas.",'onb.freqQ':"¿Con qué frecuencia caes en una compra no prevista?",'onb.goalQ':"¿Para qué ahorras? Cada compra que evites hará avanzar este objetivo.",'onb.goalNamePh':"Tu objetivo (ej.: Viaje, Carnet…)",'onb.goalTargetPh':"Importe a alcanzar (€)",'onb.createDash':"Crear mi panel",'onb.localOnly':"Guardado solo en tu dispositivo. Sin conexión bancaria.",
 'dash.needTitle':"Tu panel te espera",'dash.needDesc':"Configura tu perfil en 2 minutos — ingresos, gastos, objetivo — y todo aquí mostrará TUS cifras, no las de una demo.",'dash.createProfile':"Crear mi perfil",'dash.quizFirst':"Hacer primero el test de intro",'dash.eyebrow':"Panel",'dash.eyebrowPerso':"Panel personal",'dash.hello':"Hola {nom} 👋",'dash.glance':"Tu mes de un vistazo",'dash.streakDayOne':"{n} día",'dash.streakDays':"{n} días",'dash.left':"Te queda este mes",'dash.saved':"Ahorrado resistiendo",'dash.split':"Reparto del presupuesto",'dash.rent':"Alquiler",'dash.charges':"Gastos",'dash.available':"Disponible",'dash.unlockTitle':"Desbloquea tu panel completo",'dash.unlockDesc':"Agente de IA personalizado, varios objetivos, recompensas, simulador de ahorro y torneos entre amigos.",'dash.shopFree':"Tienda (gratis)",'dash.weekTitle':"Tu semana de resistencia",'dash.weekKept':"{n} € guardados",'dash.weekEmpty':"Cada compra que evites aparecerá aquí. Pregúntale a Worthy cuando llegue el impulso.",'dash.victories':"Últimas victorias",'dash.victoriesEmpty':"Aún no hay ninguna victoria. La primera vez que renuncies a una compra, anótala aquí: es el principio de tu racha. 🔥",'dash.iResisted':"He resistido una compra",'dash.goals':"Tus objetivos",'dash.rewards':"Recompensas",'dash.spendShop':"Gasta tus {monnaie} en la tienda",'dash.aiAgent':"Agente de IA personalizado",'dash.askQuestion':"Hacer la pregunta",'dash.towards':"hacia «{nom}»",
 'blocks.title':"Límites y bloqueos",'blocks.desc':"Palabras clave sensibles y límite de precio: la pausa de 24 h se impone al comprar, y la extensión de Chrome <strong>difumina los productos</strong> correspondientes. Se sincroniza automáticamente con la extensión cuando visitas esta página.",'blocks.empty':"Ninguna palabra clave bloqueada todavía. Añade lo que te hace caer.",'blocks.kwPh':"Ej.: zapatillas, gaming, vinted…",'blocks.block':"Bloquear",'blocks.pauseAbove':"Pausa obligatoria por encima de",'blocks.active':"Activo",'blocks.removeAria':"Quitar {mot}",
@@ -959,7 +960,7 @@ de:{ui:{
 'pay.alreadyPremium':"Dein Premium-Abo ist bereits aktiv.",'pay.needAccount':"Erstelle dein Konto, um Premium zu holen.",'pay.welcome':"Willkommen bei Premium ✨",'pay.demoSuffix':" (Demo-Modus)",'pay.confirmed':"Zahlung bestätigt — willkommen bei Premium ✨",'pay.canceled':"Zahlung abgebrochen — du bleibst kostenlos.",'pay.failed':"Die Zahlung konnte nicht starten. Versuche es gleich noch einmal.",
 'onb.needIncome':"Gib dein monatliches Einkommen an, um fortzufahren.",'onb.needRent':"Gib Miete und Nebenkosten an (0, wenn keine).",'onb.needFreq':"Wähle eine Häufigkeit, um fortzufahren.",'onb.needGoal':"Gib deinem Ziel einen Namen und einen Betrag.",'onb.profileUpdated':"Profil aktualisiert",'onb.profileCreated':"Profil erstellt — 20 Kerben zur Begrüßung!",
 'block.added':"„{mot}“ ist jetzt blockiert",'block.removed':"„{mot}“ freigegeben",'ext.confirmed':"+{total} € bestätigt — 24 h durchgehalten ✨",'victory.saved':"+{price} € behalten, +{crans}!",'shop.unlocked':"Gegenstand freigeschaltet!",'shop.themeApplied':"Design übernommen",'shop.avatarUpdated':"Avatar aktualisiert",'auth.signedOut':"Abgemeldet.",'when.today':"Heute",'meta.title':"Worthit — Kauf weniger. Leb besser.",'when.yesterday':"Gestern",
-'nav.settings':"Einstellungen",'common.back':"Zurück",'common.continue':"Weiter",'common.apply':"Anwenden",'common.shop':"Shop",'about.h2':"Der einzige Assistent, der gewinnt, wenn du nicht kaufst",'tarifs.unlockCta':"Freischalten — 4,99 €/Monat",
+'nav.settings':"Einstellungen",'common.back':"Zurück",'common.continue':"Weiter",'common.apply':"Anwenden",'common.shop':"Shop",'about.s1t':"Die Idee",'about.s1d':"Keine Shopping-KI steht auf der Seite des Käufers. Worthit schon.",'about.s2t':"Das Produkt",'about.s2d':"Erweiterung und Dashboard. Die KI fragt genau im Moment des Zweifels.",'about.s3t':"Die Community",'about.s3d':"Die No-Buy-Bewegung gibt es längst. Worthit gibt ihr das Werkzeug.",'about.s4t':"Das Modell",'about.s4d':"Kostenlos zum Ausprobieren. Premium, 4,99 €/Monat, für den Agenten, der dich wirklich kennt.",'about.stat1':"Pause",'about.stat2':"pro Monat mit Premium",'about.stat3':"auf Käuferseite",'demo.eyebrow':"So funktioniert es",'demo.h2':"30 Sekunden, um alles zu verstehen.",'demo.sub':"Die Pause beim Kauf, der Agent, der nachfragt, das Sperren per Stichwort und deine wachsenden Ersparnisse.",'demo.silent':"Video ohne Ton — alles ist untertitelt.",'demo.play':"Demo abspielen",'about.h2':"Der einzige Assistent, der gewinnt, wenn du nicht kaufst",'tarifs.unlockCta':"Freischalten — 4,99 €/Monat",
 'onb.s1':"Deine Situation",'onb.s2':"Dein Einkommen",'onb.s3':"Deine Fixkosten",'onb.s4':"Deine Gewohnheiten",'onb.s5':"Dein Ziel",'onb.step':"Schritt {n} / 5",'onb.fonctionPh':"Dein Beruf (z. B. Pflegekraft, Entwickler…)",'onb.incomePh':"Monatliches Nettoeinkommen (€)",'onb.rentPh':"Miete (€)",'onb.chargesPh':"Fixkosten und Abos (€)",'onb.weaknessQ':"Wobei wirst du schwach? Worthy nutzt das, um dir die richtigen Fragen zu stellen.",'onb.freqQ':"Wie oft gibst du einem ungeplanten Kauf nach?",'onb.goalQ':"Wofür sparst du? Jeder Kauf, dem du widerstehst, bringt dieses Ziel voran.",'onb.goalNamePh':"Dein Ziel (z. B. Reise, Führerschein…)",'onb.goalTargetPh':"Zielbetrag (€)",'onb.createDash':"Mein Dashboard erstellen",'onb.localOnly':"Nur auf deinem Gerät gespeichert. Keine Bankverbindung.",
 'dash.needTitle':"Dein Dashboard wartet",'dash.needDesc':"Richte dein Profil in 2 Minuten ein — Einkommen, Fixkosten, Ziel — und alles hier zeigt DEINE Zahlen, nicht die einer Demo.",'dash.createProfile':"Mein Profil erstellen",'dash.quizFirst':"Erst das Intro-Quiz machen",'dash.eyebrow':"Dashboard",'dash.eyebrowPerso':"Persönliches Dashboard",'dash.hello':"Hallo {nom} 👋",'dash.glance':"Dein Monat auf einen Blick",'dash.streakDayOne':"{n} Tag",'dash.streakDays':"{n} Tage",'dash.left':"Bleibt diesen Monat",'dash.saved':"Durch Widerstehen gespart",'dash.split':"Budget-Aufteilung",'dash.rent':"Miete",'dash.charges':"Fixkosten",'dash.available':"Verfügbar",'dash.unlockTitle':"Schalte dein volles Dashboard frei",'dash.unlockDesc':"Persönlicher KI-Agent, mehrere Ziele, Belohnungen, Sparrechner und Turniere unter Freunden.",'dash.shopFree':"Shop (kostenlos)",'dash.weekTitle':"Deine Woche des Widerstands",'dash.weekKept':"{n} € behalten",'dash.weekEmpty':"Jeder Kauf, dem du widerstehst, erscheint hier. Frag Worthy, wenn die Lust kommt.",'dash.victories':"Letzte Erfolge",'dash.victoriesEmpty':"Noch kein Erfolg eingetragen. Wenn du das erste Mal auf einen Kauf verzichtest, trag ihn hier ein — das ist der Anfang deiner Serie. 🔥",'dash.iResisted':"Ich habe einem Kauf widerstanden",'dash.goals':"Deine Ziele",'dash.rewards':"Belohnungen",'dash.spendShop':"Gib deine {monnaie} im Shop aus",'dash.aiAgent':"Persönlicher KI-Agent",'dash.askQuestion':"Die Frage stellen",'dash.towards':"für „{nom}“",
 'blocks.title':"Grenzen und Sperren",'blocks.desc':"Heikle Stichwörter und eine Preisgrenze: Die 24-Stunden-Pause greift beim Kauf, und die Chrome-Erweiterung <strong>verwischt passende Produkte</strong>. Wird automatisch mit der Erweiterung synchronisiert, wenn du diese Seite besuchst.",'blocks.empty':"Noch kein Stichwort gesperrt. Trag ein, wobei du schwach wirst.",'blocks.kwPh':"z. B. Sneaker, Gaming, Vinted…",'blocks.block':"Sperren",'blocks.pauseAbove':"Pflichtpause ab",'blocks.active':"Aktiv",'blocks.removeAria':"{mot} entfernen",
@@ -1031,7 +1032,7 @@ nl:{ui:{
 'pay.alreadyPremium':"Je Premium-abonnement is al actief.",'pay.needAccount':"Maak je account aan om Premium te nemen.",'pay.welcome':"Welkom bij Premium ✨",'pay.demoSuffix':" (demomodus)",'pay.confirmed':"Betaling bevestigd — welkom bij Premium ✨",'pay.canceled':"Betaling geannuleerd — je blijft op Gratis.",'pay.failed':"De betaling kon niet starten. Probeer het zo meteen opnieuw.",
 'onb.needIncome':"Vul je maandinkomen in om verder te gaan.",'onb.needRent':"Vul je huur en vaste lasten in (0 als je die niet hebt).",'onb.needFreq':"Kies een frequentie om verder te gaan.",'onb.needGoal':"Geef je doel een naam en een bedrag.",'onb.profileUpdated':"Profiel bijgewerkt",'onb.profileCreated':"Profiel aangemaakt — 20 welkomstkerven!",
 'block.added':"‘{mot}’ is nu geblokkeerd",'block.removed':"‘{mot}’ gedeblokkeerd",'ext.confirmed':"+{total} € bevestigd — 24 u volgehouden ✨",'victory.saved':"+{price} € bewaard, +{crans}!",'shop.unlocked':"Item vrijgespeeld!",'shop.themeApplied':"Thema toegepast",'shop.avatarUpdated':"Avatar bijgewerkt",'auth.signedOut':"Uitgelogd.",'when.today':"Vandaag",'meta.title':"Worthit — Koop minder. Leef beter.",'when.yesterday':"Gisteren",
-'nav.settings':"Instellingen",'common.back':"Terug",'common.continue':"Doorgaan",'common.apply':"Toepassen",'common.shop':"Winkel",'about.h2':"De enige assistent die wint als jij niet koopt",'tarifs.unlockCta':"Ontgrendelen — € 4,99/maand",
+'nav.settings':"Instellingen",'common.back':"Terug",'common.continue':"Doorgaan",'common.apply':"Toepassen",'common.shop':"Winkel",'about.s1t':"Het idee",'about.s1d':"Geen enkele shopping-AI staat aan de kant van de koper. Worthit wel.",'about.s2t':"Het product",'about.s2d':"Extensie en dashboard. De AI vraagt precies op het moment van twijfel.",'about.s3t':"De community",'about.s3d':"De no-buy-beweging bestaat al. Worthit geeft haar het gereedschap.",'about.s4t':"Het model",'about.s4d':"Gratis om te proberen. Premium, € 4,99/maand, voor de agent die je echt kent.",'about.stat1':"pauze",'about.stat2':"per maand met Premium",'about.stat3':"aan koperskant",'demo.eyebrow':"Hoe het werkt",'demo.h2':"30 seconden om alles te begrijpen.",'demo.sub':"De pauze bij het afrekenen, de agent die vraagt, blokkeren op trefwoord en je groeiende besparingen.",'demo.silent':"Video zonder geluid — alles is ondertiteld.",'demo.play':"Demo afspelen",'about.h2':"De enige assistent die wint als jij niet koopt",'tarifs.unlockCta':"Ontgrendelen — € 4,99/maand",
 'onb.s1':"Jouw situatie",'onb.s2':"Je inkomen",'onb.s3':"Je vaste lasten",'onb.s4':"Je gewoontes",'onb.s5':"Je doel",'onb.step':"Stap {n} / 5",'onb.fonctionPh':"Je functie / je beroep (bijv. verpleegkundige, developer…)",'onb.incomePh':"Netto maandinkomen (€)",'onb.rentPh':"Huur (€)",'onb.chargesPh':"Vaste lasten en abonnementen (€)",'onb.weaknessQ':"Waar ga je voor de bijl? Worthy gebruikt dat om je de juiste vragen te stellen.",'onb.freqQ':"Hoe vaak zwicht je voor een ongeplande aankoop?",'onb.goalQ':"Waarvoor spaar je? Elke aankoop die je weerstaat brengt dit doel dichterbij.",'onb.goalNamePh':"Je doel (bijv. Reis, Rijbewijs…)",'onb.goalTargetPh':"Streefbedrag (€)",'onb.createDash':"Mijn dashboard maken",'onb.localOnly':"Alleen op je eigen apparaat opgeslagen. Geen bankkoppeling.",
 'dash.needTitle':"Je dashboard wacht op je",'dash.needDesc':"Stel je profiel in 2 minuten in — inkomen, lasten, doel — en alles hier toont JOUW cijfers, niet die van een demo.",'dash.createProfile':"Mijn profiel maken",'dash.quizFirst':"Eerst de introquiz doen",'dash.eyebrow':"Dashboard",'dash.eyebrowPerso':"Persoonlijk dashboard",'dash.hello':"Hallo {nom} 👋",'dash.glance':"Je maand in één oogopslag",'dash.streakDayOne':"{n} dag",'dash.streakDays':"{n} dagen",'dash.left':"Over deze maand",'dash.saved':"Bespaard door te weerstaan",'dash.split':"Verdeling van je budget",'dash.rent':"Huur",'dash.charges':"Lasten",'dash.available':"Beschikbaar",'dash.unlockTitle':"Ontgrendel je volledige dashboard",'dash.unlockDesc':"Persoonlijke AI-agent, meerdere doelen, beloningen, spaarsimulator en toernooien met vrienden.",'dash.shopFree':"Winkel (gratis)",'dash.weekTitle':"Jouw week van weerstand",'dash.weekKept':"€ {n} bewaard",'dash.weekEmpty':"Elke aankoop die je weerstaat verschijnt hier. Vraag het Worthy als de drang opkomt.",'dash.victories':"Laatste overwinningen",'dash.victoriesEmpty':"Nog geen overwinning genoteerd. De eerste keer dat je een aankoop laat lopen, zet je hem hier — dat is het begin van je reeks. 🔥",'dash.iResisted':"Ik heb een aankoop weerstaan",'dash.goals':"Je doelen",'dash.rewards':"Beloningen",'dash.spendShop':"Geef je {monnaie} uit in de winkel",'dash.aiAgent':"Persoonlijke AI-agent",'dash.askQuestion':"De vraag stellen",'dash.towards':"naar ‘{nom}’",
 'blocks.title':"Grenzen en blokkades",'blocks.desc':"Gevoelige trefwoorden en een prijsdrempel: de pauze van 24 uur geldt bij het afrekenen, en de Chrome-extensie <strong>vervaagt bijpassende producten</strong>. Wordt automatisch met de extensie gesynchroniseerd als je deze pagina bezoekt.",'blocks.empty':"Nog geen trefwoord geblokkeerd. Voeg toe waar jij voor zwicht.",'blocks.kwPh':"Bijv. sneakers, gaming, vinted…",'blocks.block':"Blokkeren",'blocks.pauseAbove':"Verplichte pauze boven",'blocks.active':"Actief",'blocks.removeAria':"{mot} verwijderen",
@@ -1315,6 +1316,7 @@ function render(scrollTop){
 function mount(){
   initReveal();
   initTilt(document);
+  initVideoDemo();
 }
 
 /* ============================== NAVBAR / FOOTER ============================== */
@@ -1436,7 +1438,7 @@ function HeroScene(){
         <span class="tabular" style="font-size:15px;font-weight:800;color:#fff;font-family:var(--font-d);">149 €</span>
       </div>
       <div style="display:flex;gap:10px;margin-bottom:14px;">
-        <div class="agent-avatar" style="width:30px;height:30px;flex-shrink:0;">${I('brain',14)}</div>
+        <div class="agent-avatar" style="width:30px;height:30px;flex-shrink:0;">${I('worthy',14)}</div>
         <div style="background:rgba(167,139,250,.09);border:1px solid rgba(167,139,250,.22);border-radius:13px;border-top-left-radius:5px;padding:11px 13px;">
           <p style="font-size:12.8px;line-height:1.55;color:#fff;margin:0;">${t('mock.msg')}</p>
         </div>
@@ -1462,7 +1464,7 @@ function pageIntro(){
     return `<section style="min-height:100vh;display:flex;align-items:center;background:radial-gradient(800px 500px at 50% 15%,rgba(124,58,237,.1),transparent 60%),var(--void);padding:110px 24px 80px;">
       <div class="container" style="max-width:520px;">
         <div style="display:flex;justify-content:center;margin-bottom:26px;">
-          <div class="agent-avatar" style="width:64px;height:64px;">${I('brain',28)}</div>
+          <div class="agent-avatar" style="width:64px;height:64px;">${I('worthy',28)}</div>
         </div>
         <div style="display:flex;flex-direction:column;gap:12px;">
           <div class="intro-bubble" style="animation-delay:.15s;">${t('intro.score',{s:quiz.score,n:QUIZ.length})} ${quiz.score>=3?t('intro.praiseHigh'):t('intro.praiseLow')}</div>
@@ -1553,7 +1555,56 @@ function pageAccueil(){
         ${HeroScene()}
       </div>
     </div>
+  </section>
+  ${SectionDemo()}`;
+}
+
+/* Démonstration vidéo, en bas de l'accueil. `preload="none"` : le fichier (~1,7 Mo) n'est
+ * téléchargé qu'au moment de la lecture, donc personne ne le paie s'il ne descend jamais
+ * jusque-là. L'affiche, elle, est une image déjà servie par le site — elle n'a pas le même
+ * format que la vidéo, d'où le 16/9 imposé : sans lui, le bloc change de hauteur au
+ * démarrage de la lecture et toute la page saute. */
+function SectionDemo(){
+  return `<section class="section" id="demo" style="background:radial-gradient(900px 600px at 50% 0%,rgba(124,58,237,.10),transparent 62%),var(--deep);">
+    <div class="container" style="max-width:1000px;">
+      <div class="reveal center" style="max-width:620px;margin:0 auto 38px;">
+        <p class="eyebrow">${esc(t('demo.eyebrow'))}</p>
+        <h2 class="h2">${esc(t('demo.h2'))}</h2>
+        <p class="lede" style="margin-top:14px;">${esc(t('demo.sub'))}</p>
+      </div>
+      <div class="reveal glass" style="border-radius:22px;padding:10px;">
+        <video id="demo-video" controls muted loop playsinline preload="none" src="/press/worthit-demo.mp4"
+          poster="/press/ph-1-pause.png" aria-label="${esc(t('demo.play'))}"
+          style="display:block;width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:14px;background:#08050f;"></video>
+      </div>
+      <p class="center" style="font-size:12.5px;color:var(--ink-faint);margin:14px 0 0;">
+        ${esc(t('demo.silent'))}
+      </p>
+    </div>
   </section>`;
+}
+
+/* Lance la vidéo quand la section entre dans le champ de vision, la met en pause quand elle
+ * en sort. Pur confort : sans IntersectionObserver, ou si l'utilisateur a demandé moins
+ * d'animations, la vidéo reste simplement lisible via ses propres contrôles. */
+let observateurVideo = null;
+function initVideoDemo(){
+  const v = document.getElementById('demo-video');
+  if(!v || v.dataset.pret) return;
+  v.dataset.pret = '1';
+  if(observateurVideo){ observateurVideo.disconnect(); observateurVideo = null; }
+  // L'observateur ne sert qu'au confort : lancer la lecture quand la section arrive à
+  // l'écran, la suspendre quand elle en sort. La vidéo reste lisible sans lui.
+  if(typeof IntersectionObserver !== 'function' || REDUCED) return;
+  // La référence est conservée volontairement : un IntersectionObserver créé à la volée,
+  // sans variable qui le retienne, peut être ramassé avant même son premier déclenchement.
+  observateurVideo = new IntersectionObserver((entrees) => {
+    for(const e of entrees){
+      if(e.isIntersecting){ v.play().catch(()=>{}); }
+      else if(!v.paused){ v.pause(); }
+    }
+  }, {threshold:0.4});
+  observateurVideo.observe(v);
 }
 
 function pageFonctionnalites(){
@@ -2047,12 +2098,7 @@ function setShowcaseFilter(f){
 }
 
 function pageApropos(){
-  const timeline = [
-    {step:"L'idée",text:"Aucune IA shopping n'est du côté de l'acheteur. Worthit, si."},
-    {step:'Le produit',text:"Extension et dashboard. L'IA questionne au moment exact du doute."},
-    {step:'La communauté',text:"Le mouvement no-buy existe déjà. Worthit lui donne l'outil."},
-    {step:'Le modèle',text:"Gratuit pour t'essayer. Premium, 4,99 €/mois, pour l'agent qui te connaît vraiment."},
-  ];
+  const timeline = [1, 2, 3, 4].map((n) => ({step: t('about.s' + n + 't'), text: t('about.s' + n + 'd')}));
   return `<section class="section" style="min-height:100vh;background:radial-gradient(800px 500px at 80% 85%,rgba(124,58,237,.07),transparent 60%),var(--void);">
     <div class="container" style="max-width:820px;">
       <div class="reveal center" style="max-width:520px;margin-bottom:60px;">
@@ -2060,7 +2106,7 @@ function pageApropos(){
         <h2 class="h2">${esc(t('about.h2'))}</h2>
       </div>
       <div class="reveal" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:70px;">
-        ${[{end:24,suffix:' h',label:'de pause'},{end:4.99,suffix:' €',dec:2,label:'par mois en Premium'},{end:100,suffix:' %',label:'côté acheteur'}].map(s=>`
+        ${[{end:24,suffix:' h',label:t('about.stat1')},{end:4.99,suffix:' €',dec:2,label:t('about.stat2')},{end:100,suffix:' %',label:t('about.stat3')}].map(s=>`
           <div class="glass stat-tile">
             <p class="tabular grad-text" style="font-size:30px;font-weight:800;margin:0 0 6px;font-family:var(--font-d);" data-countup="${s.end}" data-suffix="${s.suffix}" data-dec="${s.dec||0}">0</p>
             <p style="font-size:12.5px;color:var(--ink-dim);margin:0;">${esc(s.label)}</p>
@@ -2068,10 +2114,10 @@ function pageApropos(){
       </div>
       <div style="position:relative;padding-left:30px;">
         <div style="position:absolute;left:7px;top:6px;bottom:6px;width:1px;background:linear-gradient(180deg,var(--v1),transparent);"></div>
-        ${timeline.map((t,i)=>`<div class="reveal" style="position:relative;margin-bottom:${i===timeline.length-1?0:36}px;transition-delay:${i*80}ms;">
+        ${timeline.map((etape,i)=>`<div class="reveal" style="position:relative;margin-bottom:${i===timeline.length-1?0:36}px;transition-delay:${i*80}ms;">
           <span style="position:absolute;left:-27px;top:5px;width:8px;height:8px;border-radius:50%;background:var(--grad);"></span>
-          <h3 style="font-size:16px;font-weight:700;color:#fff;margin:0 0 6px;">${esc(t.step)}</h3>
-          <p style="font-size:14px;line-height:1.6;color:var(--ink-dim);margin:0;max-width:520px;">${esc(t.text)}</p>
+          <h3 style="font-size:16px;font-weight:700;color:#fff;margin:0 0 6px;">${esc(etape.step)}</h3>
+          <p style="font-size:14px;line-height:1.6;color:var(--ink-dim);margin:0;max-width:520px;">${esc(etape.text)}</p>
         </div>`).join('')}
       </div>
     </div>
@@ -2560,9 +2606,9 @@ function pageDashboard(){
         </button>
       </div>
       <div class="glass reveal" style="border-radius:18px;padding:22px 20px;margin-bottom:16px;">
-        <p style="font-size:13px;font-weight:700;color:#fff;margin:0 0 4px;display:flex;align-items:center;gap:7px;">${I('brain',15)} ${esc(t('dash.aiAgent'))}</p>
+        <p style="font-size:13px;font-weight:700;color:#fff;margin:0 0 4px;display:flex;align-items:center;gap:7px;">${I('worthy',15)} ${esc(t('dash.aiAgent'))}</p>
         <p style="font-size:12.5px;color:var(--ink-dim);margin:0 0 14px;">${esc(t('demo.product'))} — ${DEMO_PRODUCT.price} €</p>
-        <div id="demo-question-box">${state.demoQuestion ? `<div style="background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.25);border-radius:12px;padding:14px 16px;"><p style="font-size:14px;line-height:1.55;color:#fff;margin:0;">${esc(state.demoQuestion)}</p></div>` : `<button onclick="runDemoQuestion()" class="btn btn-neon btn-sm">${I('brain',15)} ${esc(t('dash.askQuestion'))}</button>`}</div>
+        <div id="demo-question-box">${state.demoQuestion ? `<div style="background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.25);border-radius:12px;padding:14px 16px;"><p style="font-size:14px;line-height:1.55;color:#fff;margin:0;">${esc(state.demoQuestion)}</p></div>` : `<button onclick="runDemoQuestion()" class="btn btn-neon btn-sm">${I('worthy',15)} ${esc(t('dash.askQuestion'))}</button>`}</div>
       </div>
       ${SavingsSimulator()}
       <div style="margin-top:20px;">
@@ -2614,7 +2660,7 @@ function featureDemoHtml(i){
   if(i===0) return box(`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;"><span class="filter-pill active">sneakers ✕</span><span class="filter-pill active">gaming ✕</span><span class="filter-pill">+</span></div><p style="font-size:12px;color:var(--ink-faint);margin:0;">${esc(t('demo.pauseAbove'))} <strong style="color:#fff;">80 €</strong></p>`);
   if(i===1) return box(`<div style="display:flex;align-items:center;gap:12px;"><span style="color:var(--v1);display:flex;">${I('flame',26)}</span><div><p style="font-size:18px;font-weight:800;color:#fff;margin:0;font-family:var(--font-d);">12 jours</p><div style="display:flex;gap:4px;margin-top:6px;">${Array.from({length:7},(_,d)=>`<span style="width:14px;height:5px;border-radius:3px;background:${d<5?'var(--grad)':'rgba(255,255,255,.1)'};"></span>`).join('')}</div></div></div>`);
   if(i===2) return box(`<div style="display:flex;height:9px;border-radius:5px;overflow:hidden;margin-bottom:8px;"><div style="width:39%;background:var(--v2);"></div><div style="width:16%;background:var(--v1);"></div><div style="width:45%;background:rgba(255,255,255,.12);"></div></div><p style="font-size:12px;color:var(--ink-faint);margin:0;">Loyer 39% · Charges 16% · <strong style="color:#fff;">Disponible 45%</strong></p>`);
-  if(i===3) return box(`<div style="display:flex;gap:9px;"><div class="agent-avatar" style="width:26px;height:26px;flex-shrink:0;">${I('brain',12)}</div><p style="font-size:12.5px;line-height:1.55;color:#fff;margin:0;background:rgba(167,139,250,.09);border:1px solid rgba(167,139,250,.2);border-radius:11px;border-top-left-radius:4px;padding:9px 11px;">${esc(t('demo.aiMsg'))}</p></div>`);
+  if(i===3) return box(`<div style="display:flex;gap:9px;"><div class="agent-avatar" style="width:26px;height:26px;flex-shrink:0;">${I('worthy',12)}</div><p style="font-size:12.5px;line-height:1.55;color:#fff;margin:0;background:rgba(167,139,250,.09);border:1px solid rgba(167,139,250,.2);border-radius:11px;border-top-left-radius:4px;padding:9px 11px;">${esc(t('demo.aiMsg'))}</p></div>`);
   if(i===4) return box(`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"><div><p style="font-size:11px;color:var(--ink-faint);margin:0 0 3px;">${esc(t('demo.saved'))}</p><p class="grad-text" style="font-size:17px;font-weight:800;margin:0;font-family:var(--font-d);">612 €</p></div><div><p style="font-size:11px;color:var(--ink-faint);margin:0 0 3px;">${esc(t('demo.goal'))}</p><p style="font-size:17px;font-weight:800;color:#fff;margin:0;font-family:var(--font-d);">34 %</p></div></div>`);
   return box(['🥇 Léa — 42 €','🥈 Toi — 31 €','🥉 Tom — 18 €'].map((r,j)=>`<p style="font-size:12.5px;color:${j===1?'#fff':'var(--ink-dim)'};margin:${j<2?'0 0 7px':'0'};font-weight:${j===1?'700':'400'};">${r}</p>`).join(''));
 }
@@ -3567,7 +3613,7 @@ function renderAgent(){
   root.innerHTML = `
     ${agent.open ? `<div class="agent-panel" id="agent-panel" role="dialog" aria-label="Assistant Worthy">
       <div class="agent-head">
-        <div class="agent-avatar">${I('brain',19)}</div>
+        <div class="agent-avatar">${I('worthy',19)}</div>
         <div style="flex:1;min-width:0;">
           <p style="font-size:14.5px;font-weight:700;color:#fff;margin:0;display:flex;align-items:center;gap:7px;">Worthy ${state.isPremium?`<span class="badge-premium">${I('crown',9)} Premium</span>`:''}</p>
           <p style="font-size:11px;color:var(--ink-dim);margin:2px 0 0;"><span class="agent-status-dot"></span>${statusLine}</p>
@@ -3587,7 +3633,7 @@ function renderAgent(){
           </div>`}
     </div>`:''}
     <button class="agent-fab" onclick="toggleAgent()" aria-label="${agent.open?'Fermer l’assistant':'Ouvrir l’assistant Worthy'}" aria-expanded="${agent.open}">
-      <span class="fab-icon ${agent.open?'hidden-icon':''}">${I('brain',24,1.6)}</span>
+      <span class="fab-icon ${agent.open?'hidden-icon':''}">${I('worthy',24,1.6)}</span>
       <span class="fab-icon ${agent.open?'':'hidden-icon'}">${I('x',22,1.9)}</span>
       ${limited?`<span class="fab-lock">${I('crown',9)} PRO</span>`:''}
     </button>`;

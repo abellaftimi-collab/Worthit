@@ -54,6 +54,9 @@ if (!CHROME) { console.error('Chrome/Edge introuvable (CHROME_PATH=…)'); proce
 
 /* ------------------------------------------------------------------------ constantes */
 const L = 1920, H = 1080, FPS = 30;
+/* Rythme global. 1 = les durées de scènes telles qu'écrites ; 1.5 accélère d'un tiers,
+ * ce qui rend le film nettement plus nerveux sans rien retirer du propos. */
+const VITESSE = 1.5;
 
 const C = {
   fond: '#08050f', vide: '#050308', encre: '#f6f3fb',
@@ -364,15 +367,15 @@ const scenes = [
   } },
 ];
 
-const DUREE = scenes.reduce((s, sc) => s + sc.duree, 0);
+const DUREE = scenes.reduce((s, sc) => s + sc.duree, 0) / VITESSE;
 const TOTAL = Math.round(DUREE * FPS);
 
 /* Repère la scène courante et la progression locale à partir du numéro de frame. */
 function etat(f) {
   let debut = 0;
   for (const sc of scenes) {
-    const fin = debut + sc.duree * FPS;
-    if (f < fin) return { sc, t: (f - debut) / (sc.duree * FPS) };
+    const fin = debut + (sc.duree / VITESSE) * FPS;
+    if (f < fin) return { sc, t: (f - debut) / ((sc.duree / VITESSE) * FPS) };
     debut = fin;
   }
   const last = scenes[scenes.length - 1];
@@ -420,13 +423,13 @@ const APERCU = process.argv.includes('--preview');
     for (let i = 0; i < scenes.length; i++) {
       // Deux instants par scène : au tiers (animations en cours) et vers la fin (état final).
       for (const [nom, part] of [['a', 0.34], ['b', 0.88]]) {
-        const f = Math.round(debut + scenes[i].duree * FPS * part);
+        const f = Math.round(debut + (scenes[i].duree / VITESSE) * FPS * part);
         await ong.setContent(pageDe(f), { waitUntil: 'load' });
         const dest = path.join(dossier, `scene${i + 1}${nom}.png`);
         await ong.screenshot({ path: dest });
         console.log(path.basename(dest), `(frame ${f})`);
       }
-      debut += scenes[i].duree * FPS;
+      debut += (scenes[i].duree / VITESSE) * FPS;
     }
     await nav.close();
     console.log('\naperçus dans', dossier);

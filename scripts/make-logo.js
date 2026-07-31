@@ -125,7 +125,19 @@ rendre('presentation-1600x900', 1600, 900, `<div style="display:flex;flex-direct
     background-clip:text;color:transparent;padding-bottom:6px">Buy less. Live more.</p>
 </div>`, HALOS('1100px 760px', '700px 560px'));
 
-/* 6 et 7. Les deux tuiles promotionnelles du Chrome Web Store, aux dimensions imposées.
+/* 6. L'icône de la FICHE Chrome Web Store — à ne pas confondre avec extension/icon128.png,
+ *    qui s'affiche dans la barre d'outils et a raison d'y occuper presque tout le carré.
+ *    Ici Google attend un dessin de 96x96 centré dans 128x128 : la marge de 16 px sert à
+ *    l'ombre et au cadre que le store ajoute lui-même. Sans elle, l'icône paraît plus
+ *    grosse que celle des voisines dans la grille.
+ *
+ *    109 et non 96 : dans son gabarit de 100, le disque va de 6 à 94, il n'en occupe donc
+ *    que 88 %. Rendu à 96 px, l'encre n'en mesurerait que 86 et l'icône paraîtrait perdue
+ *    au milieu du carré. 96 ÷ 0,88 ≈ 109 donne un dessin qui mesure vraiment 96. */
+rendre('store-icone-128', 128, 128, `<div style="display:grid;place-items:center;width:128px;height:128px">
+  ${MARQUE(109, false)}</div>`);
+
+/* 7 et 8. Les deux tuiles promotionnelles du Chrome Web Store, aux dimensions imposées.
  *         Composition décentrée : la fiche affiche du texte par-dessus la marquee. */
 rendre('store-tuile-440x280', 440, 280, `<div style="display:flex;flex-direction:column;
   align-items:center;gap:16px">${LOCKUP(64, true)}

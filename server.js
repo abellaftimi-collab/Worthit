@@ -1211,30 +1211,126 @@ app.post('/api/chat', route(async (req, res) => {
  * Tout ce qui n'est pas dans cette liste répond un vrai 404. Avant, n'importe quelle adresse
  * renvoyait l'accueil avec un code 200 : Google indexait des pages fantômes, et une faute de
  * frappe dans un lien partagé n'avertissait jamais personne. */
-const CHEMINS_CONNUS = (() => {
+const INDEX = path.join(__dirname, 'public', 'index.html');
+const SITE = 'https://worthits.com';
+/* Le français reste sans préfixe ? Non : l'anglais est la langue par défaut de l'app, donc
+ * les adresses nues (/tarifs) sont la version anglaise et servent aussi de `x-default`. */
+const LANGUES_PREFIXEES = ['fr', 'es', 'de', 'nl'];
+const OG_LOCALE = { en: 'en_US', fr: 'fr_FR', es: 'es_ES', de: 'de_DE', nl: 'nl_NL' };
+
+/* Tout ce qui suit est relu dans public/index.html au démarrage : les routes et les
+ * traductions y sont déjà déclarées pour le client. Entretenir une seconde copie ici
+ * garantirait qu'un jour les deux divergent — une page ajoutée marcherait en navigation
+ * interne et répondrait 404 au premier partage de lien, un titre traduit d'un côté
+ * resterait anglais de l'autre. */
+const SEO = (() => {
   try {
-    const html = require('fs').readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
-    const bloc = html.slice(html.indexOf('const ROUTES = {'));
-    const routes = bloc.slice(0, bloc.indexOf('};'));
+    const html = require('fs').readFileSync(INDEX, 'utf8');
+
+    const blocRoutes = html.slice(html.indexOf('const ROUTES = {'));
+    const routes = blocRoutes.slice(0, blocRoutes.indexOf('};'));
     const chemins = [...routes.matchAll(/'(\/[a-z-]*)'/g)].map((m) => m[1]);
     if (!chemins.length) throw new Error('aucune route trouvée');
-    return new Set(chemins);
+
+    /* Les pages privées ne doivent pas se retrouver dans l'index de Google : personne ne
+     * peut les voir sans compte, et elles n'ont aucun contenu à référencer. */
+    const PRIVEES = new Set(['/dashboard', '/parametres', '/boutique', '/connexion']);
+
+    const lire = (cle, langue) => {
+      // On cherche la clé DANS le bloc de la langue voulue, pas la première occurrence.
+      const debut = html.indexOf('\n' + langue + ':{ui:{');
+      if (debut === -1) return null;
+      const bloc = html.slice(debut, html.indexOf('\n},', debut));
+      const m = bloc.match(new RegExp("'" + cle.replace('.', '\\.') + "':\"([^\"]*)\""));
+      return m ? m[1] : null;
+    };
+
+    const langues = {};
+    for (const lg of ['en', ...LANGUES_PREFIXEES]) {
+      const titre = lire('meta.title', lg), desc = lire('meta.desc', lg);
+      if (!titre || !desc) throw new Error('titre ou description manquant pour ' + lg);
+      langues[lg] = { titre, desc, nav: {
+        '/fonctionnalites': lire('nav.features', lg), '/tarifs': lire('nav.pricing', lg),
+        '/tournois': lire('nav.tournaments', lg), '/decouvrir': lire('nav.showcase', lg),
+        '/a-propos': lire('nav.about', lg),
+      } };
+    }
+    return { html, chemins: new Set(chemins), publics: chemins.filter((c) => !PRIVEES.has(c)), langues };
   } catch (err) {
-    console.error('[routes] lecture impossible, tous les chemins seront servis :', err.message);
-    return null; // on ne casse pas le site pour ça : sans liste, on sert comme avant
+    console.error('[seo] lecture impossible, les en-têtes resteront ceux du fichier :', err.message);
+    return null; // on ne casse pas le site pour ça : sans table, on sert le fichier tel quel
   }
 })();
+
+/* Fabrique l'en-tête propre à une page et à une langue. Trois choses s'y jouent :
+ *  - le titre et la description dans la bonne langue ;
+ *  - le `canonical` de CETTE page. Il était figé sur l'accueil, donc /tarifs déclarait
+ *    l'accueil comme sa version de référence : Google était explicitement invité à ne pas
+ *    l'indexer. Toutes les pages sauf une étaient ainsi écartées ;
+ *  - les `hreflang`, qui relient les cinq versions d'une même page. Sans eux, les quatre
+ *    langues préfixées passent pour du contenu dupliqué. */
+function pageHtml(chemin, langue) {
+  if (!SEO) return null;
+  /* Le fichier est lu une fois au démarrage : en production, un déploiement relance le
+   * processus, donc la copie en mémoire est toujours à jour. En développement elle ne le
+   * serait pas — on relit alors à chaque requête, sinon toute modification de la page
+   * resterait invisible jusqu'au prochain redémarrage, ce qui se paie en heures perdues. */
+  if (process.env.NODE_ENV !== 'production') {
+    try { SEO.html = require('fs').readFileSync(INDEX, 'utf8'); } catch (err) { /* on garde la copie */ }
+  }
+  const L = SEO.langues[langue] || SEO.langues.en;
+  const url = (lg) => SITE + (lg === 'en' ? '' : '/' + lg) + (chemin === '/' ? '/' : chemin);
+  const nav = L.nav[chemin];
+  const titre = nav ? nav + ' — Worthit' : L.titre;
+
+  const alternates = ['en', ...LANGUES_PREFIXEES]
+    .map((lg) => `<link rel="alternate" hreflang="${lg}" href="${url(lg)}">`)
+    .join('\n') + `\n<link rel="alternate" hreflang="x-default" href="${url('en')}">`;
+
+  /* Les métadonnées de partage suivent la page ET la langue. Sans ça, un lien vers
+   * /fr/tarifs partagé sur un réseau social affichait l'adresse de l'accueil, avec un titre
+   * anglais — et la langue courante se retrouvait listée à la fois comme principale et
+   * comme alternative. */
+  const localesOG = [`<meta property="og:locale" content="${OG_LOCALE[langue]}">`]
+    .concat(['en', ...LANGUES_PREFIXEES]
+      .filter((lg) => lg !== langue)
+      .map((lg) => `<meta property="og:locale:alternate" content="${OG_LOCALE[lg]}">`))
+    .join('\n');
+
+  return SEO.html
+    .replace('<html lang="en">', `<html lang="${langue}">`)
+    .replace(/<title>[^<]*<\/title>/, `<title>${titre}</title>`)
+    .replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${L.desc}">`)
+    .replace(/<link rel="canonical" href="[^"]*">/, `<link rel="canonical" href="${url(langue)}">\n${alternates}`)
+    .replace(/<meta property="og:locale" content="[^"]*">(\s*<meta property="og:locale:alternate" content="[^"]*">)*/, localesOG)
+    .replace(/<meta property="og:url" content="[^"]*">/, `<meta property="og:url" content="${url(langue)}">`)
+    .replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${titre}">`)
+    .replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${L.desc}">`)
+    .replace(/<meta property="og:image:alt" content="[^"]*">/, `<meta property="og:image:alt" content="${L.titre}">`);
+}
+
+/* /en/tarifs n'existe pas : l'anglais vit sur l'adresse nue. Rediriger évite deux adresses
+ * pour une seule page, ce que Google compte comme du contenu dupliqué. */
+app.get(/^\/en(\/.*)?$/, (req, res) => res.redirect(301, req.path.slice(3) || '/'));
 
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/')) return next();
   if (path.extname(req.path)) return next(); // fichier réellement introuvable : vrai 404
-  const chemin = (req.path || '/').replace(/\/+$/, '') || '/';
-  if (CHEMINS_CONNUS && !CHEMINS_CONNUS.has(chemin)) {
-    // La page 404 reste l'application : elle sait afficher son propre message d'erreur,
-    // et l'utilisateur garde la navigation sous la main. Seul le code HTTP change.
-    return res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
+
+  let chemin = (req.path || '/').replace(/\/+$/, '') || '/';
+  let langue = 'en';
+  const prefixe = chemin.match(/^\/([a-z]{2})(\/.*)?$/);
+  if (prefixe && LANGUES_PREFIXEES.includes(prefixe[1])) {
+    langue = prefixe[1];
+    chemin = prefixe[2] || '/';
   }
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+
+  const connu = !SEO || SEO.chemins.has(chemin);
+  const corps = pageHtml(chemin, langue);
+  // La page 404 reste l'application : elle sait afficher son propre message, et l'utilisateur
+  // garde la navigation sous la main. Seul le code HTTP change.
+  if (!corps) return res.status(connu ? 200 : 404).sendFile(INDEX);
+  res.status(connu ? 200 : 404).type('html').send(corps);
 });
 
 /* Une route d'API qui n'existe pas doit répondre en JSON : le front fait r.json() sur

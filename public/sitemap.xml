@@ -1,11 +1,444 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://worthits.com/</loc><lastmod>2026-07-20</lastmod><priority>1.0</priority></url>
-  <url><loc>https://worthits.com/fonctionnalites</loc><lastmod>2026-07-20</lastmod><priority>0.8</priority></url>
-  <url><loc>https://worthits.com/tarifs</loc><lastmod>2026-07-20</lastmod><priority>0.8</priority></url>
-  <url><loc>https://worthits.com/tournois</loc><lastmod>2026-07-20</lastmod><priority>0.6</priority></url>
-  <url><loc>https://worthits.com/decouvrir</loc><lastmod>2026-07-20</lastmod><priority>0.6</priority></url>
-  <url><loc>https://worthits.com/a-propos</loc><lastmod>2026-07-20</lastmod><priority>0.6</priority></url>
-  <url><loc>https://worthits.com/confidentialite</loc><lastmod>2026-07-20</lastmod><priority>0.3</priority></url>
-  <url><loc>https://worthits.com/cgu</loc><lastmod>2026-07-20</lastmod><priority>0.3</priority></url>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://worthits.com/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/fr/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/es/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/de/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/nl/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/fonctionnalites</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/fonctionnalites"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/fonctionnalites"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/fonctionnalites"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/fonctionnalites"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/fonctionnalites"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/fonctionnalites"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/fr/fonctionnalites</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/fonctionnalites"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/fonctionnalites"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/fonctionnalites"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/fonctionnalites"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/fonctionnalites"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/fonctionnalites"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/es/fonctionnalites</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/fonctionnalites"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/fonctionnalites"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/fonctionnalites"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/fonctionnalites"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/fonctionnalites"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/fonctionnalites"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/de/fonctionnalites</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/fonctionnalites"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/fonctionnalites"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/fonctionnalites"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/fonctionnalites"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/fonctionnalites"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/fonctionnalites"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/nl/fonctionnalites</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/fonctionnalites"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/fonctionnalites"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/fonctionnalites"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/fonctionnalites"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/fonctionnalites"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/fonctionnalites"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/tarifs</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/tarifs"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/tarifs"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/tarifs"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/tarifs"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/tarifs"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/tarifs"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/fr/tarifs</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/tarifs"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/tarifs"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/tarifs"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/tarifs"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/tarifs"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/tarifs"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/es/tarifs</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/tarifs"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/tarifs"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/tarifs"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/tarifs"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/tarifs"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/tarifs"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/de/tarifs</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/tarifs"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/tarifs"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/tarifs"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/tarifs"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/tarifs"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/tarifs"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/nl/tarifs</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/tarifs"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/tarifs"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/tarifs"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/tarifs"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/tarifs"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/tarifs"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/tournois</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/tournois"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/tournois"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/tournois"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/tournois"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/tournois"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/tournois"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/fr/tournois</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/tournois"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/tournois"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/tournois"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/tournois"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/tournois"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/tournois"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/es/tournois</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/tournois"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/tournois"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/tournois"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/tournois"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/tournois"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/tournois"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/de/tournois</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/tournois"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/tournois"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/tournois"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/tournois"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/tournois"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/tournois"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/nl/tournois</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/tournois"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/tournois"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/tournois"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/tournois"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/tournois"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/tournois"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/decouvrir</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/decouvrir"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/decouvrir"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/decouvrir"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/decouvrir"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/decouvrir"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/decouvrir"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/fr/decouvrir</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/decouvrir"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/decouvrir"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/decouvrir"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/decouvrir"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/decouvrir"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/decouvrir"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/es/decouvrir</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/decouvrir"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/decouvrir"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/decouvrir"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/decouvrir"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/decouvrir"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/decouvrir"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/de/decouvrir</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/decouvrir"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/decouvrir"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/decouvrir"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/decouvrir"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/decouvrir"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/decouvrir"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/nl/decouvrir</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/decouvrir"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/decouvrir"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/decouvrir"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/decouvrir"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/decouvrir"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/decouvrir"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/a-propos</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/a-propos"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/a-propos"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/a-propos"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/a-propos"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/a-propos"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/a-propos"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/fr/a-propos</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/a-propos"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/a-propos"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/a-propos"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/a-propos"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/a-propos"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/a-propos"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/es/a-propos</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/a-propos"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/a-propos"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/a-propos"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/a-propos"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/a-propos"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/a-propos"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/de/a-propos</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/a-propos"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/a-propos"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/a-propos"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/a-propos"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/a-propos"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/a-propos"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/nl/a-propos</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/a-propos"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/a-propos"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/a-propos"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/a-propos"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/a-propos"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/a-propos"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/confidentialite</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/confidentialite"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/confidentialite"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/confidentialite"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/confidentialite"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/confidentialite"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/confidentialite"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/fr/confidentialite</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/confidentialite"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/confidentialite"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/confidentialite"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/confidentialite"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/confidentialite"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/confidentialite"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/es/confidentialite</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/confidentialite"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/confidentialite"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/confidentialite"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/confidentialite"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/confidentialite"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/confidentialite"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/de/confidentialite</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/confidentialite"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/confidentialite"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/confidentialite"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/confidentialite"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/confidentialite"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/confidentialite"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/nl/confidentialite</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/confidentialite"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/confidentialite"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/confidentialite"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/confidentialite"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/confidentialite"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/confidentialite"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/cgu</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/cgu"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/cgu"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/cgu"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/cgu"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/cgu"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/cgu"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/fr/cgu</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/cgu"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/cgu"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/cgu"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/cgu"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/cgu"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/cgu"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/es/cgu</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/cgu"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/cgu"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/cgu"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/cgu"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/cgu"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/cgu"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/de/cgu</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/cgu"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/cgu"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/cgu"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/cgu"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/cgu"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/cgu"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/nl/cgu</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/cgu"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/cgu"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/cgu"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/cgu"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/cgu"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/cgu"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.6</priority>
+  </url>
 </urlset>

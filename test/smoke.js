@@ -82,8 +82,42 @@ test('les URLs réelles renvoient l\'app (fallback SPA)', async () => {
   for (const route of ['/tarifs', '/a-propos', '/confidentialite', '/tournois']) {
     const r = await fetch(BASE + route);
     assert.strictEqual(r.status, 200, `${route} devrait répondre 200`);
-    assert.match(await r.text(), /<title>Worthit/);
+    const html = await r.text();
+    assert.match(html, /<title>[^<]*Worthit[^<]*<\/title>/, `${route} doit avoir un titre`);
+    // Le canonical était figé sur l'accueil : chaque page demandait ainsi à Google de ne
+    // pas l'indexer. Il doit désigner la page elle-même.
+    assert.match(html, new RegExp(`<link rel="canonical" href="https://worthits.com${route}"`),
+      `${route} doit être sa propre version canonique`);
   }
+});
+
+test('une adresse qui n\'existe pas répond 404, pas la page d\'accueil', async () => {
+  for (const route of ['/page-inexistante', '/truc/machin', '/fr/page-inexistante']) {
+    const r = await fetch(BASE + route);
+    assert.strictEqual(r.status, 404, `${route} devrait répondre 404`);
+  }
+});
+
+test('chaque langue a son adresse, et elles se déclarent entre elles', async () => {
+  const attendu = { fr: 'Tarifs', es: 'Precios', de: 'Preise', nl: 'Prijzen' };
+  for (const [langue, titre] of Object.entries(attendu)) {
+    const r = await fetch(`${BASE}/${langue}/tarifs`);
+    assert.strictEqual(r.status, 200, `/${langue}/tarifs devrait répondre 200`);
+    const html = await r.text();
+    assert.match(html, new RegExp(`<html lang="${langue}"`), `/${langue}/tarifs doit se déclarer en ${langue}`);
+    assert.ok(html.includes(`<title>${titre}`), `/${langue}/tarifs doit être titré « ${titre} »`);
+    // Sans hreflang, les cinq traductions passent pour du contenu dupliqué.
+    for (const autre of ['en', 'fr', 'es', 'de', 'nl']) {
+      assert.match(html, new RegExp(`hreflang="${autre}"`), `/${langue}/tarifs doit pointer vers ${autre}`);
+    }
+    assert.match(html, /hreflang="x-default"/);
+  }
+});
+
+test('/en double une adresse existante : il redirige', async () => {
+  const r = await fetch(BASE + '/en/tarifs', { redirect: 'manual' });
+  assert.strictEqual(r.status, 301);
+  assert.strictEqual(r.headers.get('location'), '/tarifs');
 });
 
 test('les fichiers SEO et icônes sont servis', async () => {

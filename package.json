@@ -11,7 +11,8 @@
     "ext-icons": "node scripts/make-ext-icons.js",
     "ext-zip": "node scripts/make-ext-zip.js",
     "logo": "node scripts/make-logo.js",
-    "press": "node scripts/make-press.js"
+    "press": "node scripts/make-press.js",
+    "sitemap": "node scripts/make-sitemap.js"
   },
   "engines": {
     "node": ">=18"

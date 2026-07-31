@@ -441,4 +441,59 @@
     <lastmod>2026-07-31</lastmod>
     <priority>0.6</priority>
   </url>
+  <url>
+    <loc>https://worthits.com/contact</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/contact"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/contact"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/contact"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/contact"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/contact"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/contact"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/fr/contact</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/contact"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/contact"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/contact"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/contact"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/contact"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/contact"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/es/contact</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/contact"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/contact"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/contact"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/contact"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/contact"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/contact"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/de/contact</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/contact"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/contact"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/contact"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/contact"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/contact"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/contact"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://worthits.com/nl/contact</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://worthits.com/contact"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://worthits.com/fr/contact"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://worthits.com/es/contact"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://worthits.com/de/contact"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://worthits.com/nl/contact"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://worthits.com/contact"/>
+    <lastmod>2026-07-31</lastmod>
+    <priority>0.6</priority>
+  </url>
 </urlset>

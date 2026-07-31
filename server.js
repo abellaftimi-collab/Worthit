@@ -1252,7 +1252,7 @@ const SEO = (() => {
       langues[lg] = { titre, desc, nav: {
         '/fonctionnalites': lire('nav.features', lg), '/tarifs': lire('nav.pricing', lg),
         '/tournois': lire('nav.tournaments', lg), '/decouvrir': lire('nav.showcase', lg),
-        '/a-propos': lire('nav.about', lg),
+        '/a-propos': lire('nav.about', lg), '/contact': lire('nav.contact', lg),
       } };
     }
     return { html, chemins: new Set(chemins), publics: chemins.filter((c) => !PRIVEES.has(c)), langues };

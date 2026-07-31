@@ -1201,10 +1201,39 @@ app.post('/api/chat', route(async (req, res) => {
   }
 }));
 
-/* ---------- fallback SPA : /tarifs, /a-propos… renvoient l'app (le routing se fait côté client) ---------- */
+/* ---------- fallback SPA : /tarifs, /a-propos… renvoient l'app (le routing se fait côté client) ----------
+ *
+ * Les chemins connus sont relus dans public/index.html, où ils sont déjà déclarés pour le
+ * routage côté client. Les recopier ici garantirait qu'un jour les deux listes divergent :
+ * on ajouterait une page, elle marcherait en navigation interne et renverrait 404 au premier
+ * partage de lien.
+ *
+ * Tout ce qui n'est pas dans cette liste répond un vrai 404. Avant, n'importe quelle adresse
+ * renvoyait l'accueil avec un code 200 : Google indexait des pages fantômes, et une faute de
+ * frappe dans un lien partagé n'avertissait jamais personne. */
+const CHEMINS_CONNUS = (() => {
+  try {
+    const html = require('fs').readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
+    const bloc = html.slice(html.indexOf('const ROUTES = {'));
+    const routes = bloc.slice(0, bloc.indexOf('};'));
+    const chemins = [...routes.matchAll(/'(\/[a-z-]*)'/g)].map((m) => m[1]);
+    if (!chemins.length) throw new Error('aucune route trouvée');
+    return new Set(chemins);
+  } catch (err) {
+    console.error('[routes] lecture impossible, tous les chemins seront servis :', err.message);
+    return null; // on ne casse pas le site pour ça : sans liste, on sert comme avant
+  }
+})();
+
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/')) return next();
   if (path.extname(req.path)) return next(); // fichier réellement introuvable : vrai 404
+  const chemin = (req.path || '/').replace(/\/+$/, '') || '/';
+  if (CHEMINS_CONNUS && !CHEMINS_CONNUS.has(chemin)) {
+    // La page 404 reste l'application : elle sait afficher son propre message d'erreur,
+    // et l'utilisateur garde la navigation sous la main. Seul le code HTTP change.
+    return res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
+  }
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
